@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 let images = [];
 let documents = [];
+let figmaReferences = [];
 
 function sizeLabel(bytes) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -52,6 +53,60 @@ function setupDropzone(zone, input, target, container, type) {
 
 setupDropzone($('#imageDropzone'), $('#imageInput'), images, $('#imageList'), 'image');
 setupDropzone($('#docDropzone'), $('#docInput'), documents, $('#docList'), 'doc');
+
+function renderFigmaReferences() {
+  const container = $('#figmaImageList');
+  container.querySelectorAll('.reference-thumbnail').forEach((thumbnail) => URL.revokeObjectURL(thumbnail.src));
+  container.replaceChildren();
+  figmaReferences.forEach((file, index) => {
+    const row = document.createElement('div');
+    row.className = 'file-row reference-row';
+    const thumbnail = document.createElement('img');
+    thumbnail.className = 'reference-thumbnail';
+    thumbnail.src = URL.createObjectURL(file);
+    thumbnail.alt = '';
+    const meta = document.createElement('span');
+    meta.className = 'file-meta';
+    const name = document.createElement('b');
+    name.textContent = file.name;
+    const size = document.createElement('small');
+    size.textContent = sizeLabel(file.size);
+    meta.append(name, size);
+    const remove = document.createElement('button');
+    remove.className = 'remove-file';
+    remove.type = 'button';
+    remove.setAttribute('aria-label', 'ลบภาพอ้างอิง Figma');
+    remove.textContent = '×';
+    remove.addEventListener('click', () => {
+      figmaReferences.splice(index, 1);
+      renderFigmaReferences();
+    });
+    row.append(thumbnail, meta, remove);
+    container.append(row);
+  });
+}
+
+function setupFigmaReferenceUpload() {
+  const zone = $('#figmaDropzone');
+  const input = $('#figmaImageInput');
+  $('#browseFigmaImages').addEventListener('click', (event) => { event.stopPropagation(); input.click(); });
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', (event) => {
+    appendUnique(figmaReferences, [...event.target.files].filter((file) => file.type.startsWith('image/')));
+    renderFigmaReferences();
+    input.value = '';
+  });
+  zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    zone.classList.remove('dragover');
+    appendUnique(figmaReferences, [...event.dataTransfer.files].filter((file) => file.type.startsWith('image/')));
+    renderFigmaReferences();
+  });
+}
+
+setupFigmaReferenceUpload();
 
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -118,6 +173,7 @@ function weaveQuotes(articleHtml) {
 
 async function generateHtml() {
   const button = $('#generateBtn');
+  document.body.classList.add('has-started');
   const docx = documents.filter((file) => /\.(docx|doc|txt|rtf)$/i.test(file.name));
   if (!docx.length) {
     alert('เพิ่มไฟล์ Word (.docx) ก่อนครับ ช่อง Figma ใช้เก็บลิงก์อ้างอิง แต่ยังดึงข้อความอัตโนมัติไม่ได้');

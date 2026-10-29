@@ -81,3 +81,22 @@ html,body{max-width:100%;overflow-x:hidden;}
 #previewFrame{flex:1;height:auto;min-height:0;}
 .result-actions{flex:none;position:sticky;bottom:0;z-index:2;background:#fff;padding:12px 0 0;border-top:1px solid #edf0ec;}
 @media(max-width:900px){.output-panel{height:auto;min-height:480px}#outputReady:not([hidden]){min-height:400px}#htmlOutput,#previewFrame{min-height:300px}}
+
+/* Figma exports are visual references, separate from article source images. */
+.reference-label{margin-top:12px;}
+.figma-reference-dropzone{min-height:72px;padding:8px 12px;gap:5px;}
+.figma-reference-dropzone small{margin-top:0;}
+.reference-list{max-height:100px;overflow:auto;}
+.reference-row{min-height:48px;}
+.reference-thumbnail{width:44px;height:36px;flex:0 0 44px;object-fit:cover;border:1px solid var(--line);border-radius:5px;background:#fff;}
+
+/* Keep the initial screen still; after generation starts, let the document grow and scroll normally. */
+body.has-started{overflow-y:auto;overflow-x:hidden;}
+body.has-started .app-shell{position:relative;inset:auto;height:auto;min-height:100dvh;overflow:visible;grid-template-rows:58px auto;}
+body.has-started .main-area{height:auto;min-height:calc(100dvh - 58px);overflow:visible;padding-bottom:28px;}
+body.has-started .work-grid{height:auto;min-height:calc(100dvh - 132px);align-items:stretch;}
+body.has-started .input-panel{height:auto;max-height:none;overflow:visible;}
+body.has-started .output-panel{height:auto;min-height:calc(100dvh - 150px);overflow:hidden;}
+body.has-started #outputReady:not([hidden]){min-height:calc(100dvh - 250px);}
+body.has-started #htmlOutput,body.has-started #previewFrame{min-height:55vh;}
+@media(max-width:900px){body.has-started .app-shell{height:auto;min-height:100dvh;overflow:visible;grid-template-rows:58px auto;}body.has-started .main-area{height:auto;overflow:visible;}body.has-started .work-grid{height:auto;min-height:0;}body.has-started .input-panel,body.has-started .output-panel{height:auto;}body.has-started .output-panel{min-height:480px;}body.has-started #outputReady:not([hidden]){min-height:400px;}}
