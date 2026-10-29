@@ -1,133 +1,87 @@
 const $ = (selector) => document.querySelector(selector);
-let files = [];
+let images = [];
+let documents = [];
 
-const dropzone = $('#dropzone');
-const picker = $('#fileInput');
-const fileList = $('#fileList');
-
-function formatSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1048576).toFixed(1)} MB`;
+function sizeLabel(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function fileKind(file) {
-  if (file.type.startsWith('image/')) return 'IMG';
-  if (file.type.startsWith('audio/')) return 'AUD';
-  if (file.type.startsWith('video/')) return 'VID';
-  if (/\.docx?$/i.test(file.name)) return 'DOC';
-  return 'TXT';
-}
-
-function addFiles(incoming) {
+function appendUnique(target, incoming) {
   for (const file of incoming) {
-    if (!files.some((item) => item.name === file.name && item.size === file.size)) files.push(file);
+    if (!target.some((item) => item.name === file.name && item.size === file.size)) target.push(file);
   }
-  renderFiles();
 }
 
-function renderFiles() {
-  fileList.replaceChildren();
-  files.forEach((file, index) => {
+function renderList(target, container, type) {
+  container.replaceChildren();
+  target.forEach((file, index) => {
+    const name = type === 'image' ? (index === 0 ? 'highlight.webp' : `quote-${index}.webp`) : file.name;
     const row = document.createElement('div');
     row.className = 'file-row';
-    row.innerHTML = `<span class="file-type">${fileKind(file)}</span><span class="file-meta"><b></b><small>${formatSize(file.size)}</small></span><button class="remove-file" aria-label="ลบไฟล์">×</button>`;
-    row.querySelector('b').textContent = file.name;
-    row.querySelector('button').addEventListener('click', () => {
-      files.splice(index, 1);
-      renderFiles();
+    row.innerHTML = `<span class="file-type">${type === 'image' ? 'IMG' : 'DOC'}</span><span class="file-meta"><b></b><small>${sizeLabel(file.size)}</small></span>${type === 'image' ? '<span class="file-output-name"></span>' : ''}<button class="remove-file" aria-label="ลบไฟล์">×</button>`;
+    row.querySelector('.file-meta b').textContent = file.name;
+    row.querySelector('.file-output-name')?.replaceChildren(document.createTextNode(name));
+    row.querySelector('.remove-file').addEventListener('click', () => {
+      target.splice(index, 1);
+      renderList(target, container, type);
     });
-    fileList.append(row);
+    container.append(row);
   });
 }
 
-$('#browseBtn').addEventListener('click', () => picker.click());
-picker.addEventListener('change', (event) => addFiles(event.target.files));
-dropzone.addEventListener('click', (event) => {
-  if (!event.target.closest('button')) picker.click();
-});
-dropzone.addEventListener('dragover', (event) => {
-  event.preventDefault();
-  dropzone.classList.add('dragover');
-});
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-dropzone.addEventListener('drop', (event) => {
-  event.preventDefault();
-  dropzone.classList.remove('dragover');
-  addFiles(event.dataTransfer.files);
-});
+function setupDropzone(zone, input, target, container, type) {
+  const browse = zone.querySelector('button');
+  browse.addEventListener('click', (event) => { event.stopPropagation(); input.click(); });
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', (event) => {
+    appendUnique(target, event.target.files);
+    renderList(target, container, type);
+    input.value = '';
+  });
+  zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    zone.classList.remove('dragover');
+    const accepted = [...event.dataTransfer.files].filter((file) => type === 'image' ? file.type.startsWith('image/') : /\.(docx|doc|txt|mp3|mp4|m4a|wav)$/i.test(file.name));
+    appendUnique(target, accepted);
+    renderList(target, container, type);
+  });
+}
+
+setupDropzone($('#imageDropzone'), $('#imageInput'), images, $('#imageList'), 'image');
+setupDropzone($('#docDropzone'), $('#docInput'), documents, $('#docList'), 'doc');
 
 function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[character]);
+  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 }
 
-function safeFileName(name) {
-  return name.replace(/[\\/]/g, '').replace(/["<>]/g, '');
-}
-
-function cmsPath(file, outputName) {
-  return `/storage/newsroom/refaction/###/###/###/${outputName || safeFileName(file.name)}`;
-}
-
-function imageBlocks(images) {
-  return images.map((file, index) => {
-    const label = index === 0 ? 'highlight (ภาพแรก)' : `quote-${index} (ตามลำดับไฟล์)`;
-    const outputName = index === 0 ? 'highlight.webp' : `quote-${index}.webp`;
-    const src = cmsPath(file, outputName);
-    if (index === 0) {
-      return `<!-- ${label} -->\n<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${src}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
-    }
-    return `<!-- ${label} -->\n<figure class="text-center my-5"><img class="img-fluid" src="${src}"></figure>`;
-  });
-}
-
-async function extractDocx(file) {
-  if (!window.mammoth) throw new Error('โหลดตัวอ่านไฟล์ Word ไม่สำเร็จ กรุณาตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้า');
-  const result = await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
-  return result.value;
-}
-
-function paragraphsFromPlainText(text) {
-  return text.split(/\r?\n\s*\r?\n/).map((part) => part.trim()).filter(Boolean)
-    .map((part) => `<p>${escapeHtml(part).replace(/\r?\n/g, '<br>')}</p>`);
-}
-
-async function getArticleHtml() {
-  const docxFiles = files.filter((file) => /\.docx$/i.test(file.name));
-  const legacyDocs = files.filter((file) => /\.doc$/i.test(file.name));
-  if (legacyDocs.length) throw new Error('ไฟล์ .doc รุ่นเก่าอ่านไม่ได้ กรุณาบันทึกเป็น .docx หรือวางข้อความในช่องข้อความบทความ');
-
-  let content = $('#articleText').value.trim();
-  if (!content && docxFiles.length) {
-    const parts = [];
-    for (const file of docxFiles) parts.push(await extractDocx(file));
-    content = parts.join('\n');
+async function readDocument(file) {
+  if (/\.docx$/i.test(file.name)) {
+    if (!window.mammoth) throw new Error('ไฟล์ Word reader โหลดไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้า');
+    return (await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })).value;
   }
-  if (!content) throw new Error('ยังไม่มีข้อความบทความ: เพิ่มไฟล์ Word .docx หรือวางข้อความที่คัดลอกจาก Figma ในช่อง “ข้อความบทความ” ก่อนสร้าง HTML');
-
-  const looksLikeHtml = /<(p|h[1-6]|ul|ol|blockquote)\b/i.test(content);
-  return looksLikeHtml ? content : paragraphsFromPlainText(content).join('\n');
+  if (/\.(txt|rtf)$/i.test(file.name)) {
+    const text = await file.text();
+    return text.split(/\r?\n\s*\r?\n/).filter((paragraph) => paragraph.trim()).map((paragraph) => `<p>${escapeHtml(paragraph.trim()).replace(/\r?\n/g, '<br>')}</p>`).join('\n');
+  }
+  if (/\.doc$/i.test(file.name)) throw new Error('ไฟล์ .doc รุ่นเก่าอ่านไม่ได้ กรุณาบันทึกเป็น .docx');
+  return '';
 }
 
-function getTitle(articleHtml) {
-  const explicit = $('#articleTitle').value.trim();
-  if (explicit) return explicit;
-  const temporary = document.createElement('div');
-  temporary.innerHTML = articleHtml;
-  return temporary.querySelector('h1,h2,h3')?.textContent.trim() || '';
+function imagePath(index) {
+  const name = index === 0 ? 'highlight.webp' : `quote-${index}.webp`;
+  return `/storage/newsroom/refaction/###/###/###/${name}`;
 }
 
-function mediaMarkup(media) {
-  return media.map((file) => {
-    if (file.type.startsWith('audio/')) return '<audio controls="controls" src="###"></audio>';
-    if (file.type.startsWith('video/')) return '<video controls="controls" src="###"></video>';
-    return '';
-  }).filter(Boolean).join('\n');
+function imageMarkup(index) {
+  const src = imagePath(index);
+  if (index === 0) return `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${src}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
+  return `<!-- quote-${index} -->\n<figure class="text-center my-5"><img class="img-fluid" src="${src}"></figure>`;
 }
 
-function normalizeCmsSpacing(html) {
+function normalizeSpacing(html) {
   let output = html.replace(/<figure\b([^>]*)class=(['"])([^'"]*\btext-center\b[^'"]*)\2([^>]*)>/gi, (tag, before, quote, classNames, after) => {
     const classes = classNames.split(/\s+/).filter(Boolean);
     if (!classes.includes('my-5')) classes.push('my-5');
@@ -136,58 +90,62 @@ function normalizeCmsSpacing(html) {
   output = output.replace(/(<p\b[^>]*class=(['"])([^'"]*\bmy-5\b[^'"]*)\2[^>]*>[\s\S]*?<\/p\s*>\s*)(<figure\b[^>]*class=(['"])[^'"]*\btext-center\b[^'"]*\5[^>]*>)/gi, (match, paragraph, quote, classNames, figureTag) => {
     const classes = classNames.split(/\s+/).filter(Boolean);
     if (!classes.includes('mb-0')) classes.push('mb-0');
-    const fixedParagraph = paragraph.replace(`${quote}${classNames}${quote}`, `${quote}${classes.join(' ')}${quote}`);
-    return `${fixedParagraph}${figureTag}`;
+    return `${paragraph.replace(`${quote}${classNames}${quote}`, `${quote}${classes.join(' ')}${quote}`)}${figureTag}`;
   });
   return output;
 }
 
-function createOutput(title, articleHtml) {
-  const pictures = files.filter((file) => file.type.startsWith('image/'));
-  const media = files.filter((file) => file.type.startsWith('audio/') || file.type.startsWith('video/'));
-  const introMedia = mediaMarkup(media);
-  const imageHtml = imageBlocks(pictures);
-  const lines = articleHtml.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const paragraphs = [];
-  let quoteIndex = 1;
-  for (let index = 0; index < lines.length; index++) {
-    paragraphs.push(lines[index]);
-    const nextImageAt = Math.ceil((quoteIndex * lines.length) / (imageHtml.length || 1));
-    if (quoteIndex < imageHtml.length && (index + 1 >= nextImageAt || index === lines.length - 1)) {
-      paragraphs.push(imageHtml[quoteIndex]);
-      quoteIndex++;
-    }
-  }
-  const content = paragraphs.map((line) => `            ${line}`).join('\n');
-  const highlight = imageHtml[0] ? `${imageHtml[0]}\n\n` : '';
-  return normalizeCmsSpacing(`<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${introMedia}\n        </div>\n    </div>\n</div>\n\n${highlight}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${content}\n        </div>\n    </div>\n</div>`);
+function weaveQuotes(articleHtml) {
+  const blocks = articleHtml.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!images.length) return blocks.join('\n');
+  const result = [];
+  const quoteCount = images.length - 1;
+  let quote = 1;
+  blocks.forEach((block, index) => {
+    result.push(block);
+    const target = Math.ceil((quote * blocks.length) / Math.max(quoteCount, 1));
+    if (quote <= quoteCount && index + 1 >= target) result.push(imageMarkup(quote++));
+  });
+  while (quote <= quoteCount) result.push(imageMarkup(quote++));
+  return result.join('\n');
 }
 
-async function generate() {
+async function generateHtml() {
   const button = $('#generateBtn');
+  const docx = documents.filter((file) => /\.(docx|doc|txt|rtf)$/i.test(file.name));
+  if (!docx.length) {
+    alert('เพิ่มไฟล์ Word (.docx) ก่อนครับ ช่อง Figma ใช้เก็บลิงก์อ้างอิง แต่ยังดึงข้อความอัตโนมัติไม่ได้');
+    return;
+  }
   button.disabled = true;
-  button.textContent = 'กำลังอ่านไฟล์…';
+  button.textContent = 'กำลังอ่านเอกสาร…';
   try {
-    const articleHtml = await getArticleHtml();
-    const title = getTitle(articleHtml);
-    if (!title) throw new Error('ยังไม่มีชื่อบทความ กรุณากรอกชื่อบทความก่อนสร้าง HTML');
-
-    const imageCount = files.filter((file) => file.type.startsWith('image/')).length;
-    const mediaCount = files.filter((file) => file.type.startsWith('audio/') || file.type.startsWith('video/')).length;
-    $('#htmlOutput').value = createOutput(title, articleHtml);
-    $('#resultSummary').textContent = `มีข้อความบทความแล้ว · ${imageCount} ภาพ (ภาพแรกเป็น highlight) · ${mediaCount} ไฟล์เสียง/วิดีโอ · พาธสื่อยังเป็นตัวอย่าง`;
-    $('#resultPanel').hidden = false;
-    $('#previewFrame').srcdoc = `<!doctype html><meta charset="utf-8"><style>body{font:16px/1.8 Arial,sans-serif;color:#233;margin:0}p{margin:0 0 1.4em}.container{max-width:900px;margin:auto;padding:24px}.row{display:flex;justify-content:center}.col-md-10{width:78%}.w-100{width:100%}.text-center{text-align:center}figure{margin:2em auto}.img-fluid{max-width:100%}h2{font-size:24px}.bg-split-news-big-image{background:#f3f5f2;padding:30px 0;margin:25px 0}</style>${$('#htmlOutput').value}`;
-    $('#resultPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const parts = [];
+    for (const file of docx) parts.push(await readDocument(file));
+    const article = parts.filter(Boolean).join('\n');
+    if (!article.trim()) throw new Error('ไม่พบข้อความในเอกสาร Word ที่เลือก');
+    const media = documents.filter((file) => /\.(mp3|mp4|m4a|wav)$/i.test(file.name));
+    const video = media.some((file) => /\.mp4$/i.test(file.name)) ? '<video controls="controls" src="###"></video>' : '';
+    const audio = media.some((file) => /\.(mp3|m4a|wav)$/i.test(file.name)) ? '<audio controls="controls" src="###"></audio>' : '';
+    const imagesHtml = images.length ? `${imageMarkup(0)}\n` : '';
+    const body = weaveQuotes(article);
+    const topMedia = [audio, video].filter(Boolean).join('\n');
+    const output = `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            ${topMedia}\n        </div>\n    </div>\n</div>\n\n${imagesHtml}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${body.split(/\r?\n/).map((line) => `            ${line}`).join('\n')}\n        </div>\n    </div>\n</div>`;
+    $('#htmlOutput').value = normalizeSpacing(output);
+    $('#resultSummary').textContent = `${docx.length} ไฟล์ Word · ${images.length} ภาพ (highlight${images.length > 1 ? `, quote-1 ถึง quote-${images.length - 1}` : ''}) · ${media.length} ไฟล์เสียง/วิดีโอ`;
+    $('#outputEmpty').hidden = true;
+    $('#outputReady').hidden = false;
+    $('#outputStatus').textContent = 'พร้อมตรวจ';
+    $('#previewFrame').srcdoc = `<!doctype html><meta charset="utf-8"><style>body{font:16px/1.8 Arial,sans-serif;color:#25362b;margin:0}p{margin:0 0 1.4em}.container{max-width:900px;margin:auto;padding:24px}.row{display:flex;justify-content:center}.col-md-10{width:78%}.w-100{width:100%}.text-center{text-align:center}figure{margin:2em auto}.img-fluid{max-width:100%}.bg-split-news-big-image{background:#f4f8f3;padding:30px 0;margin:25px 0}</style>${$('#htmlOutput').value}`;
   } catch (error) {
     alert(error.message);
   } finally {
     button.disabled = false;
-    button.innerHTML = 'จัดเนื้อหาและสร้าง HTML <span>→</span>';
+    button.innerHTML = 'สร้าง HTML <span>↗</span>';
   }
 }
 
-$('#generateBtn').addEventListener('click', generate);
+$('#generateBtn').addEventListener('click', generateHtml);
 $('#copyBtn').addEventListener('click', async () => {
   await navigator.clipboard.writeText($('#htmlOutput').value);
   $('#copyBtn').textContent = 'คัดลอกแล้ว ✓';
@@ -200,6 +158,43 @@ $('#downloadBtn').addEventListener('click', () => {
   link.download = 'reflection-content.html';
   link.click();
   URL.revokeObjectURL(link.href);
+});
+$('#downloadImagesBtn').addEventListener('click', async () => {
+  if (!window.JSZip) {
+    alert('ตัวสร้าง ZIP โหลดไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้า');
+    return;
+  }
+  if (!images.length) {
+    alert('ยังไม่มีรูปภาพให้ดาวน์โหลด');
+    return;
+  }
+  const button = $('#downloadImagesBtn');
+  button.disabled = true;
+  button.textContent = 'กำลังจัดชื่อรูปภาพ…';
+  try {
+    const zip = new window.JSZip();
+    for (let index = 0; index < images.length; index++) {
+      const bitmap = await createImageBitmap(images[index]);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error('แปลงรูปภาพไม่สำเร็จ')), 'image/webp', 0.92));
+      zip.file(index === 0 ? 'highlight.webp' : `quote-${index}.webp`, blob);
+      bitmap.close();
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'reflection-images.zip';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (error) {
+    alert(error.message || 'จัดไฟล์ภาพไม่สำเร็จ');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'ดาวน์โหลดรูปตามชื่อมาตรฐาน (.zip)';
+  }
 });
 document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach((item) => item.classList.remove('selected'));
