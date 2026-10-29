@@ -1,17 +1,194 @@
-const $=s=>document.querySelector(s);let files=[];let generated='';
-const drop=$('#dropzone'), picker=$('#fileInput'), list=$('#fileList');
-function prettySize(n){return n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(0)} KB`:`${(n/1048576).toFixed(1)} MB`}
-function kind(f){if(f.type.startsWith('image/'))return 'IMG';if(f.type.startsWith('audio/'))return 'AUD';if(f.type.startsWith('video/'))return 'VID';if(/\.docx?$/i.test(f.name))return 'DOC';return 'TXT'}
-function addFiles(incoming){for(const f of incoming){if(!files.some(x=>x.name===f.name&&x.size===f.size))files.push(f)}renderFiles()}
-function renderFiles(){list.innerHTML='';files.forEach((f,i)=>{const row=document.createElement('div');row.className='file-row';row.innerHTML=`<span class="file-type">${kind(f)}</span><span class="file-meta"><b></b><small>${prettySize(f.size)}</small></span><button class="remove-file" aria-label="ลบไฟล์">×</button>`;row.querySelector('b').textContent=f.name;row.querySelector('button').onclick=()=>{files.splice(i,1);renderFiles()};list.append(row)})}
-$('#browseBtn').onclick=()=>picker.click();picker.onchange=e=>addFiles(e.target.files);drop.addEventListener('click',e=>{if(e.target.closest('button'))return;picker.click()});drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');addFiles(e.dataTransfer.files)});
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function pathFor(f){const name=f.name.toLowerCase();if(/highlight/.test(name))return 'highlight';const q=name.match(/quote[-_ ]?(\d+)/);if(q)return `quote-${q[1]}`;return null}
-function fileUrl(f){return `/storage/newsroom/refaction/YYYY/MM/article-slug/${f.name}`}
-function wrap(text,cls=''){return `<p${cls?` class="${cls}"`:''}>${text}</p>`}
-function mediaBlock(f){const src=fileUrl(f);if(f.type.startsWith('audio/'))return `<audio controls="controls" src="${src}"></audio>`;if(f.type.startsWith('video/'))return `<video controls class="w-100" src="${src}"></video>`;const label=pathFor(f);if(!f.type.startsWith('image/'))return '';if(label==='highlight')return `\n<div class="bg-split-news-big-image">\n    <div class="container"><div class="row justify-content-center"><div class="col-xl-10 col-xxl-8 mb-5"><img src="${src}" class="w-100"></div></div></div>\n</div>`;return `<figure class="text-center mb-5"><img class="img-fluid" src="${src}"></figure>`}
-function toParagraphs(html){const box=document.createElement('div');box.innerHTML=html;let out=[];for(const node of box.childNodes){if(node.nodeType===Node.TEXT_NODE){const t=node.textContent.trim();if(t)out.push(wrap(escapeHtml(t)))}else if(node.nodeType===Node.ELEMENT_NODE){const tag=node.tagName.toLowerCase();if(/^h[1-6]$/.test(tag)){out.push(`<h4>${node.innerHTML}</h4>`)}else if(tag==='ul'||tag==='ol'){out.push(node.outerHTML)}else if(tag==='blockquote'){out.push(node.outerHTML)}else if(tag==='p'){out.push(node.outerHTML)}else if(tag==='img'){out.push(mediaBlock({name:node.getAttribute('src')||'image',type:'image/unknown'}))}else if(tag==='br'){out.push('<br>')}else{const t=node.textContent.trim();if(t)out.push(wrap(node.innerHTML))}}}return out.filter(Boolean)}
-async function readText(f){if(/\.docx$/i.test(f.name)&&window.mammoth){const ab=await f.arrayBuffer();const result=await mammoth.convertToHtml({arrayBuffer:ab});return result.value}return await f.text()}
-function titleFromText(html){const box=document.createElement('div');box.innerHTML=html;return (box.querySelector('h1,h2')?.textContent||'').trim()}
-async function build(){const btn=$('#generateBtn');btn.disabled=true;btn.textContent='กำลังอ่านไฟล์…';try{const docs=files.filter(f=>/\.(docx|doc|txt|rtf)$/i.test(f.name));let bodyHtml='';if(docs.length){for(const f of docs){bodyHtml+=await readText(f)}}const title=$('#articleTitle').value.trim()||titleFromText(bodyHtml)||'ชื่อบทความ';const media=files.filter(f=>f.type.startsWith('audio/')||f.type.startsWith('video/')||f.type.startsWith('image/'));const audio=media.filter(f=>f.type.startsWith('audio/')||f.type.startsWith('video/'));const highlight=media.find(f=>pathFor(f)==='highlight')||media.find(f=>f.type.startsWith('image/'));const quotes=media.filter(f=>f.type.startsWith('image/')&&f!==highlight).sort((a,b)=>{const ai=Number(pathFor(a)?.split('-')[1]||999),bi=Number(pathFor(b)?.split('-')[1]||999);return ai-bi});let contents=toParagraphs(bodyHtml);if(contents.length&&contents[0].startsWith('<h4>'))contents.shift();let inner='';if(audio.length)inner+=mediaBlock(audio[0])+'\n\n';if(highlight)inner+=mediaBlock(highlight)+'\n\n';let quoteIndex=0;for(const block of contents){inner+=block+'\n';if(quoteIndex<quotes.length&&/<\/p>/.test(block)&&(/mb-5/.test(block)||quoteIndex<quotes.length)){inner+=mediaBlock(quotes[quoteIndex++])+'\n'} }while(quoteIndex<quotes.length)inner+=mediaBlock(quotes[quoteIndex++])+'\n';if(!bodyHtml&&media.length===0)inner='<!-- เพิ่มไฟล์ Word และรูปภาพของบทความก่อนสร้าง HTML -->';generated=`<!-- Reflection: ${escapeHtml(title)} -->\n<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${audio.length?'': '<!-- เพิ่ม audio controls src="/storage/newsroom/refaction/YYYY/MM/article-slug/Reflection-ชื่อไฟล์.mp3" เมื่อมีไฟล์เสียง -->'}\n        </div>\n    </div>\n</div>\n\n${inner.trim()}\n`;$('#htmlOutput').value=generated;$('#resultSummary').textContent=`จัดเตรียมจาก ${docs.length} ไฟล์เนื้อหา, ${media.filter(f=>f.type.startsWith('image/')).length} ภาพ และ ${audio.length} ไฟล์เสียง/วิดีโอ · ตรวจลำดับภาพและพาธก่อนนำไปใช้`;$('#resultPanel').hidden=false;$('#resultPanel').scrollIntoView({behavior:'smooth',block:'start'});$('#previewFrame').srcdoc=`<!doctype html><meta charset="utf-8"><style>body{font:16px/1.8 Arial,sans-serif;color:#233;margin:0}p{margin:0 0 1.4em}.container{max-width:900px;margin:auto;padding:24px}.row{display:flex;justify-content:center}.col-md-10{width:78%}.w-100{width:100%}.text-center{text-align:center}figure{margin:2em auto}.img-fluid{max-width:100%}h2{font-size:24px}.bg-split-news-big-image{background:#f3f5f2;padding:30px 0;margin:25px 0}</style>${inner}`;}catch(err){alert('อ่านไฟล์ไม่สำเร็จ กรุณาตรวจไฟล์แล้วลองใหม่');console.error(err)}finally{btn.disabled=false;btn.innerHTML='จัดเนื้อหาและสร้าง HTML <span>→</span>'}}
-$('#generateBtn').onclick=build;$('#copyBtn').onclick=async()=>{await navigator.clipboard.writeText($('#htmlOutput').value);$('#copyBtn').textContent='คัดลอกแล้ว ✓';setTimeout(()=>$('#copyBtn').textContent='คัดลอก HTML',1700)};$('#downloadBtn').onclick=()=>{const blob=new Blob([$('#htmlOutput').value],{type:'text/html;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='reflection-content.html';a.click();URL.revokeObjectURL(a.href)};document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('selected'));t.classList.add('selected');$('#codePane').hidden=t.dataset.pane!=='codePane';$('#previewPane').hidden=t.dataset.pane!=='previewPane'});
+const $ = (selector) => document.querySelector(selector);
+let files = [];
+
+const dropzone = $('#dropzone');
+const picker = $('#fileInput');
+const fileList = $('#fileList');
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+function fileKind(file) {
+  if (file.type.startsWith('image/')) return 'IMG';
+  if (file.type.startsWith('audio/')) return 'AUD';
+  if (file.type.startsWith('video/')) return 'VID';
+  if (/\.docx?$/i.test(file.name)) return 'DOC';
+  return 'TXT';
+}
+
+function addFiles(incoming) {
+  for (const file of incoming) {
+    if (!files.some((item) => item.name === file.name && item.size === file.size)) files.push(file);
+  }
+  renderFiles();
+}
+
+function renderFiles() {
+  fileList.replaceChildren();
+  files.forEach((file, index) => {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    row.innerHTML = `<span class="file-type">${fileKind(file)}</span><span class="file-meta"><b></b><small>${formatSize(file.size)}</small></span><button class="remove-file" aria-label="ลบไฟล์">×</button>`;
+    row.querySelector('b').textContent = file.name;
+    row.querySelector('button').addEventListener('click', () => {
+      files.splice(index, 1);
+      renderFiles();
+    });
+    fileList.append(row);
+  });
+}
+
+$('#browseBtn').addEventListener('click', () => picker.click());
+picker.addEventListener('change', (event) => addFiles(event.target.files));
+dropzone.addEventListener('click', (event) => {
+  if (!event.target.closest('button')) picker.click();
+});
+dropzone.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  dropzone.classList.add('dragover');
+});
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (event) => {
+  event.preventDefault();
+  dropzone.classList.remove('dragover');
+  addFiles(event.dataTransfer.files);
+});
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
+function safeFileName(name) {
+  return name.replace(/[\\/]/g, '').replace(/["<>]/g, '');
+}
+
+function cmsPath(file) {
+  return `/storage/newsroom/refaction/YYYY/MM/article-slug/${safeFileName(file.name)}`;
+}
+
+function imageBlocks(images) {
+  return images.map((file, index) => {
+    const label = index === 0 ? 'highlight (ภาพแรก)' : `quote-${index} (ตามลำดับไฟล์)`;
+    const src = cmsPath(file);
+    if (index === 0) {
+      return `<!-- ${label} -->\n<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${src}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
+    }
+    return `<!-- ${label} -->\n<figure class="text-center mb-5"><img class="img-fluid" src="${src}"></figure>`;
+  });
+}
+
+async function extractDocx(file) {
+  if (!window.mammoth) throw new Error('โหลดตัวอ่านไฟล์ Word ไม่สำเร็จ กรุณาตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้า');
+  const result = await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+  return result.value;
+}
+
+function paragraphsFromPlainText(text) {
+  return text.split(/\r?\n\s*\r?\n/).map((part) => part.trim()).filter(Boolean)
+    .map((part) => `<p>${escapeHtml(part).replace(/\r?\n/g, '<br>')}</p>`);
+}
+
+async function getArticleHtml() {
+  const docxFiles = files.filter((file) => /\.docx$/i.test(file.name));
+  const legacyDocs = files.filter((file) => /\.doc$/i.test(file.name));
+  if (legacyDocs.length) throw new Error('ไฟล์ .doc รุ่นเก่าอ่านไม่ได้ กรุณาบันทึกเป็น .docx หรือวางข้อความในช่องข้อความบทความ');
+
+  let content = $('#articleText').value.trim();
+  if (!content && docxFiles.length) {
+    const parts = [];
+    for (const file of docxFiles) parts.push(await extractDocx(file));
+    content = parts.join('\n');
+  }
+  if (!content) throw new Error('ยังไม่มีข้อความบทความ: เพิ่มไฟล์ Word .docx หรือวางข้อความที่คัดลอกจาก Figma ในช่อง “ข้อความบทความ” ก่อนสร้าง HTML');
+
+  const looksLikeHtml = /<(p|h[1-6]|ul|ol|blockquote)\b/i.test(content);
+  return looksLikeHtml ? content : paragraphsFromPlainText(content).join('\n');
+}
+
+function getTitle(articleHtml) {
+  const explicit = $('#articleTitle').value.trim();
+  if (explicit) return explicit;
+  const temporary = document.createElement('div');
+  temporary.innerHTML = articleHtml;
+  return temporary.querySelector('h1,h2,h3')?.textContent.trim() || '';
+}
+
+function mediaMarkup(media) {
+  return media.map((file) => {
+    const source = cmsPath(file);
+    if (file.type.startsWith('audio/')) return `<audio controls="controls" src="${source}"></audio>`;
+    if (file.type.startsWith('video/')) return `<video controls class="w-100" src="${source}"></video>`;
+    return '';
+  }).filter(Boolean).join('\n');
+}
+
+function createOutput(title, articleHtml) {
+  const pictures = files.filter((file) => file.type.startsWith('image/'));
+  const media = files.filter((file) => file.type.startsWith('audio/') || file.type.startsWith('video/'));
+  const introMedia = mediaMarkup(media);
+  const imageHtml = imageBlocks(pictures);
+  const lines = articleHtml.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const paragraphs = [];
+  let quoteIndex = 1;
+  for (let index = 0; index < lines.length; index++) {
+    paragraphs.push(lines[index]);
+    const nextImageAt = Math.ceil((quoteIndex * lines.length) / (imageHtml.length || 1));
+    if (quoteIndex < imageHtml.length && (index + 1 >= nextImageAt || index === lines.length - 1)) {
+      paragraphs.push(imageHtml[quoteIndex]);
+      quoteIndex++;
+    }
+  }
+  const content = paragraphs.map((line) => `            ${line}`).join('\n');
+  const highlight = imageHtml[0] ? `${imageHtml[0]}\n\n` : '';
+  return `<!-- Reflection: ${escapeHtml(title)} -->\n<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${introMedia || '<!-- เพิ่ม audio/video ที่นี่ หากบทความมีไฟล์ -->'}\n        </div>\n    </div>\n</div>\n\n${highlight}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${content}\n        </div>\n    </div>\n</div>\n\n<!-- แก้ YYYY/MM/article-slug ในพาธรูปและสื่อให้ตรงกับโฟลเดอร์ CMS ก่อนนำขึ้นเว็บไซต์ -->\n`;
+}
+
+async function generate() {
+  const button = $('#generateBtn');
+  button.disabled = true;
+  button.textContent = 'กำลังอ่านไฟล์…';
+  try {
+    const articleHtml = await getArticleHtml();
+    const title = getTitle(articleHtml);
+    if (!title) throw new Error('ยังไม่มีชื่อบทความ กรุณากรอกชื่อบทความก่อนสร้าง HTML');
+
+    const imageCount = files.filter((file) => file.type.startsWith('image/')).length;
+    const mediaCount = files.filter((file) => file.type.startsWith('audio/') || file.type.startsWith('video/')).length;
+    $('#htmlOutput').value = createOutput(title, articleHtml);
+    $('#resultSummary').textContent = `มีข้อความบทความแล้ว · ${imageCount} ภาพ (ภาพแรกเป็น highlight) · ${mediaCount} ไฟล์เสียง/วิดีโอ · พาธสื่อยังเป็นตัวอย่าง`;
+    $('#resultPanel').hidden = false;
+    $('#previewFrame').srcdoc = `<!doctype html><meta charset="utf-8"><style>body{font:16px/1.8 Arial,sans-serif;color:#233;margin:0}p{margin:0 0 1.4em}.container{max-width:900px;margin:auto;padding:24px}.row{display:flex;justify-content:center}.col-md-10{width:78%}.w-100{width:100%}.text-center{text-align:center}figure{margin:2em auto}.img-fluid{max-width:100%}h2{font-size:24px}.bg-split-news-big-image{background:#f3f5f2;padding:30px 0;margin:25px 0}</style>${$('#htmlOutput').value}`;
+    $('#resultPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'จัดเนื้อหาและสร้าง HTML <span>→</span>';
+  }
+}
+
+$('#generateBtn').addEventListener('click', generate);
+$('#copyBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('#htmlOutput').value);
+  $('#copyBtn').textContent = 'คัดลอกแล้ว ✓';
+  setTimeout(() => { $('#copyBtn').textContent = 'คัดลอก HTML'; }, 1700);
+});
+$('#downloadBtn').addEventListener('click', () => {
+  const blob = new Blob([$('#htmlOutput').value], { type: 'text/html;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'reflection-content.html';
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
+document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach((item) => item.classList.remove('selected'));
+  tab.classList.add('selected');
+  $('#codePane').hidden = tab.dataset.pane !== 'codePane';
+  $('#previewPane').hidden = tab.dataset.pane !== 'previewPane';
+}));
