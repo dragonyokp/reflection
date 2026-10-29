@@ -8,19 +8,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
-  <script src="app.js?v=3" defer></script>
+  <script src="app.js?v=4" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar"><div class="window-dots"><i></i><i></i><i></i></div><div class="top-title"><b>Reflection Studio</b><small>Bangchak content workspace</small></div><span class="local-badge"><i></i> Local only</span></header>
     <main class="main-area"><div class="breadcrumb"><span>My Workspace</span><b>/</b><strong>Prepare Reflection</strong></div><div class="work-grid">
       <section class="panel input-panel"><div class="panel-head"><div class="head-icon">↑</div><div><p class="eyebrow">STEP 01</p><h1>เพิ่มข้อมูลต้นฉบับ</h1></div><span class="side-label">INPUT</span></div>
-        <label class="field-label" for="figmaUrl">ลิงก์ Figma <span>ถ้ามี</span></label><input id="figmaUrl" class="text-input" placeholder="วางลิงก์ Figma หรือ prototype"><p class="figma-note">ลิงก์นี้ใช้เก็บอ้างอิง · เพิ่มภาพ Export จาก Figma ด้านล่างได้</p>
-        <label class="field-label reference-label">ภาพแบบจาก Figma <span>ใช้เป็นภาพอ้างอิง ไม่แทรกใน HTML</span></label><div id="figmaDropzone" class="dropzone compact figma-reference-dropzone"><input id="figmaImageInput" type="file" multiple accept="image/*" hidden><div class="upload-icon small-icon">＋</div><b>วางภาพ Figma หรือ <button id="browseFigmaImages" class="text-button" type="button">เลือกภาพ</button></b><small>รองรับ PNG, JPG และ WebP · เลือกได้หลายภาพ</small></div><div id="figmaImageList" class="file-list reference-list"></div>
-        <label class="field-label">รูปภาพ <span>เรียงตามลำดับที่ต้องการ</span></label><div id="imageDropzone" class="dropzone"><input id="imageInput" type="file" multiple accept="image/*" hidden><div class="upload-icon">↑</div><b>วางรูปที่นี่ หรือ <button id="browseImages" class="text-button" type="button">เลือกจากเครื่อง</button></b><small>รูปแรกจะเป็น highlight.webp · รูปต่อไปเป็น quote-1, quote-2…</small><small>ไฟล์ต้นฉบับไม่ถูกแก้ไข</small></div><div id="imageList" class="file-list"></div>
+        <label class="field-label" for="figmaUrl">ลิงก์ Figma <span>ถ้ามี</span></label><input id="figmaUrl" class="text-input" placeholder="วางลิงก์ Figma หรือ prototype"><p class="figma-note">เก็บไว้เป็นข้อมูลอ้างอิง · เว็บรุ่นนี้ยังไม่อ่านแบบ Figma เพื่อกำหนดโครง HTML</p>
+        <label class="field-label reference-label">ภาพแบบจาก Figma <span>ภาพอ้างอิงเท่านั้น · ยังไม่ใช้จัดเลย์เอาต์อัตโนมัติ</span></label><div id="figmaDropzone" class="dropzone compact figma-reference-dropzone"><input id="figmaImageInput" type="file" multiple accept="image/*" hidden><div class="upload-icon small-icon">＋</div><b>วางภาพ Figma หรือ <button id="browseFigmaImages" class="text-button" type="button">เลือกภาพ</button></b><small>รองรับ PNG, JPG และ WebP · เลือกได้หลายภาพ</small></div><div id="figmaImageList" class="file-list reference-list"></div>
+        <label class="field-label">รูปภาพ <span>เรียงตามลำดับที่ต้องการ</span></label><div id="imageDropzone" class="dropzone image-dropzone"><input id="imageInput" type="file" multiple accept="image/*" hidden><div class="image-drop-main"><span class="upload-icon image-plus">＋</span><b>วางรูปที่นี่ หรือ <button id="browseImages" class="text-button" type="button">เลือกจากเครื่อง</button></b></div><small>รูปแรกจะเป็น highlight.webp · รูปต่อไปเป็น quote-1, quote-2…</small><small>ไฟล์ต้นฉบับไม่ถูกแก้ไข</small></div><div id="imageList" class="file-list"></div>
         <label class="field-label">ไฟล์ Word และสื่อ <span>ไม่บังคับ</span></label><div class="dropzone compact" id="docDropzone"><input id="docInput" type="file" multiple accept=".docx,.doc,.txt,.mp3,.mp4,.m4a,.wav" hidden><div class="upload-icon small-icon">＋</div><b>วาง Word, เสียง หรือวิดีโอ หรือ <button id="browseDocs" class="text-button" type="button">เลือกไฟล์</button></b><small>Word .docx · MP3 · MP4</small></div><div id="docList" class="file-list"></div>
         <div class="actions"><button id="generateBtn" class="primary-btn" type="button">สร้าง HTML <span>↗</span></button><span class="privacy-inline">⌁ ประมวลผลในเบราว์เซอร์นี้</span></div>
       </section>

@@ -110,3 +110,10 @@ body:not(.has-started) #imageDropzone{min-height:108px;}
 body:not(.has-started) #docDropzone{min-height:64px;}
 body:not(.has-started) .actions{margin-top:12px;}
 @media(max-height:760px){body:not(.has-started) .input-panel{padding-top:12px;padding-bottom:12px;}body:not(.has-started) .panel-head{margin-bottom:8px;}body:not(.has-started) .field-label{margin-top:7px;}body:not(.has-started) #imageDropzone{min-height:88px;}body:not(.has-started) #docDropzone{min-height:54px;}body:not(.has-started) .figma-reference-dropzone{min-height:50px;}body:not(.has-started) .actions{margin-top:8px;}}
+
+/* Source-image upload: place the plus icon before its prompt, as requested. */
+.image-dropzone{min-height:108px;gap:5px;}
+.image-drop-main{display:flex;align-items:center;justify-content:center;gap:11px;}
+.image-plus{flex:0 0 32px;font-size:21px;line-height:1;}
+.image-drop-main>b{font-size:15px;}
+body:not(.has-started) #imageDropzone{min-height:94px;}

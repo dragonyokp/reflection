@@ -163,10 +163,18 @@ function normalizeSpacing(html) {
 
 function weaveQuotes(articleHtml) {
   const parsed = new DOMParser().parseFromString(articleHtml, 'text/html');
-  const blocks = [...parsed.body.childNodes]
+  const sourceBlocks = [...parsed.body.childNodes]
     .filter((node) => node.nodeType === Node.ELEMENT_NODE || node.textContent.trim())
     .map((node) => node.nodeType === Node.ELEMENT_NODE ? node.outerHTML : `<p>${escapeHtml(node.textContent.trim())}</p>`)
     .filter(Boolean);
+  // Word sometimes stores an entire article as one paragraph with double <br> breaks.
+  // Turn those visual paragraph breaks into real blocks so quote images can be interleaved.
+  const blocks = sourceBlocks.flatMap((block) => {
+    const match = block.match(/^<p\b([^>]*)>([\s\S]*)<\/p\s*>$/i);
+    if (!match || !/(?:<br\s*\/?\s*>\s*){2,}/i.test(match[2])) return [block];
+    const paragraphs = match[2].split(/(?:<br\s*\/?\s*>\s*){2,}/i).map((part) => part.trim()).filter(Boolean);
+    return paragraphs.length > 1 ? paragraphs.map((part) => `<p${match[1]}>${part}</p>`) : [block];
+  });
   if (!images.length) return blocks.join('\n');
   const result = [];
   const quoteCount = images.length - 1;
