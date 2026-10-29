@@ -78,7 +78,7 @@ function imageBlocks(images) {
     if (index === 0) {
       return `<!-- ${label} -->\n<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${src}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
     }
-    return `<!-- ${label} -->\n<figure class="text-center mb-5"><img class="img-fluid" src="${src}"></figure>`;
+    return `<!-- ${label} -->\n<figure class="text-center my-5"><img class="img-fluid" src="${src}"></figure>`;
   });
 }
 
@@ -127,6 +127,21 @@ function mediaMarkup(media) {
   }).filter(Boolean).join('\n');
 }
 
+function normalizeCmsSpacing(html) {
+  let output = html.replace(/<figure\b([^>]*)class=(['"])([^'"]*\btext-center\b[^'"]*)\2([^>]*)>/gi, (tag, before, quote, classNames, after) => {
+    const classes = classNames.split(/\s+/).filter(Boolean);
+    if (!classes.includes('my-5')) classes.push('my-5');
+    return `<figure${before}class=${quote}${classes.join(' ')}${quote}${after}>`;
+  });
+  output = output.replace(/(<p\b[^>]*class=(['"])([^'"]*\bmy-5\b[^'"]*)\2[^>]*>[\s\S]*?<\/p\s*>\s*)(<figure\b[^>]*class=(['"])[^'"]*\btext-center\b[^'"]*\5[^>]*>)/gi, (match, paragraph, quote, classNames, figureTag) => {
+    const classes = classNames.split(/\s+/).filter(Boolean);
+    if (!classes.includes('mb-0')) classes.push('mb-0');
+    const fixedParagraph = paragraph.replace(`${quote}${classNames}${quote}`, `${quote}${classes.join(' ')}${quote}`);
+    return `${fixedParagraph}${figureTag}`;
+  });
+  return output;
+}
+
 function createOutput(title, articleHtml) {
   const pictures = files.filter((file) => file.type.startsWith('image/'));
   const media = files.filter((file) => file.type.startsWith('audio/') || file.type.startsWith('video/'));
@@ -145,7 +160,7 @@ function createOutput(title, articleHtml) {
   }
   const content = paragraphs.map((line) => `            ${line}`).join('\n');
   const highlight = imageHtml[0] ? `${imageHtml[0]}\n\n` : '';
-  return `<!-- Reflection: ${escapeHtml(title)} -->\n<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${introMedia || '<!-- เพิ่ม audio/video ที่นี่ หากบทความมีไฟล์ -->'}\n        </div>\n    </div>\n</div>\n\n${highlight}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${content}\n        </div>\n    </div>\n</div>\n\n<!-- แก้ YYYY/MM/article-slug ในพาธรูปและสื่อให้ตรงกับโฟลเดอร์ CMS ก่อนนำขึ้นเว็บไซต์ -->\n`;
+  return normalizeCmsSpacing(`<!-- Reflection: ${escapeHtml(title)} -->\n<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${introMedia || '<!-- เพิ่ม audio/video ที่นี่ หากบทความมีไฟล์ -->'}\n        </div>\n    </div>\n</div>\n\n${highlight}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${content}\n        </div>\n    </div>\n</div>\n\n<!-- แก้ YYYY/MM/article-slug ในพาธรูปและสื่อให้ตรงกับโฟลเดอร์ CMS ก่อนนำขึ้นเว็บไซต์ -->\n`);
 }
 
 async function generate() {
