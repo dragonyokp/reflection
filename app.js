@@ -14,6 +14,10 @@ function appendUnique(target, incoming) {
   }
 }
 
+function activateWorkspace() {
+  document.body.classList.add('has-started');
+}
+
 function renderList(target, container, type) {
   container.replaceChildren();
   target.forEach((file, index) => {
@@ -36,7 +40,9 @@ function setupDropzone(zone, input, target, container, type) {
   browse.addEventListener('click', (event) => { event.stopPropagation(); input.click(); });
   zone.addEventListener('click', () => input.click());
   input.addEventListener('change', (event) => {
-    appendUnique(target, event.target.files);
+    const incoming = [...event.target.files];
+    if (incoming.length) activateWorkspace();
+    appendUnique(target, incoming);
     renderList(target, container, type);
     input.value = '';
   });
@@ -46,6 +52,7 @@ function setupDropzone(zone, input, target, container, type) {
     event.preventDefault();
     zone.classList.remove('dragover');
     const accepted = [...event.dataTransfer.files].filter((file) => type === 'image' ? file.type.startsWith('image/') : /\.(docx|doc|txt|mp3|mp4|m4a|wav)$/i.test(file.name));
+    if (accepted.length) activateWorkspace();
     appendUnique(target, accepted);
     renderList(target, container, type);
   });
@@ -92,7 +99,9 @@ function setupFigmaReferenceUpload() {
   $('#browseFigmaImages').addEventListener('click', (event) => { event.stopPropagation(); input.click(); });
   zone.addEventListener('click', () => input.click());
   input.addEventListener('change', (event) => {
-    appendUnique(figmaReferences, [...event.target.files].filter((file) => file.type.startsWith('image/')));
+    const incoming = [...event.target.files].filter((file) => file.type.startsWith('image/'));
+    if (incoming.length) activateWorkspace();
+    appendUnique(figmaReferences, incoming);
     renderFigmaReferences();
     input.value = '';
   });
@@ -101,7 +110,9 @@ function setupFigmaReferenceUpload() {
   zone.addEventListener('drop', (event) => {
     event.preventDefault();
     zone.classList.remove('dragover');
-    appendUnique(figmaReferences, [...event.dataTransfer.files].filter((file) => file.type.startsWith('image/')));
+    const incoming = [...event.dataTransfer.files].filter((file) => file.type.startsWith('image/'));
+    if (incoming.length) activateWorkspace();
+    appendUnique(figmaReferences, incoming);
     renderFigmaReferences();
   });
 }
@@ -173,7 +184,7 @@ function weaveQuotes(articleHtml) {
 
 async function generateHtml() {
   const button = $('#generateBtn');
-  document.body.classList.add('has-started');
+  activateWorkspace();
   const docx = documents.filter((file) => /\.(docx|doc|txt|rtf)$/i.test(file.name));
   if (!docx.length) {
     alert('เพิ่มไฟล์ Word (.docx) ก่อนครับ ช่อง Figma ใช้เก็บลิงก์อ้างอิง แต่ยังดึงข้อความอัตโนมัติไม่ได้');
