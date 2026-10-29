@@ -96,15 +96,21 @@ function normalizeSpacing(html) {
 }
 
 function weaveQuotes(articleHtml) {
-  const blocks = articleHtml.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const parsed = new DOMParser().parseFromString(articleHtml, 'text/html');
+  const blocks = [...parsed.body.childNodes]
+    .filter((node) => node.nodeType === Node.ELEMENT_NODE || node.textContent.trim())
+    .map((node) => node.nodeType === Node.ELEMENT_NODE ? node.outerHTML : `<p>${escapeHtml(node.textContent.trim())}</p>`)
+    .filter(Boolean);
   if (!images.length) return blocks.join('\n');
   const result = [];
   const quoteCount = images.length - 1;
   let quote = 1;
   blocks.forEach((block, index) => {
     result.push(block);
-    const target = Math.ceil((quote * blocks.length) / Math.max(quoteCount, 1));
-    if (quote <= quoteCount && index + 1 >= target) result.push(imageMarkup(quote++));
+    if (quote <= quoteCount) {
+      const target = Math.ceil((quote * blocks.length) / (quoteCount + 1));
+      if (index + 1 >= target) result.push(imageMarkup(quote++));
+    }
   });
   while (quote <= quoteCount) result.push(imageMarkup(quote++));
   return result.join('\n');

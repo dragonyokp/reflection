@@ -21,3 +21,39 @@ body{overflow:hidden;}
 .output-content{min-height:260px;}
 @media(max-width:900px){body{overflow:auto}.app-shell{position:relative;inset:auto;min-height:100dvh;height:auto;overflow:visible;grid-template-rows:58px auto}.main-area{height:auto;overflow:visible;padding:16px 20px 24px}.work-grid{grid-template-columns:minmax(0,1fr);min-height:0}.input-panel,.output-panel{height:auto}.output-panel{min-height:480px}}
 @media(max-width:650px){.main-area{padding:14px 12px 20px}.topbar{position:sticky;top:0;z-index:5}}
+
+[hidden]{display:none!important}.figma-note{margin:5px 0 0;color:#849184;font-size:10px;line-height:1.5}
+
+/* Fit the idle workspace to one viewport and improve legibility */
+body{font-size:17px;overflow:hidden;}
+.app-shell{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;min-height:0;max-width:none;overflow:hidden;}
+.topbar{height:58px;}
+.main-area{height:calc(100dvh - 58px);min-height:0;overflow:hidden;padding:16px 28px 20px;}
+.breadcrumb{font-size:13px;margin-bottom:14px;}
+.work-grid{height:calc(100dvh - 132px);min-height:0;}
+.input-panel,.output-panel{height:100%;min-height:0;max-height:none;}
+.input-panel{overflow:auto;padding:24px;}
+.output-panel{overflow:hidden;padding:24px;}
+.output-content{min-height:0;}
+.panel h1,.panel h2{font-size:22px;}
+.field-label{font-size:16px;margin:18px 0 8px;}
+.field-label span{font-size:13px;}
+.text-input{font-size:16px;min-height:48px;padding:11px 13px;}
+.text-area{height:150px;}
+.dropzone{min-height:140px;gap:9px;}
+.dropzone>b{font-size:15px;}
+.dropzone small{font-size:12px;}
+.text-button{font-size:15px;}
+.file-row{font-size:14px;padding:10px 12px;}
+.file-meta small,.file-output-name{font-size:11px;}
+.primary-btn,.secondary-btn{font-size:14px;padding:12px 17px;}
+.privacy-inline{font-size:12px;}
+.output-content>b{font-size:18px;}
+.output-content p{font-size:13px;}
+.output-head h2{font-size:22px;}
+.output-title p{font-size:13px;}
+.tab{font-size:13px;}
+#htmlOutput{font-size:13px;height:calc(100dvh - 290px);min-height:200px;}
+#previewFrame{height:calc(100dvh - 290px);min-height:200px;}
+@media(max-width:900px){body{overflow:auto}.app-shell{position:relative;inset:auto;height:auto;min-height:100dvh;overflow:visible}.main-area{height:auto;overflow:visible;padding:16px 20px 24px}.work-grid{height:auto;min-height:0}.input-panel,.output-panel{height:auto}.output-panel{min-height:480px}}
+@media(max-width:650px){.main-area{padding:14px 12px 20px}.work-grid{gap:12px}.output-panel{min-height:380px}.dropzone{min-height:125px}}
