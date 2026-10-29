@@ -57,3 +57,16 @@ body{font-size:17px;overflow:hidden;}
 #previewFrame{height:calc(100dvh - 290px);min-height:200px;}
 @media(max-width:900px){body{overflow:auto}.app-shell{position:relative;inset:auto;height:auto;min-height:100dvh;overflow:visible}.main-area{height:auto;overflow:visible;padding:16px 20px 24px}.work-grid{height:auto;min-height:0}.input-panel,.output-panel{height:auto}.output-panel{min-height:480px}}
 @media(max-width:650px){.main-area{padding:14px 12px 20px}.work-grid{gap:12px}.output-panel{min-height:380px}.dropzone{min-height:125px}}
+
+/* Prevent panels and code from escaping the viewport */
+html,body{max-width:100%;overflow-x:hidden;}
+.app-shell,.topbar,.main-area,.work-grid,.panel,.input-panel,.output-panel,#outputReady,#codePane,#previewPane{min-width:0;max-width:100%;}
+.app-shell{width:100vw;overflow:hidden;}
+.main-area{width:100%;overflow-x:hidden;}
+.work-grid{width:100%;grid-template-columns:minmax(0,44fr) minmax(0,56fr);}
+.input-panel,.output-panel{overflow-x:hidden;}
+#htmlOutput,#previewFrame{display:block;width:100%;max-width:100%;box-sizing:border-box;}
+#htmlOutput{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}
+.result-actions{flex-wrap:wrap;}
+@media(max-width:900px){.work-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.app-shell{width:100%;}.main-area{width:100%;}}
