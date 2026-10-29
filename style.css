@@ -70,3 +70,14 @@ html,body{max-width:100%;overflow-x:hidden;}
 .result-actions{flex-wrap:wrap;}
 @media(max-width:900px){.work-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:650px){.app-shell{width:100%;}.main-area{width:100%;}}
+
+/* Keep output controls visible and size editor to remaining panel space */
+.output-panel{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden;}
+#outputReady:not([hidden]){display:flex;flex:1;min-height:0;flex-direction:column;}
+.output-title{flex:none;padding:16px 0 12px;}
+.tabs{flex:none;margin-bottom:8px;}
+#codePane:not([hidden]),#previewPane:not([hidden]){display:flex;flex:1;min-height:0;flex-direction:column;}
+#htmlOutput{flex:1;height:auto;min-height:0;max-height:none;resize:none;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}
+#previewFrame{flex:1;height:auto;min-height:0;}
+.result-actions{flex:none;position:sticky;bottom:0;z-index:2;background:#fff;padding:12px 0 0;border-top:1px solid #edf0ec;}
+@media(max-width:900px){.output-panel{height:auto;min-height:480px}#outputReady:not([hidden]){min-height:400px}#htmlOutput,#previewFrame{min-height:300px}}
