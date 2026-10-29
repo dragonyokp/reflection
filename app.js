@@ -67,14 +67,15 @@ function safeFileName(name) {
   return name.replace(/[\\/]/g, '').replace(/["<>]/g, '');
 }
 
-function cmsPath(file) {
-  return `/storage/newsroom/refaction/YYYY/MM/article-slug/${safeFileName(file.name)}`;
+function cmsPath(file, outputName) {
+  return `/storage/newsroom/refaction/###/###/###/${outputName || safeFileName(file.name)}`;
 }
 
 function imageBlocks(images) {
   return images.map((file, index) => {
     const label = index === 0 ? 'highlight (ภาพแรก)' : `quote-${index} (ตามลำดับไฟล์)`;
-    const src = cmsPath(file);
+    const outputName = index === 0 ? 'highlight.webp' : `quote-${index}.webp`;
+    const src = cmsPath(file, outputName);
     if (index === 0) {
       return `<!-- ${label} -->\n<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${src}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
     }
@@ -120,9 +121,8 @@ function getTitle(articleHtml) {
 
 function mediaMarkup(media) {
   return media.map((file) => {
-    const source = cmsPath(file);
-    if (file.type.startsWith('audio/')) return `<audio controls="controls" src="${source}"></audio>`;
-    if (file.type.startsWith('video/')) return `<video controls class="w-100" src="${source}"></video>`;
+    if (file.type.startsWith('audio/')) return '<audio controls="controls" src="###"></audio>';
+    if (file.type.startsWith('video/')) return '<video controls="controls" src="###"></video>';
     return '';
   }).filter(Boolean).join('\n');
 }
@@ -160,7 +160,7 @@ function createOutput(title, articleHtml) {
   }
   const content = paragraphs.map((line) => `            ${line}`).join('\n');
   const highlight = imageHtml[0] ? `${imageHtml[0]}\n\n` : '';
-  return normalizeCmsSpacing(`<!-- Reflection: ${escapeHtml(title)} -->\n<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${introMedia || '<!-- เพิ่ม audio/video ที่นี่ หากบทความมีไฟล์ -->'}\n        </div>\n    </div>\n</div>\n\n${highlight}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${content}\n        </div>\n    </div>\n</div>\n\n<!-- แก้ YYYY/MM/article-slug ในพาธรูปและสื่อให้ตรงกับโฟลเดอร์ CMS ก่อนนำขึ้นเว็บไซต์ -->\n`);
+  return normalizeCmsSpacing(`<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle">${escapeHtml(title)}</h2>\n            ${introMedia}\n        </div>\n    </div>\n</div>\n\n${highlight}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${content}\n        </div>\n    </div>\n</div>`);
 }
 
 async function generate() {
