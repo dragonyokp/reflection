@@ -135,7 +135,6 @@ async function generateHtml() {
     $('#resultSummary').textContent = `${docx.length} ไฟล์ Word · ${images.length} ภาพ (highlight${images.length > 1 ? `, quote-1 ถึง quote-${images.length - 1}` : ''}) · ${media.length} ไฟล์เสียง/วิดีโอ`;
     $('#outputEmpty').hidden = true;
     $('#outputReady').hidden = false;
-    $('#outputStatus').textContent = 'พร้อมตรวจ';
     $('#previewFrame').srcdoc = `<!doctype html><meta charset="utf-8"><style>body{font:16px/1.8 Arial,sans-serif;color:#25362b;margin:0}p{margin:0 0 1.4em}.container{max-width:900px;margin:auto;padding:24px}.row{display:flex;justify-content:center}.col-md-10{width:78%}.w-100{width:100%}.text-center{text-align:center}figure{margin:2em auto}.img-fluid{max-width:100%}.bg-split-news-big-image{background:#f4f8f3;padding:30px 0;margin:25px 0}</style>${$('#htmlOutput').value}`;
   } catch (error) {
     alert(error.message);
