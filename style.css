@@ -100,3 +100,13 @@ body.has-started .output-panel{height:auto;min-height:calc(100dvh - 150px);overf
 body.has-started #outputReady:not([hidden]){min-height:calc(100dvh - 250px);}
 body.has-started #htmlOutput,body.has-started #previewFrame{min-height:55vh;}
 @media(max-width:900px){body.has-started .app-shell{height:auto;min-height:100dvh;overflow:visible;grid-template-rows:58px auto;}body.has-started .main-area{height:auto;overflow:visible;}body.has-started .work-grid{height:auto;min-height:0;}body.has-started .input-panel,body.has-started .output-panel{height:auto;}body.has-started .output-panel{min-height:480px;}body.has-started #outputReady:not([hidden]){min-height:400px;}}
+
+/* The initial form is a no-scroll landing view. Compress its vertical rhythm to fit the viewport. */
+body:not(.has-started) .input-panel{overflow:hidden;padding:18px 20px;}
+body:not(.has-started) .panel-head{margin-bottom:12px;}
+body:not(.has-started) .field-label{margin:11px 0 5px;}
+body:not(.has-started) .figma-reference-dropzone{min-height:58px;}
+body:not(.has-started) #imageDropzone{min-height:108px;}
+body:not(.has-started) #docDropzone{min-height:64px;}
+body:not(.has-started) .actions{margin-top:12px;}
+@media(max-height:760px){body:not(.has-started) .input-panel{padding-top:12px;padding-bottom:12px;}body:not(.has-started) .panel-head{margin-bottom:8px;}body:not(.has-started) .field-label{margin-top:7px;}body:not(.has-started) #imageDropzone{min-height:88px;}body:not(.has-started) #docDropzone{min-height:54px;}body:not(.has-started) .figma-reference-dropzone{min-height:50px;}body:not(.has-started) .actions{margin-top:8px;}}
