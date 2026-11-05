@@ -9,13 +9,15 @@ const BLOCKS = [
   { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
-  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'รูปแทรกในเนื้อหา · quote-1, quote-2…', mini: 'contentQuoteImage', make: () => makeQuoteImage(quoteImageCounter++) }
+  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'รูปแทรกในเนื้อหา · quote-1, quote-2…', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
+  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + เนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, false) },
+  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) }
 ];
 
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
   { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'เลือกแบบปกติหรือพื้นหลังเขียว โดยแบบพื้นหลังเขียวมีทั้งแบบมีและไม่มีข้อความ' },
-  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางเรียงตามต้องการ' }
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อ, Text, รูป Quote หรือบล็อกรูป Quote แบบแบ่งสองฝั่งมาวางตามลำดับ' }
 ];
 
 let structure = [];
@@ -42,6 +44,16 @@ function makeQuoteImage(number) {
   return `<figure class="text-center my-5"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp"></figure>`;
 }
 
+function makeSplitQuoteBlock(imageSide, number, withHeading) {
+  const imageOrder = imageSide === 'right' ? ' order-lg-12' : '';
+  const textOrder = imageSide === 'right' ? ' order-lg-1' : '';
+  const rowClass = imageSide === 'right' ? 'row no-gutters justify-content-end' : 'row no-gutters';
+  const captionLines = withHeading ? 2 : 3;
+  const caption = Array.from({ length: captionLines }, () => '<span class="d-block"></span>').join('\n                    ');
+  const textMarkup = withHeading ? '<h4></h4>\n                    <p></p>' : '<p></p>';
+  return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="${rowClass}">\n        <div class="col-lg-5 bg-green-gradient-vertical${imageOrder}">\n            <div class="h-100 align-items-center justify-content-center p-5">\n                <figure class="text-center my-5"><img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" alt="" width="450" class="img-fluid"></figure>\n                <div class="font-italic text-center small text-white mt-3">\n                    ${caption}\n                </div>\n            </div>\n        </div>\n        <div class="col-lg-7 align-self-center${textOrder}">\n            <div class="py-5 px-3 px-md-7">\n                ${textMarkup}\n            </div>\n        </div>\n    </div>\n</div>`;
+}
+
 function blockInfo(id) {
   return BLOCKS.find((block) => block.id === id);
 }
@@ -62,6 +74,7 @@ function makeMini(type) {
   if (type === 'contentHeading') { add('title-line'); }
   if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'contentQuoteImage') { add('quote-image'); }
+  if (type === 'contentSplitQuoteRight' || type === 'contentSplitQuoteLeft') { add('split-quote-image'); add('split-quote-copy'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
   if (type === 'textBlock') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'headingSection') { add('title-line'); add('text-line'); add('short-line'); }
@@ -210,6 +223,20 @@ function makePreview(type) {
     const figure = document.createElement('div'); figure.className = 'quote-image-preview-figure';
     figure.append(imagePlaceholder('quote-1.webp · รูปแทรกในเนื้อหา'));
     preview.append(figure);
+  } else if (type === 'contentSplitQuoteRight' || type === 'contentSplitQuoteLeft') {
+    const split = document.createElement('div');
+    split.className = `split-quote-preview ${type === 'contentSplitQuoteRight' ? 'image-on-right' : 'image-on-left'}`;
+    const imageSide = document.createElement('div'); imageSide.className = 'split-quote-preview-image';
+    imageSide.append(imagePlaceholder('quote-1.webp'));
+    const caption = document.createElement('div'); caption.className = 'split-quote-preview-caption';
+    caption.innerHTML = '<span>Lorem ipsum dolor sit amet</span><span>Consectetur adipiscing elit</span>';
+    imageSide.append(caption);
+    const copy = document.createElement('div'); copy.className = 'split-quote-preview-copy';
+    if (type === 'contentSplitQuoteLeft') {
+      const heading = document.createElement('h4'); heading.textContent = 'Lorem ipsum dolor sit amet'; copy.append(heading);
+    }
+    previewParagraphs(copy, 1);
+    split.append(imageSide, copy); preview.append(split);
   } else if (type === 'textBlock') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 2); preview.append(inner);
   } else if (type === 'headingSection') {
@@ -400,7 +427,7 @@ function composeBodyBlocks(items) {
   const sections = [];
   let regularItems = [];
   for (const item of items) {
-    if (item.type === 'highlightGreenText' || item.type === 'highlightGreenEmpty') {
+    if (['highlightGreenText', 'highlightGreenEmpty', 'contentSplitQuoteRight', 'contentSplitQuoteLeft'].includes(item.type)) {
       if (regularItems.length) sections.push(composeRegularBodyBlocks(regularItems));
       sections.push(blockInfo(item.type).make());
       regularItems = [];
