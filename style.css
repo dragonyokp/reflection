@@ -249,3 +249,9 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .preview-contentSplitImageLeft .split-quote-preview-copy,.preview-contentSplitImageRight .split-quote-preview-copy{padding:36px clamp(24px,5vw,82px)}
 .preview-contentSplitImageLeft .split-quote-preview-copy .preview-lorem,.preview-contentSplitImageRight .split-quote-preview-copy .preview-lorem{font-size:13px;line-height:1.8;margin-bottom:12px}
 @media(max-width:700px){.split-quote-preview,.split-quote-preview.image-on-left{grid-template-columns:1fr}.split-quote-preview-image,.image-on-left .split-quote-preview-image{grid-column:1;grid-row:1}.split-quote-preview-copy,.image-on-left .split-quote-preview-copy{grid-column:1;grid-row:2;padding:24px 20px}.split-quote-preview-image .preview-image-placeholder{min-height:145px;width:82%}.split-layout-demo-image{width:82%;min-height:145px}}
+
+.mini-contentBlockquote{align-items:center;gap:4px}
+.mini-contentBlockquote .quote-mark{width:12px;height:20px;background:transparent;position:relative}
+.mini-contentBlockquote .quote-mark:before{content:"“";position:absolute;top:-5px;left:0;color:#65a341;font:bold 30px Georgia,serif}
+.mini-contentBlockquote .quote-line{height:13px;flex:1;background:linear-gradient(#9aa398 0 3px,transparent 3px 6px,#cbd0c8 6px 9px,transparent 9px)}
+.content-blockquote-preview{margin:32px 0;padding:20px 24px;border-left:4px solid #7ab637;background:#f4f8ef;color:#334b2c;font-size:18px;line-height:1.8}

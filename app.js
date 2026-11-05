@@ -9,6 +9,7 @@ const BLOCKS = [
   { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
+  { id: 'contentBlockquote', group: 'content', name: 'Blockquote', note: 'ข้อความอ้างอิง · my-md-5 my-4', mini: 'contentBlockquote', make: () => `<blockquote class="my-md-5 my-4"></blockquote>` },
   { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'ลากซ้ำติดกันเพื่อจัดเป็นแถว 2–3 รูป', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
   { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
   { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
@@ -94,6 +95,7 @@ function makeMini(type) {
   if (type === 'contentHeading') { add('title-line'); }
   if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'contentQuoteImage') { add('quote-image'); }
+  if (type === 'contentBlockquote') { add('quote-mark'); add('quote-line'); }
   if (type === 'contentSplitQuoteRight' || type === 'contentSplitQuoteLeft') { add('split-quote-image'); add('split-quote-copy'); }
   if (type === 'contentSplitImageLeft' || type === 'contentSplitImageRight') { add('split-quote-image'); add('split-quote-copy'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
@@ -241,6 +243,11 @@ function makePreview(type) {
     inner.append(heading); preview.append(inner);
   } else if (type === 'contentText') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 1); preview.append(inner);
+  } else if (type === 'contentBlockquote') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow';
+    const quote = document.createElement('blockquote'); quote.className = 'content-blockquote-preview';
+    quote.innerHTML = '<b>Lorem ipsum dolor sit amet</b>, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius.';
+    inner.append(quote); preview.append(inner);
   } else if (type === 'contentQuoteImage') {
     const figure = document.createElement('div'); figure.className = 'quote-image-preview-figure';
     figure.append(imagePlaceholder('quote-1.webp · รูปแทรกในเนื้อหา'));
