@@ -373,7 +373,7 @@ function makeStructureCard(item, index) {
 
 function renderStructure() {
   const canvas = $('#canvas');
-  canvas.querySelectorAll('.structure-card,.quote-image-group').forEach((card) => card.remove());
+  canvas.querySelectorAll('.structure-card,.quote-image-group,.append-bar').forEach((card) => card.remove());
   $('#emptyState').hidden = structure.length > 0;
   for (let index = 0; index < structure.length;) {
     if (structure[index].type === 'contentQuoteImage') {
@@ -392,11 +392,50 @@ function renderStructure() {
     canvas.append(makeStructureCard(structure[index], index));
     index++;
   }
+  if (structure.length) {
+    const bar = document.createElement('button');
+    bar.type = 'button';
+    bar.className = 'append-bar';
+    bar.innerHTML = '<span class="append-plus" aria-hidden="true">+</span><span>ลากรูปแบบมาวางที่นี่ หรือกดเพื่อเพิ่มส่วนถัดไป</span>';
+    bar.addEventListener('click', openBlockPicker);
+    canvas.append(bar);
+  }
   $('#structureCount').textContent = `${structure.length} ส่วน`;
   $('#canvasStatus').textContent = structure.length ? `มี ${structure.length} ส่วน · ลากเพื่อเรียงลำดับ หรือใช้ปุ่มลูกศร` : 'ยังไม่มีส่วนประกอบ';
   $('#clearBtn').disabled = structure.length === 0;
   $('#exportBtn').disabled = structure.length === 0;
   if (codeIsVisible) updateCode();
+}
+
+function openBlockPicker() {
+  const picker = $('#blockPicker');
+  const list = $('#pickerBlocks');
+  list.replaceChildren();
+  for (const group of BLOCK_GROUPS) {
+    const heading = document.createElement('h3');
+    heading.textContent = group.title;
+    list.append(heading);
+    for (const block of BLOCKS.filter((item) => item.group === group.id)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'library-card';
+      const label = document.createElement('span');
+      label.className = 'library-title';
+      label.textContent = block.name;
+      const plus = document.createElement('span');
+      plus.className = 'add-block';
+      plus.textContent = '+';
+      plus.setAttribute('aria-hidden', 'true');
+      button.append(makeMini(block.mini), label, plus);
+      button.addEventListener('click', () => {
+        picker.close();
+        insertBlock(block.id);
+        $('#canvas .append-bar').focus({ preventScroll: true });
+      });
+      list.append(button);
+    }
+  }
+  picker.showModal();
 }
 
 function moveBlock(index, direction) {
@@ -408,6 +447,7 @@ function moveBlock(index, direction) {
 
 function clearDropMarks() {
   document.querySelectorAll('.drop-before,.drop-after').forEach((card) => card.classList.remove('drop-before', 'drop-after'));
+  document.querySelectorAll('.append-bar.is-drop-target').forEach((bar) => bar.classList.remove('is-drop-target'));
   $('#canvas').classList.remove('is-over');
 }
 
@@ -425,6 +465,7 @@ $('#canvas').addEventListener('dragover', (event) => {
   clearDropMarks();
   $('#canvas').classList.add('is-over');
   event.dataTransfer.dropEffect = dragging.kind === 'library' ? 'copy' : 'move';
+  event.target.closest('.append-bar')?.classList.add('is-drop-target');
   const card = event.target.closest('.structure-card');
   if (card) {
     const rect = card.getBoundingClientRect();

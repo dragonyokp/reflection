@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=28">
-  <script src="app.js?v=21" defer></script>
+  <link rel="stylesheet" href="style.css?v=29">
+  <script src="app.js?v=22" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -70,5 +70,9 @@
 
     <footer><span>REFLECTION STRUCTURE BUILDER</span><span>ประกอบโครงก่อน · เติมเนื้อหาทีหลัง</span></footer>
   </main>
+  <dialog id="blockPicker" class="block-picker" aria-labelledby="pickerTitle">
+    <div class="picker-heading"><h2 id="pickerTitle">เพิ่มส่วนถัดไป</h2><form method="dialog"><button class="icon-button" aria-label="ปิด" title="ปิด">×</button></form></div>
+    <div id="pickerBlocks" class="picker-blocks"></div>
+  </dialog>
 </body>
 </html>
