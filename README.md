@@ -16,6 +16,7 @@ Static browser tool for assembling Bangchak Reflection CMS HTML structures. The 
 - `Highlight + พื้นหลังเขียว` exports the same wide image and green background band without a paragraph.
 - `หัวข้อ` exports an empty `<h4></h4>` element.
 - `Text` exports an empty `<p></p>` element. The canvas preview shows Lorem text as a visual guide.
+- `รูป Quote` inserts an inline `<figure class="text-center my-5">` image. Repeated quote image blocks are numbered `quote-1.webp`, `quote-2.webp`, and so on in their exported order. A paragraph directly before a quote image gets `mb-0`.
 - Consecutive content blocks are grouped in one center-column layout. When text precedes a highlight, the text row is emitted first; when the highlight precedes text, the image row is emitted first.
 
 The canvas uses sample text and visual placeholders to show each layout. Exported subtitle code uses `Lorem....`; content heading and paragraph elements are empty for later editing. Standard audio and image sources use `#####` path placeholders. The two green-background highlight patterns retain the supplied `/storage/newsroom/refaction/2026/10/green-miles/highlight.webp` path; change it when using a different article.

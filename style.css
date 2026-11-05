@@ -204,3 +204,8 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .green-highlight-preview{background:linear-gradient(180deg,#fff 0 26%,#f1f2ef 26% 50%,#91bf2f 50% 76%,#429f3a 100%)}
 .green-highlight-preview.is-empty{background:linear-gradient(180deg,#fff 0 26%,#f1f2ef 26% 50%,#91bf2f 50% 76%,#429f3a 100%)}
 .mini-highlightGreenText,.mini-highlightGreenEmpty{background:linear-gradient(180deg,#fbfcfa 0 50%,#91bf2f 50% 75%,#429f3a 100%)}
+.mini-contentQuoteImage{align-items:center;justify-content:center;background:#fff}
+.mini-contentQuoteImage .quote-image{display:block;width:36px;height:25px;border:1px solid #9fc28f;border-radius:2px;background:linear-gradient(135deg,#e7f2df,#9dcc8b);box-shadow:0 4px 0 #eef4ea}
+.quote-image-preview-figure{width:min(62%,520px);margin:0 auto;padding:8px 0}
+.quote-image-preview-figure .preview-image-placeholder{aspect-ratio:2.1/1;min-height:95px;border:1px solid #dce8d8;background:linear-gradient(135deg,#f5f8f1,#e8f0e3)}
+@media(max-width:600px){.quote-image-preview-figure{width:78%}.quote-image-preview-figure .preview-image-placeholder{min-height:75px}}

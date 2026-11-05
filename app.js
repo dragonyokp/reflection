@@ -8,7 +8,8 @@ const BLOCKS = [
   { id: 'highlightGreenText', group: 'highlight', name: 'Highlight + พื้นหลังเขียว + ข้อความ', note: 'รูปใหญ่และแถบข้อความสีขาว', mini: 'highlightGreenText', make: () => makeGreenHighlight(true) },
   { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
-  { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` }
+  { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
+  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'รูปแทรกในเนื้อหา · quote-1, quote-2…', mini: 'contentQuoteImage', make: () => makeQuoteImage(quoteImageCounter++) }
 ];
 
 const BLOCK_GROUPS = [
@@ -21,6 +22,7 @@ let structure = [];
 let nextId = 1;
 let dragging = null;
 let codeIsVisible = false;
+let quoteImageCounter = 0;
 
 const loremHighlight = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius. Sed non augue eget erat consequat posuere.';
 
@@ -34,6 +36,10 @@ function makeGreenHighlight(withText) {
     ? `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white"></p>\n            </div>\n        </div>\n    </div>\n</div>`
     : `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5"></div>`;
   return `${imageSection}\n\n${textSection}`;
+}
+
+function makeQuoteImage(number) {
+  return `<figure class="text-center my-5"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp"></figure>`;
 }
 
 function blockInfo(id) {
@@ -55,6 +61,7 @@ function makeMini(type) {
   if (type === 'highlightGreenText' || type === 'highlightGreenEmpty') { add('green-highlight-image'); add('green-highlight-band'); }
   if (type === 'contentHeading') { add('title-line'); }
   if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
+  if (type === 'contentQuoteImage') { add('quote-image'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
   if (type === 'textBlock') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'headingSection') { add('title-line'); add('text-line'); add('short-line'); }
@@ -199,6 +206,10 @@ function makePreview(type) {
     inner.append(heading); preview.append(inner);
   } else if (type === 'contentText') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 1); preview.append(inner);
+  } else if (type === 'contentQuoteImage') {
+    const figure = document.createElement('div'); figure.className = 'quote-image-preview-figure';
+    figure.append(imagePlaceholder('quote-1.webp · รูปแทรกในเนื้อหา'));
+    preview.append(figure);
   } else if (type === 'textBlock') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 2); preview.append(inner);
   } else if (type === 'headingSection') {
@@ -361,6 +372,7 @@ $('#canvas').addEventListener('drop', (event) => {
 });
 
 function updateCode() {
+  quoteImageCounter = 0;
   const output = [];
   for (let index = 0; index < structure.length; index++) {
     const current = structure[index];
@@ -418,7 +430,9 @@ function composeRegularBodyBlocks(items) {
     const inner = textItems.map((textItem, textIndex) => {
       const markup = blockInfo(textItem.type).make();
       // Separate the final paragraph from the next h4 within the same content section.
+      const paragraphBeforeQuoteImage = textItem.type === 'contentText' && textItems[textIndex + 1]?.type === 'contentQuoteImage';
       const paragraphBeforeHeading = textItem.type === 'contentText' && textItems[textIndex + 1]?.type === 'contentHeading';
+      if (paragraphBeforeQuoteImage) return markup.replace('<p>', '<p class="mb-0">');
       return paragraphBeforeHeading ? markup.replace('<p>', '<p class="mb-5">') : markup;
     }).join('\n            ');
     rows.push(`<div class="${rowClasses.join(' ')}">\n    <div class="col-md-10 col-xl-8 col-xxl-6">\n        ${inner}\n    </div>\n</div>`);
