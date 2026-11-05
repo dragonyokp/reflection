@@ -8,25 +8,25 @@ const BLOCKS = [
   { id: 'highlightImage', group: 'highlight', name: 'Highlight', note: 'รูปใหญ่ ไม่มีพื้นหลัง', mini: 'highlightImage', make: () => makeHighlightRow() },
   { id: 'highlightGreenText', group: 'highlight', name: 'Highlight + พื้นหลังเขียว + ข้อความ', note: 'รูปใหญ่และแถบข้อความสีขาว', mini: 'highlightGreenText', make: () => makeGreenHighlight(true) },
   { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
+  { id: 'contentQuoteImage', group: 'content', name: 'รูปภาพ', note: 'วางในการ์ดเดิมเพื่อรวมแถว · วางด้านนอกเพื่อขึ้นการ์ดใหม่', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
   { id: 'contentBlockquote', group: 'content', name: 'Blockquote', note: 'ข้อความอ้างอิง · my-md-5 my-4', mini: 'contentBlockquote', make: () => `<blockquote class="my-md-5 my-4"></blockquote>` },
+  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
+  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
+  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, true) },
+  { id: 'contentSplitImageRight', group: 'content', name: 'รูปขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) },
   { id: 'contentMedia', group: 'content', name: 'หัวข้อพร้อมไอคอน', note: 'media · ไอคอน + h4 + ข้อความ · 1–2 คอลัมน์', mini: 'contentMedia', make: (item = {}) => makeMediaPattern(item.variant || '1') },
   { id: 'contentQuoteCard', group: 'content', name: 'การ์ดคำพูด', note: 'card--quote · เครื่องหมายคำพูดบน–ล่าง', mini: 'contentQuoteCard', make: () => makeQuoteCard() },
   { id: 'contentPortraitQuote', group: 'content', name: 'รูปบุคคลคู่คำพูด', note: 'รูป + การ์ดคำพูด + ชื่อผู้พูด · สลับซ้าย–ขวาได้', mini: 'contentPortraitQuote', make: (item = {}) => makeQuoteCard(item.variant || 'left') },
   { id: 'contentModal', group: 'content', name: 'ปุ่มเปิดรายละเอียด Popup', note: 'ปุ่มอ่านเพิ่มเติม + Modal · รหัสไม่ซ้ำกัน', mini: 'contentModal', make: (item = {}) => makeModalButton(item) },
-  { id: 'contentSpeakers', group: 'content', name: 'คำพูดหลายคนพร้อมเส้นคั่น', note: 'คำพูด + ชื่อผู้พูด + เส้นคั่น · 2–3 คน', mini: 'contentSpeakers', make: (item = {}) => makeSpeakers(item.variant || '2') },
-  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'วางในการ์ดเดิมเพื่อรวมแถว · วางด้านนอกเพื่อขึ้นการ์ดใหม่', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
-  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
-  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
-  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, true) },
-  { id: 'contentSplitImageRight', group: 'content', name: 'รูปขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) }
+  { id: 'contentSpeakers', group: 'content', name: 'คำพูดหลายคนพร้อมเส้นคั่น', note: 'คำพูด + ชื่อผู้พูด + เส้นคั่น · 2–3 คน', mini: 'contentSpeakers', make: (item = {}) => makeSpeakers(item.variant || '2') }
 ];
 
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
   { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'เลือกแบบปกติหรือพื้นหลังเขียว โดยแบบพื้นหลังเขียวมีทั้งแบบมีและไม่มีข้อความ' },
-  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · ลากรูป Quote ลงการ์ดเดิมเพื่อรวมแถวได้สูงสุด 4 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · ลากรูปภาพลงการ์ดเดิมเพื่อรวมแถวได้สูงสุด 4 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
 ];
 
 let structure = [];
@@ -51,8 +51,8 @@ function makeGreenHighlight(withText) {
   return `${imageSection}\n\n${textSection}`;
 }
 
-function makeQuoteImage(number) {
-  return `<figure class="text-center my-5"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp"></figure>`;
+function makeQuoteImage(number, spacing = 'my-5') {
+  return `<figure class="text-center ${spacing}"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp"></figure>`;
 }
 
 function makeQuoteRow(images) {
@@ -72,8 +72,8 @@ function makeNestedContent(items = []) {
   }).join('\n');
 }
 
-function makeQuoteItem(item) {
-  const image = makeQuoteImage(++quoteImageCounter);
+function makeQuoteItem(item, spacing = 'my-5') {
+  const image = makeQuoteImage(++quoteImageCounter, item.children?.length ? 'my-5' : spacing);
   if (!item.children?.length) return image;
   const copy = makeNestedContent(item.children);
   const imageColumn = `<div class="col-md-6">${image}</div>`;
@@ -556,11 +556,11 @@ function makeStructureCard(item, index) {
       }
       const rowTarget = document.createElement('div');
       rowTarget.className = 'quote-row-drop-zone';
-      rowTarget.textContent = '+ วางรูป Quote เพื่อเพิ่มในแถวนี้ (สูงสุด 4 รูป)';
+      rowTarget.textContent = '+ วางรูปภาพเพื่อเพิ่มในแถวนี้ (สูงสุด 4 รูป)';
       card.append(targets, rowTarget);
       const hint = document.createElement('div');
       hint.className = 'quote-drop-hint';
-      hint.textContent = 'วางรูป Quote เพื่อรวมแถว · วางหัวข้อ / Text / Blockquote เพื่อเพิ่มเนื้อหาข้างรูป';
+      hint.textContent = 'วางรูปภาพเพื่อรวมแถว · วางหัวข้อ / Text / Blockquote เพื่อเพิ่มเนื้อหาข้างรูป';
       if (item.children?.length) {
         const copy = document.createElement('div');
         copy.className = 'quote-card-copy';
@@ -904,7 +904,8 @@ function composeRegularBodyBlocks(items) {
           continue;
         }
       }
-      let markup = textItem.type === 'contentQuoteImage' ? makeQuoteItem(textItem) : blockInfo(textItem.type).make(textItem);
+      const isFinalStackedImage = textItem.type === 'contentQuoteImage' && !textItem.children?.length && textIndex === textItems.length - 1;
+      let markup = textItem.type === 'contentQuoteImage' ? makeQuoteItem(textItem, isFinalStackedImage ? 'mt-5 mb-0' : 'my-5') : blockInfo(textItem.type).make(textItem);
       if (!markup) continue;
       // Leave space before a new heading; close a paragraph before inline quote imagery.
       const nextTextItem = textItems[textIndex + 1];
