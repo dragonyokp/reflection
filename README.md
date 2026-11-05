@@ -1,21 +1,17 @@
 # Reflection Structure Builder
 
-Static browser tool for assembling Bangchak Reflection CMS HTML structures. Choose blocks from the left library, drag them into the canvas, view a page-like preview with sample Lorem text and image placeholders, reorder or remove blocks, then copy or download the combined HTML.
+Static browser tool for assembling Bangchak Reflection CMS HTML structures. The left library is divided into article headings, highlight image patterns, and content patterns. Drag patterns into the right canvas, reorder or remove them, then copy or download the resulting HTML.
 
-## Included structure blocks
+## Current heading patterns
 
-- Reflection article title
-- Audio and video player slots
-- Center-column paragraphs and section heading groups
-- Centered image figures
-- Wide image banner using `bg-split-news-big-image`
-- Green gradient text band using `bg-green-gradient-vertical`
-- Text-left and image-right split section
-- Two-column `.media` heading and icon layout
-- Two images in a two-column row
-- Blockquote
+- `Subtitle`: heading only.
+- `Audio player`: audio only.
+- `Subtitle + Audio`: combined heading and audio block.
+- If `Subtitle` and `Audio player` are placed next to each other, the exported HTML combines them into the `Subtitle + Audio` wrapper. Either order on the canvas is accepted; the exported code keeps the heading before the audio player.
 
-The on-screen previews use sample Lorem text and image placeholders so the layout is visible. The exported HTML contains empty text elements and `###` media/image source placeholders. Fill in article text and real CMS asset paths after export. The tool does not analyze Figma or place content automatically; it is an explicit structure builder.
+The canvas uses sample text and visual placeholders to show each layout. Exported text elements contain `Lorem....` for the subtitle and empty content slots for future patterns. The audio source uses the requested path pattern with `#####` placeholders. Fill in the real asset path before using the code.
+
+Highlight and content patterns will be added as their source structures are specified. The tool does not analyze Figma or make automatic layout decisions.
 
 ## Publish with GitHub Pages
 

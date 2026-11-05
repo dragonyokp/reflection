@@ -1,18 +1,15 @@
 const $ = (selector) => document.querySelector(selector);
 
 const BLOCKS = [
-  { id: 'articleTitle', name: 'หัวข้อบทความ', note: 'หัวเรื่อง Reflection', mini: 'title', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle mb-4"></h2>\n        </div>\n    </div>\n</div>` },
-  { id: 'audio', name: 'เสียงประกอบ', note: 'Audio player', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <audio controls="controls" src="###"></audio>\n        </div>\n    </div>\n</div>` },
-  { id: 'video', name: 'วิดีโอประกอบ', note: 'Video player', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <video controls="controls" src="###"></video>\n        </div>\n    </div>\n</div>` },
-  { id: 'textBlock', name: 'ข้อความในคอลัมน์กลาง', note: 'ย่อหน้าใน container', mini: 'text', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <p></p>\n            <p></p>\n        </div>\n    </div>\n</div>` },
-  { id: 'headingSection', name: 'หัวข้อย่อยและเนื้อหา', note: 'หัวข้อ h4 พร้อมย่อหน้า', mini: 'title', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h4></h4>\n            <p></p>\n            <p></p>\n            <p class="mb-0"></p>\n        </div>\n    </div>\n</div>` },
-  { id: 'centerImage', name: 'รูปภาพจัดกลาง', note: 'Figure · img-fluid · my-5', mini: 'image', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <figure class="text-center my-5"><img class="img-fluid" src="###"></figure>\n        </div>\n    </div>\n</div>` },
-  { id: 'wideBanner', name: 'รูปใหญ่บนแถบพื้นหลัง', note: 'bg-split-news-big-image', mini: 'banner', make: () => `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="###" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>` },
-  { id: 'greenBand', name: 'แถบไล่สีเขียวพร้อมข้อความ', note: 'bg-green-gradient-vertical', mini: 'green', make: () => `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white"></p>\n            </div>\n        </div>\n    </div>\n</div>` },
-  { id: 'splitImage', name: 'ข้อความคู่กับรูปด้านขวา', note: 'แถบเทา · ข้อความซ้าย · รูปขวา', mini: 'split', make: () => `<div class="bg-light-grey container-fluid my-5 px-0">\n    <div class="row justify-content-end no-gutters">\n        <div class="bg-split-news-right col-lg-6 col-xl-5 order-lg-2 py-5">\n            <div class="align-items-center d-flex h-100 justify-content-center p-2 p-lg-5">\n                <img class="img-fluid" src="###">\n            </div>\n        </div>\n        <div class="align-self-center col-lg-6 order-lg-1">\n            <div class="pl-xl-0 px-3 px-md-5 py-5">\n                <p class="mb-0"></p>\n            </div>\n        </div>\n    </div>\n</div>` },
-  { id: 'twoColumnMedia', name: 'สองคอลัมน์พร้อมหัวข้อและไอคอน', note: 'row · col-md-6 · media', mini: 'columns', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <div class="row">\n                <div class="col-md-6">\n                    <div class="media align-items-center mb-4">\n                        <img src="###" width="50" class="mr-3">\n                        <div class="media-body"><h4 class="mt-0 mb-0"></h4></div>\n                    </div>\n                    <p></p>\n                    <p class="mb-0"></p>\n                </div>\n                <div class="col-md-6">\n                    <div class="media align-items-center mb-4">\n                        <img src="###" width="50" class="mr-3">\n                        <div class="media-body"><h4 class="mt-0 mb-0"></h4></div>\n                    </div>\n                    <p class="mb-0"></p>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>` },
-  { id: 'imagePair', name: 'รูปภาพสองคอลัมน์', note: 'รูปคู่ใน row · col-md-6', mini: 'pair', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <div class="row">\n                <div class="col-md-6">\n                    <figure class="text-center my-5"><img class="img-fluid" src="###"></figure>\n                </div>\n                <div class="col-md-6">\n                    <figure class="text-center my-5"><img class="img-fluid" src="###"></figure>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>` },
-  { id: 'quote', name: 'ข้อความอ้างอิง', note: 'blockquote', mini: 'quote', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <blockquote></blockquote>\n        </div>\n    </div>\n</div>` }
+  { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">Lorem....</h2>\n        </div>\n    </div>\n</div>` },
+  { id: 'audio', group: 'heading', name: 'Audio player', note: 'มีเฉพาะคลิปเสียง', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n\n        </div>\n    </div>\n</div>` },
+  { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">Lorem....</h2>\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n        </div>\n    </div>\n</div>` }
+];
+
+const BLOCK_GROUPS = [
+  { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
+  { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'รอรูปแบบจากคุณ' },
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'รอรูปแบบจากคุณ' }
 ];
 
 let structure = [];
@@ -33,7 +30,8 @@ function makeMini(type) {
     part.className = className;
     mini.append(part);
   };
-  if (type === 'articleTitle') { add('title-line'); add('short-line'); }
+  if (type === 'subtitle') { add('title-line'); add('short-line'); }
+  if (type === 'subtitleAudio') { add('title-line'); add('audio-line'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
   if (type === 'textBlock') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'headingSection') { add('title-line'); add('text-line'); add('short-line'); }
@@ -50,29 +48,53 @@ function renderLibrary() {
   const library = $('#blockLibrary');
   library.replaceChildren();
   $('#paletteCount').textContent = `${BLOCKS.length} แบบ`;
-  for (const block of BLOCKS) {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'library-card';
-    card.draggable = true;
-    card.dataset.blockId = block.id;
-    const text = document.createElement('span');
-    text.innerHTML = '<span class="library-title"></span><span class="library-desc"></span>';
-    text.querySelector('.library-title').textContent = block.name;
-    text.querySelector('.library-desc').textContent = block.note;
-    const add = document.createElement('span');
-    add.className = 'add-block';
-    add.setAttribute('aria-hidden', 'true');
-    add.textContent = '+';
-    card.append(makeMini(block.id), text, add);
-    card.addEventListener('click', () => insertBlock(block.id));
-    card.addEventListener('dragstart', (event) => {
-      dragging = { kind: 'library', blockId: block.id };
-      event.dataTransfer.effectAllowed = 'copy';
-      event.dataTransfer.setData('text/plain', block.id);
-    });
-    card.addEventListener('dragend', () => { dragging = null; clearDropMarks(); });
-    library.append(card);
+  for (const group of BLOCK_GROUPS) {
+    const section = document.createElement('section');
+    section.className = 'block-group';
+    const heading = document.createElement('div');
+    heading.className = 'block-group-heading';
+    const title = document.createElement('h3');
+    title.textContent = group.title;
+    const help = document.createElement('p');
+    help.textContent = group.help;
+    heading.append(title, help);
+    section.append(heading);
+    const items = BLOCKS.filter((block) => block.group === group.id);
+    if (!items.length) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'group-placeholder';
+      placeholder.textContent = 'เพิ่มรูปแบบได้เมื่อมี code ตัวอย่าง';
+      section.append(placeholder);
+    } else {
+      const cards = document.createElement('div');
+      cards.className = 'block-group-cards';
+      for (const block of items) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'library-card';
+        card.draggable = true;
+        card.dataset.blockId = block.id;
+        const text = document.createElement('span');
+        text.innerHTML = '<span class="library-title"></span><span class="library-desc"></span>';
+        text.querySelector('.library-title').textContent = block.name;
+        text.querySelector('.library-desc').textContent = block.note;
+        const add = document.createElement('span');
+        add.className = 'add-block';
+        add.setAttribute('aria-hidden', 'true');
+        add.textContent = '+';
+        card.append(makeMini(block.mini), text, add);
+        card.addEventListener('click', () => insertBlock(block.id));
+        card.addEventListener('dragstart', (event) => {
+          dragging = { kind: 'library', blockId: block.id };
+          event.dataTransfer.effectAllowed = 'copy';
+          event.dataTransfer.setData('text/plain', block.id);
+        });
+        card.addEventListener('dragend', () => { dragging = null; clearDropMarks(); });
+        cards.append(card);
+      }
+      section.append(cards);
+    }
+    library.append(section);
   }
 }
 
@@ -110,10 +132,10 @@ function makePreview(type) {
   const preview = document.createElement('div');
   preview.className = `block-preview preview-${type}`;
   preview.setAttribute('aria-label', `${blockInfo(type).name} — ตัวอย่างหน้าตาโดยประมาณ`);
-  if (type === 'articleTitle') {
+  if (type === 'subtitle') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow';
-    const title = document.createElement('h3'); title.textContent = 'หัวข้อบทความ Reflection';
-    inner.append(title, previewText('ข้อความโปรยหรือหัวข้อรอง')); preview.append(inner);
+    const title = document.createElement('h3'); title.textContent = 'Lorem....';
+    inner.append(title); preview.append(inner);
   } else if (type === 'audio' || type === 'video') {
     const player = document.createElement('div'); player.className = `mock-player ${type === 'video' ? 'mock-video' : ''}`;
     if (type === 'video') player.append(imagePlaceholder('พื้นที่วิดีโอ'));
@@ -122,6 +144,16 @@ function makePreview(type) {
     const track = document.createElement('span'); track.className = 'mock-track';
     const duration = document.createElement('small'); duration.textContent = '0:00 / 0:00';
     controls.append(play, track, duration); player.append(controls); preview.append(player);
+  } else if (type === 'subtitleAudio') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow preview-combined';
+    const title = document.createElement('h3'); title.textContent = 'Lorem....';
+    const player = document.createElement('div'); player.className = 'mock-player';
+    const controls = document.createElement('div'); controls.className = 'mock-controls';
+    const play = document.createElement('span'); play.className = 'mock-play'; play.textContent = '▶';
+    const track = document.createElement('span'); track.className = 'mock-track';
+    const duration = document.createElement('small'); duration.textContent = '0:00 / 0:00';
+    controls.append(play, track, duration); player.append(controls);
+    inner.append(title, player); preview.append(inner);
   } else if (type === 'textBlock') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 2); preview.append(inner);
   } else if (type === 'headingSection') {
@@ -281,7 +313,19 @@ $('#canvas').addEventListener('drop', (event) => {
 });
 
 function updateCode() {
-  $('#htmlOutput').value = structure.map((item) => blockInfo(item.type).make()).join('\n\n');
+  const output = [];
+  for (let index = 0; index < structure.length; index++) {
+    const current = structure[index];
+    const next = structure[index + 1];
+    const formsPair = next && ((current.type === 'subtitle' && next.type === 'audio') || (current.type === 'audio' && next.type === 'subtitle'));
+    if (formsPair) {
+      output.push(blockInfo('subtitleAudio').make());
+      index++;
+    } else {
+      output.push(blockInfo(current.type).make());
+    }
+  }
+  $('#htmlOutput').value = output.join('\n\n');
 }
 
 $('#exportBtn').addEventListener('click', () => {
