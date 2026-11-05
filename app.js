@@ -9,15 +9,18 @@ const BLOCKS = [
   { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
-  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'รูปแทรกในเนื้อหา · quote-1, quote-2…', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
+  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'รูปเดี่ยว หรือเพิ่มเข้าแถวรูป Quote', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
+  { id: 'contentQuoteRow', group: 'content', name: 'แถวรูป Quote หลายรูป', note: 'วางรูป Quote ลงในการ์ดนี้ได้สูงสุด 3 รูป', mini: 'contentQuoteRow', make: (item) => makeQuoteRow(item.images || []) },
   { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + เนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, false) },
-  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) }
+  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
+  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + เนื้อหาขวา', note: 'รูปบนพื้นหลังเขียวด้านซ้าย · เนื้อหา 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, false) },
+  { id: 'contentSplitImageRight', group: 'content', name: 'หัวข้อและเนื้อหาซ้าย + รูปขวา', note: 'หัวข้อและเนื้อหา 2 ย่อหน้า · รูปบนพื้นหลังเขียวด้านขวา', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) }
 ];
 
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
   { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'เลือกแบบปกติหรือพื้นหลังเขียว โดยแบบพื้นหลังเขียวมีทั้งแบบมีและไม่มีข้อความ' },
-  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อ, Text, รูป Quote หรือบล็อกรูป Quote แบบแบ่งสองฝั่งมาวางตามลำดับ' }
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · เพิ่มรูป Quote เข้าแถวได้สูงสุด 3 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
 ];
 
 let structure = [];
@@ -44,6 +47,16 @@ function makeQuoteImage(number) {
   return `<figure class="text-center my-5"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp"></figure>`;
 }
 
+function makeQuoteRow(images) {
+  if (!images.length) return '';
+  const columnClass = images.length === 1 ? 'col-md-12' : images.length === 2 ? 'col-md-6' : 'col-md-4';
+  const columns = images.map(() => {
+    const imageNumber = ++quoteImageCounter;
+    return `    <div class="${columnClass}">\n        <figure class="text-center my-5"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${imageNumber}.webp"></figure>\n    </div>`;
+  });
+  return `<div class="row">\n${columns.join('\n')}\n</div>`;
+}
+
 function makeSplitQuoteBlock(imageSide, number, withHeading) {
   const imageOrder = imageSide === 'right' ? ' order-lg-12' : '';
   const textOrder = imageSide === 'right' ? ' order-lg-1' : '';
@@ -52,6 +65,15 @@ function makeSplitQuoteBlock(imageSide, number, withHeading) {
   const caption = Array.from({ length: captionLines }, () => '<span class="d-block"></span>').join('\n                    ');
   const textMarkup = withHeading ? '<h4></h4>\n                    <p></p>' : '<p></p>';
   return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="${rowClass}">\n        <div class="col-lg-5 bg-green-gradient-vertical${imageOrder}">\n            <div class="h-100 align-items-center justify-content-center p-5">\n                <figure class="text-center my-5"><img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" alt="" width="450" class="img-fluid"></figure>\n                <div class="font-italic text-center small text-white mt-3">\n                    ${caption}\n                </div>\n            </div>\n        </div>\n        <div class="col-lg-7 align-self-center${textOrder}">\n            <div class="py-5 px-3 px-md-7">\n                ${textMarkup}\n            </div>\n        </div>\n    </div>\n</div>`;
+}
+
+function makeSplitMediaBlock(imageSide, number, withHeading) {
+  const imagePath = `/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp`;
+  if (imageSide === 'left') {
+    return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row justify-content-lg-start justify-content-center no-gutters">\n        <div class="col-lg-6 col-xl-5 bg-split-news-left mb-md-0 mb-4">\n            <div class="d-flex h-100 align-items-center justify-content-center p-4 p-md-6">\n                <img src="${imagePath}" alt="" width="600" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-md-10 col-lg-6 col-xl-6 align-self-center">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
+  }
+  const heading = withHeading ? '                <h4></h4>\n' : '';
+  return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row no-gutters justify-content-end">\n        <div class="col-lg-6 col-xl-5 order-lg-2 bg-split-news-right py-5">\n            <div class="d-flex h-100 align-items-center justify-content-center p-5">\n                <img src="${imagePath}" alt="" width="800" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-lg-6 col-xl-5 align-self-center order-lg-1">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
 }
 
 function blockInfo(id) {
@@ -74,7 +96,9 @@ function makeMini(type) {
   if (type === 'contentHeading') { add('title-line'); }
   if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'contentQuoteImage') { add('quote-image'); }
+  if (type === 'contentQuoteRow') { add('quote-row-image'); add('quote-row-image'); add('quote-row-image'); }
   if (type === 'contentSplitQuoteRight' || type === 'contentSplitQuoteLeft') { add('split-quote-image'); add('split-quote-copy'); }
+  if (type === 'contentSplitImageLeft' || type === 'contentSplitImageRight') { add('split-quote-image'); add('split-quote-copy'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
   if (type === 'textBlock') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'headingSection') { add('title-line'); add('text-line'); add('short-line'); }
@@ -143,7 +167,9 @@ function renderLibrary() {
 
 function insertBlock(blockId, index = structure.length) {
   if (!blockInfo(blockId)) return;
-  structure.splice(index, 0, { id: `block-${nextId++}`, type: blockId });
+  const item = { id: `block-${nextId++}`, type: blockId };
+  if (blockId === 'contentQuoteRow') item.images = [];
+  structure.splice(index, 0, item);
   renderStructure();
 }
 
@@ -237,6 +263,18 @@ function makePreview(type) {
     }
     previewParagraphs(copy, 1);
     split.append(imageSide, copy); preview.append(split);
+  } else if (type === 'contentSplitImageLeft' || type === 'contentSplitImageRight') {
+    const imageOnLeft = type === 'contentSplitImageLeft';
+    const split = document.createElement('div');
+    split.className = `split-quote-preview ${imageOnLeft ? 'image-on-left' : 'image-on-right'}`;
+    const imageSide = document.createElement('div'); imageSide.className = 'split-quote-preview-image';
+    imageSide.append(imagePlaceholder('quote-1.webp · รูปประกอบ'));
+    const copy = document.createElement('div'); copy.className = 'split-quote-preview-copy';
+    if (!imageOnLeft) {
+      const heading = document.createElement('h4'); heading.textContent = 'Lorem ipsum dolor sit amet'; copy.append(heading);
+    }
+    previewParagraphs(copy, 2);
+    split.append(imageSide, copy); preview.append(split);
   } else if (type === 'textBlock') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 2); preview.append(inner);
   } else if (type === 'headingSection') {
@@ -289,6 +327,65 @@ function makeControl(label, symbol, className, onClick, disabled = false) {
   return button;
 }
 
+function makeQuoteRowCanvas(item) {
+  const preview = document.createElement('div');
+  preview.className = 'block-preview preview-contentQuoteRow';
+  const dropzone = document.createElement('div');
+  dropzone.className = 'quote-row-dropzone';
+  dropzone.dataset.rowId = item.id;
+  const header = document.createElement('div');
+  header.className = 'quote-row-dropzone-heading';
+  header.innerHTML = `<strong>${item.images.length} / 3 รูป</strong><span>ลากรูป Quote จากฝั่งซ้ายมาวางในกรอบนี้</span>`;
+  dropzone.append(header);
+
+  if (!item.images.length) {
+    const empty = document.createElement('div');
+    empty.className = 'quote-row-empty';
+    empty.textContent = 'เริ่มด้วยการลากรูป Quote มาใส่';
+    dropzone.append(empty);
+  } else {
+    const gallery = document.createElement('div');
+    gallery.className = 'quote-row-gallery';
+    gallery.style.setProperty('--quote-row-columns', item.images.length);
+    item.images.forEach((image, imageIndex) => {
+      const tile = document.createElement('div');
+      tile.className = 'quote-row-tile';
+      tile.append(imagePlaceholder(`รูปที่ ${imageIndex + 1} · quote ตามลำดับ`));
+      const actions = document.createElement('div');
+      actions.className = 'quote-row-image-actions';
+      actions.append(
+        makeControl('เลื่อนรูปไปซ้าย', '←', '', () => moveQuoteImage(item.id, imageIndex, -1), imageIndex === 0),
+        makeControl('เลื่อนรูปไปขวา', '→', '', () => moveQuoteImage(item.id, imageIndex, 1), imageIndex === item.images.length - 1),
+        makeControl('เอารูปออกจากแถว', '×', 'remove', () => removeQuoteImage(item.id, imageIndex))
+      );
+      tile.append(actions);
+      gallery.append(tile);
+    });
+    dropzone.append(gallery);
+  }
+  const help = document.createElement('small');
+  help.className = 'quote-row-dropzone-help';
+  help.textContent = item.images.length >= 3 ? 'ครบ 3 รูปแล้ว' : 'วางรูปเพิ่มเพื่อเปลี่ยนจำนวนคอลัมน์';
+  dropzone.append(help);
+  preview.append(dropzone);
+  return preview;
+}
+
+function moveQuoteImage(rowId, imageIndex, direction) {
+  const row = structure.find((item) => item.id === rowId);
+  const destination = imageIndex + direction;
+  if (!row || destination < 0 || destination >= row.images.length) return;
+  [row.images[imageIndex], row.images[destination]] = [row.images[destination], row.images[imageIndex]];
+  renderStructure();
+}
+
+function removeQuoteImage(rowId, imageIndex) {
+  const row = structure.find((item) => item.id === rowId);
+  if (!row) return;
+  row.images.splice(imageIndex, 1);
+  renderStructure();
+}
+
 function renderStructure() {
   const canvas = $('#canvas');
   canvas.querySelectorAll('.structure-card').forEach((card) => card.remove());
@@ -331,13 +428,14 @@ function renderStructure() {
     );
     actions.append(controls);
     toolbar.append(handle, name, actions);
-    card.append(toolbar, makePreview(item.type));
+    const preview = item.type === 'contentQuoteRow' ? makeQuoteRowCanvas(item) : makePreview(item.type);
+    card.append(toolbar, preview);
     canvas.append(card);
   });
   $('#structureCount').textContent = `${structure.length} ส่วน`;
   $('#canvasStatus').textContent = structure.length ? `มี ${structure.length} ส่วน · ลากเพื่อเรียงลำดับ หรือใช้ปุ่มลูกศร` : 'ยังไม่มีส่วนประกอบ';
   $('#clearBtn').disabled = structure.length === 0;
-  $('#exportBtn').disabled = structure.length === 0;
+  $('#exportBtn').disabled = !structure.some((item) => item.type !== 'contentQuoteRow' || item.images.length > 0);
   if (codeIsVisible) updateCode();
 }
 
@@ -350,6 +448,7 @@ function moveBlock(index, direction) {
 
 function clearDropMarks() {
   document.querySelectorAll('.drop-before,.drop-after').forEach((card) => card.classList.remove('drop-before', 'drop-after'));
+  document.querySelectorAll('.quote-row-dropzone.is-over').forEach((zone) => zone.classList.remove('is-over'));
   $('#canvas').classList.remove('is-over');
 }
 
@@ -364,10 +463,15 @@ function dropIndex(event) {
 $('#canvas').addEventListener('dragover', (event) => {
   if (!dragging) return;
   event.preventDefault();
-  event.dataTransfer.dropEffect = dragging.kind === 'library' ? 'copy' : 'move';
-  $('#canvas').classList.add('is-over');
   clearDropMarks();
   $('#canvas').classList.add('is-over');
+  const quoteDropzone = event.target.closest('.quote-row-dropzone');
+  if (quoteDropzone) {
+    quoteDropzone.classList.add('is-over');
+    event.dataTransfer.dropEffect = 'copy';
+    return;
+  }
+  event.dataTransfer.dropEffect = dragging.kind === 'library' ? 'copy' : 'move';
   const card = event.target.closest('.structure-card');
   if (card) {
     const rect = card.getBoundingClientRect();
@@ -382,6 +486,33 @@ $('#canvas').addEventListener('dragleave', (event) => {
 $('#canvas').addEventListener('drop', (event) => {
   if (!dragging) return;
   event.preventDefault();
+  const quoteDropzone = event.target.closest('.quote-row-dropzone');
+  if (quoteDropzone) {
+    const row = structure.find((item) => item.id === quoteDropzone.dataset.rowId);
+    if (row && row.images.length >= 3) {
+      $('#canvasStatus').textContent = 'แถวรูป Quote ใส่ได้สูงสุด 3 รูป';
+    } else if (row && dragging.kind === 'library' && dragging.blockId === 'contentQuoteImage') {
+      row.images.push({ id: `block-${nextId++}`, type: 'contentQuoteImage' });
+      renderStructure();
+      $('#canvasStatus').textContent = `เพิ่มรูปในแถวแล้ว · ${row.images.length} / 3 รูป`;
+    } else if (row && dragging.kind === 'canvas') {
+      const from = structure.findIndex((item) => item.id === dragging.instanceId);
+      const image = structure[from];
+      if (from >= 0 && image?.type === 'contentQuoteImage') {
+        structure.splice(from, 1);
+        row.images.push(image);
+        renderStructure();
+        $('#canvasStatus').textContent = `ย้ายรูปเข้าแถวแล้ว · ${row.images.length} / 3 รูป`;
+      } else {
+        $('#canvasStatus').textContent = 'กรอบนี้รับเฉพาะรูป Quote';
+      }
+    } else {
+      $('#canvasStatus').textContent = 'กรอบนี้รับเฉพาะรูป Quote';
+    }
+    dragging = null;
+    clearDropMarks();
+    return;
+  }
   const targetIndex = dropIndex(event);
   if (dragging.kind === 'library') {
     insertBlock(dragging.blockId, targetIndex);
@@ -420,22 +551,28 @@ function updateCode() {
       output.push(composeBodyBlocks(bodyBlocks));
     }
   }
-  $('#htmlOutput').value = output.join('\n\n');
+  $('#htmlOutput').value = output.filter(Boolean).join('\n\n');
 }
 
 function composeBodyBlocks(items) {
   const sections = [];
   let regularItems = [];
   for (const item of items) {
-    if (['highlightGreenText', 'highlightGreenEmpty', 'contentSplitQuoteRight', 'contentSplitQuoteLeft'].includes(item.type)) {
-      if (regularItems.length) sections.push(composeRegularBodyBlocks(regularItems));
+    if (['highlightGreenText', 'highlightGreenEmpty', 'contentSplitQuoteRight', 'contentSplitQuoteLeft', 'contentSplitImageLeft', 'contentSplitImageRight'].includes(item.type)) {
+      if (regularItems.length) {
+        const regularSection = composeRegularBodyBlocks(regularItems);
+        if (regularSection) sections.push(regularSection);
+      }
       sections.push(blockInfo(item.type).make());
       regularItems = [];
     } else {
       regularItems.push(item);
     }
   }
-  if (regularItems.length) sections.push(composeRegularBodyBlocks(regularItems));
+  if (regularItems.length) {
+    const regularSection = composeRegularBodyBlocks(regularItems);
+    if (regularSection) sections.push(regularSection);
+  }
   return sections.join('\n\n');
 }
 
@@ -454,16 +591,22 @@ function composeRegularBodyBlocks(items) {
     const nextIsHighlight = items[index + 1]?.type === 'highlightImage';
     const rowClasses = ['row', 'justify-content-center'];
     if (!hasHighlight || nextIsHighlight) rowClasses.push('mb-5');
-    const inner = textItems.map((textItem, textIndex) => {
-      const markup = blockInfo(textItem.type).make();
+    const innerParts = textItems.map((textItem, textIndex) => {
+      const markup = blockInfo(textItem.type).make(textItem);
+      if (!markup) return '';
       // Separate the final paragraph from the next h4 within the same content section.
-      const paragraphBeforeQuoteImage = textItem.type === 'contentText' && textItems[textIndex + 1]?.type === 'contentQuoteImage';
+      const nextTextItem = textItems[textIndex + 1];
+      const nextIsQuoteImage = nextTextItem?.type === 'contentQuoteImage' || (nextTextItem?.type === 'contentQuoteRow' && nextTextItem.images.length > 0);
+      const paragraphBeforeQuoteImage = textItem.type === 'contentText' && nextIsQuoteImage;
       const paragraphBeforeHeading = textItem.type === 'contentText' && textItems[textIndex + 1]?.type === 'contentHeading';
       if (paragraphBeforeQuoteImage) return markup.replace('<p>', '<p class="mb-0">');
       return paragraphBeforeHeading ? markup.replace('<p>', '<p class="mb-5">') : markup;
-    }).join('\n            ');
+    }).filter(Boolean);
+    if (!innerParts.length) continue;
+    const inner = innerParts.join('\n            ');
     rows.push(`<div class="${rowClasses.join(' ')}">\n    <div class="col-md-10 col-xl-8 col-xxl-6">\n        ${inner}\n    </div>\n</div>`);
   }
+  if (!rows.length) return '';
   const containerClass = hasHighlight ? 'container mb-5 mb-xl-mb-6' : 'container';
   const content = rows.map((row) => row.split('\n').map((line) => `    ${line}`).join('\n')).join('\n\n');
   return `<div class="${containerClass}">\n${content}\n</div>`;
