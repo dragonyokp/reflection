@@ -219,7 +219,7 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .mini-contentSplitImageRight{flex-direction:row-reverse}
 .mini-contentSplitImageLeft{background:linear-gradient(90deg,#6baa39 0 50%,#f1f2ef 50%)}
 .mini-contentSplitImageRight{background:linear-gradient(90deg,#f1f2ef 0 50%,#6baa39 50%)}
-.mini-contentSplitImageLeft .split-quote-image{background-image:url('assets/split-layout-sample.webp');background-position:center;background-size:cover;border:1px solid #fff}
+.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{background-position:center;background-size:cover;border:1px solid #fff}
 .quote-image-group{display:grid;grid-template-columns:repeat(var(--quote-image-columns),minmax(0,1fr));gap:9px;min-width:0}
 .quote-image-group .structure-card{min-width:0}
 .quote-image-group .quote-image-preview-figure{width:100%;padding:8px}
