@@ -10,7 +10,7 @@ const BLOCKS = [
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
   { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'ลากซ้ำติดกันเพื่อจัดเป็นแถว 2–3 รูป', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
-  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + เนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, false) },
+  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
   { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
   { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, true) },
   { id: 'contentSplitImageRight', group: 'content', name: 'รูปขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) }
@@ -56,11 +56,10 @@ function makeQuoteRow(images) {
   return `<div class="row">\n${columns.join('\n')}\n</div>`;
 }
 
-function makeSplitQuoteBlock(imageSide, number, withHeading) {
+function makeSplitQuoteBlock(imageSide, number, withHeading, captionLines = withHeading ? 2 : 3) {
   const imageOrder = imageSide === 'right' ? ' order-lg-12' : '';
   const textOrder = imageSide === 'right' ? ' order-lg-1' : '';
   const rowClass = imageSide === 'right' ? 'row no-gutters justify-content-end' : 'row no-gutters';
-  const captionLines = withHeading ? 2 : 3;
   const caption = Array.from({ length: captionLines }, () => '<span class="d-block"></span>').join('\n                    ');
   const textMarkup = withHeading ? '<h4></h4>\n                    <p></p>' : '<p></p>';
   return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="${rowClass}">\n        <div class="col-lg-5 bg-green-gradient-vertical${imageOrder}">\n            <div class="h-100 align-items-center justify-content-center p-5">\n                <figure class="text-center my-5"><img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" alt="" width="450" class="img-fluid"></figure>\n                <div class="font-italic text-center small text-white mt-3">\n                    ${caption}\n                </div>\n            </div>\n        </div>\n        <div class="col-lg-7 align-self-center${textOrder}">\n            <div class="py-5 px-3 px-md-7">\n                ${textMarkup}\n            </div>\n        </div>\n    </div>\n</div>`;
@@ -255,7 +254,7 @@ function makePreview(type) {
     caption.innerHTML = '<span>Lorem ipsum dolor sit amet</span><span>Consectetur adipiscing elit</span>';
     imageSide.append(caption);
     const copy = document.createElement('div'); copy.className = 'split-quote-preview-copy';
-    if (type === 'contentSplitQuoteLeft') {
+    if (type === 'contentSplitQuoteLeft' || type === 'contentSplitQuoteRight') {
       const heading = document.createElement('h4'); heading.textContent = 'Lorem ipsum dolor sit amet'; copy.append(heading);
     }
     previewParagraphs(copy, 1);
