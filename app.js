@@ -649,6 +649,35 @@ function finishLibraryPointer(event, cancelled = false) {
 document.addEventListener('pointerup', (event) => finishLibraryPointer(event));
 document.addEventListener('pointercancel', (event) => finishLibraryPointer(event, true));
 
+function formatGeneratedHtml(html) {
+  const tokens = (html.match(/<!--[\s\S]*?-->|<[^>]+>|[^<]+/g) || []).map((token) => token.trim()).filter(Boolean);
+  const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+  const lines = [];
+  let depth = 0;
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index];
+    const closing = token.match(/^<\/([a-z][\w:-]*)\s*>$/i);
+    if (closing) depth = Math.max(0, depth - 1);
+    const opening = token.match(/^<([a-z][\w:-]*)\b/i);
+    let line = token;
+    if (opening && !voidTags.has(opening[1].toLowerCase()) && !/\/\s*>$/.test(token)) {
+      const closeTag = `</${opening[1]}>`;
+      const compact = !['div', 'figure'].includes(opening[1].toLowerCase());
+      if (compact && tokens[index + 1]?.toLowerCase() === closeTag.toLowerCase()) {
+        line += tokens[++index];
+      } else if (compact && tokens[index + 1] && !tokens[index + 1].startsWith('<') && tokens[index + 2]?.toLowerCase() === closeTag.toLowerCase()) {
+        line += tokens[++index] + tokens[++index];
+      } else {
+        lines.push('    '.repeat(depth) + line);
+        depth++;
+        continue;
+      }
+    }
+    lines.push('    '.repeat(depth) + line);
+  }
+  return lines.join('\n');
+}
+
 function updateCode() {
   quoteImageCounter = 0;
   const output = [];
@@ -671,7 +700,7 @@ function updateCode() {
       output.push(composeBodyBlocks(bodyBlocks));
     }
   }
-  $('#htmlOutput').value = output.filter(Boolean).join('\n\n');
+  $('#htmlOutput').value = formatGeneratedHtml(output.filter(Boolean).join('\n\n'));
 }
 
 function composeBodyBlocks(items) {
