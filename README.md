@@ -1,6 +1,6 @@
 # Reflection Structure Builder
 
-Static browser tool for assembling Bangchak Reflection CMS HTML structures. Choose blocks from the left library, drag them into the canvas, reorder or remove them, then copy or download the combined HTML.
+Static browser tool for assembling Bangchak Reflection CMS HTML structures. Choose blocks from the left library, drag them into the canvas, view a page-like preview with sample Lorem text and image placeholders, reorder or remove blocks, then copy or download the combined HTML.
 
 ## Included structure blocks
 
@@ -15,7 +15,7 @@ Static browser tool for assembling Bangchak Reflection CMS HTML structures. Choo
 - Two images in a two-column row
 - Blockquote
 
-The exported HTML contains empty text elements and `###` media/image source placeholders. Fill in article text and real CMS asset paths after export. The tool does not analyze Figma or place content automatically; it is an explicit structure builder.
+The on-screen previews use sample Lorem text and image placeholders so the layout is visible. The exported HTML contains empty text elements and `###` media/image source placeholders. Fill in article text and real CMS asset paths after export. The tool does not analyze Figma or place content automatically; it is an explicit structure builder.
 
 ## Publish with GitHub Pages
 

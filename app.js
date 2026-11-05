@@ -28,8 +28,21 @@ function makeMini(type) {
   const mini = document.createElement('span');
   mini.className = `mini mini-${type}`;
   mini.setAttribute('aria-hidden', 'true');
-  const count = type === 'columns' || type === 'pair' || type === 'split' ? 2 : type === 'audio' ? 3 : type === 'quote' ? 1 : 3;
-  for (let i = 0; i < count; i++) mini.append(document.createElement('i'));
+  const add = (className) => {
+    const part = document.createElement('i');
+    part.className = className;
+    mini.append(part);
+  };
+  if (type === 'articleTitle') { add('title-line'); add('short-line'); }
+  if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
+  if (type === 'textBlock') { add('text-line'); add('text-line'); add('short-line'); }
+  if (type === 'headingSection') { add('title-line'); add('text-line'); add('short-line'); }
+  if (type === 'centerImage') { add('image-box'); }
+  if (type === 'wideBanner') { add('banner-box'); }
+  if (type === 'greenBand') { add('green-lines'); }
+  if (type === 'splitImage') { add('split-copy'); add('split-image'); }
+  if (type === 'twoColumnMedia' || type === 'imagePair') { add('column-block'); add('column-block'); }
+  if (type === 'quote') { add('quote-box'); }
   return mini;
 }
 
@@ -51,7 +64,7 @@ function renderLibrary() {
     add.className = 'add-block';
     add.setAttribute('aria-hidden', 'true');
     add.textContent = '+';
-    card.append(makeMini(block.mini), text, add);
+    card.append(makeMini(block.id), text, add);
     card.addEventListener('click', () => insertBlock(block.id));
     card.addEventListener('dragstart', (event) => {
       dragging = { kind: 'library', blockId: block.id };
@@ -69,18 +82,84 @@ function insertBlock(blockId, index = structure.length) {
   renderStructure();
 }
 
-function makeVisual(type) {
-  const visual = document.createElement('div');
-  visual.className = 'structure-visual';
-  visual.dataset.type = type;
-  visual.setAttribute('aria-hidden', 'true');
-  const count = type === 'twoColumnMedia' || type === 'imagePair' || type === 'splitImage' ? 2 : type === 'audio' || type === 'video' ? 3 : 4;
-  for (let i = 0; i < count; i++) {
-    const block = document.createElement('i');
-    block.className = 'visual-block';
-    visual.append(block);
+function previewText(text, className = '') {
+  const node = document.createElement('p');
+  node.className = className;
+  node.textContent = text;
+  return node;
+}
+
+function imagePlaceholder(label = 'พื้นที่รูปภาพ') {
+  const box = document.createElement('div');
+  box.className = 'preview-image-placeholder';
+  const icon = document.createElement('span');
+  icon.className = 'placeholder-icon';
+  icon.textContent = '▧';
+  const caption = document.createElement('span');
+  caption.textContent = label;
+  box.append(icon, caption);
+  return box;
+}
+
+function previewParagraphs(parent, count = 2) {
+  const lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius. Sed non augue eget erat consequat posuere.';
+  for (let i = 0; i < count; i++) parent.append(previewText(lorem, 'preview-lorem'));
+}
+
+function makePreview(type) {
+  const preview = document.createElement('div');
+  preview.className = `block-preview preview-${type}`;
+  preview.setAttribute('aria-label', `${blockInfo(type).name} — ตัวอย่างหน้าตาโดยประมาณ`);
+  if (type === 'articleTitle') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow';
+    const title = document.createElement('h3'); title.textContent = 'หัวข้อบทความ Reflection';
+    inner.append(title, previewText('ข้อความโปรยหรือหัวข้อรอง')); preview.append(inner);
+  } else if (type === 'audio' || type === 'video') {
+    const player = document.createElement('div'); player.className = `mock-player ${type === 'video' ? 'mock-video' : ''}`;
+    if (type === 'video') player.append(imagePlaceholder('พื้นที่วิดีโอ'));
+    const controls = document.createElement('div'); controls.className = 'mock-controls';
+    const play = document.createElement('span'); play.className = 'mock-play'; play.textContent = '▶';
+    const track = document.createElement('span'); track.className = 'mock-track';
+    const duration = document.createElement('small'); duration.textContent = '0:00 / 0:00';
+    controls.append(play, track, duration); player.append(controls); preview.append(player);
+  } else if (type === 'textBlock') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 2); preview.append(inner);
+  } else if (type === 'headingSection') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow';
+    const heading = document.createElement('h4'); heading.textContent = 'หัวข้อย่อยของบทความ';
+    inner.append(heading); previewParagraphs(inner, 2); preview.append(inner);
+  } else if (type === 'centerImage') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow'; inner.append(imagePlaceholder('รูปภาพจัดกลาง')); preview.append(inner);
+  } else if (type === 'wideBanner') {
+    const frame = document.createElement('div'); frame.className = 'wide-banner-frame';
+    const inner = document.createElement('div'); inner.className = 'wide-banner-inner'; inner.append(imagePlaceholder('รูปใหญ่ / highlight หรือภาพหลัก'));
+    frame.append(inner); preview.append(frame);
+  } else if (type === 'greenBand') {
+    const inner = document.createElement('div'); inner.className = 'green-band-inner';
+    inner.append(previewText('ตัวอย่างข้อความสีขาวบนแถบไล่สีเขียว', 'preview-lorem')); preview.append(inner);
+  } else if (type === 'splitImage') {
+    const split = document.createElement('div'); split.className = 'split-preview-layout';
+    const copy = document.createElement('div'); copy.className = 'split-preview-copy'; previewParagraphs(copy, 2);
+    const image = imagePlaceholder('รูปอยู่ด้านขวา'); image.classList.add('split-preview-image');
+    split.append(copy, image); preview.append(split);
+  } else if (type === 'twoColumnMedia') {
+    const grid = document.createElement('div'); grid.className = 'media-preview-grid';
+    for (let i = 0; i < 2; i++) {
+      const col = document.createElement('div'); col.className = 'media-preview-col';
+      const head = document.createElement('div'); head.className = 'media-preview-head';
+      const icon = document.createElement('span'); icon.className = 'media-preview-icon'; icon.textContent = '＋';
+      const title = document.createElement('h4'); title.textContent = `หัวข้อคอลัมน์ ${i + 1}`;
+      head.append(icon, title); col.append(head); previewParagraphs(col, i === 0 ? 2 : 1); grid.append(col);
+    }
+    preview.append(grid);
+  } else if (type === 'imagePair') {
+    const grid = document.createElement('div'); grid.className = 'image-pair-preview';
+    grid.append(imagePlaceholder('รูปที่ 1'), imagePlaceholder('รูปที่ 2')); preview.append(grid);
+  } else if (type === 'quote') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow';
+    const quote = document.createElement('blockquote'); quote.textContent = '“ตัวอย่างข้อความอ้างอิงจากบทความ”'; inner.append(quote); preview.append(inner);
   }
-  return visual;
+  return preview;
 }
 
 function makeControl(label, symbol, className, onClick, disabled = false) {
@@ -113,6 +192,8 @@ function renderStructure() {
     });
     card.addEventListener('dragend', () => { dragging = null; card.classList.remove('is-dragging'); clearDropMarks(); });
 
+    const toolbar = document.createElement('div');
+    toolbar.className = 'structure-toolbar';
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
     handle.textContent = '⠿';
@@ -131,7 +212,8 @@ function renderStructure() {
       makeControl('เลื่อนลง', '↓', '', () => moveBlock(index, 1), index === structure.length - 1),
       makeControl('ลบส่วนนี้', '×', 'remove', () => { structure.splice(index, 1); renderStructure(); })
     );
-    card.append(handle, name, makeVisual(item.type), controls);
+    toolbar.append(handle, name, controls);
+    card.append(toolbar, makePreview(item.type));
     canvas.append(card);
   });
   $('#structureCount').textContent = `${structure.length} ส่วน`;
