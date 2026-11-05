@@ -288,3 +288,5 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .library-card{touch-action:none}
 .is-library-pointer-dragging{user-select:none;cursor:grabbing}
 .library-drag-ghost{pointer-events:none;position:fixed;z-index:1000;max-width:280px;padding:12px 18px;border:1px solid #87af64;border-radius:10px;background:#f3fae9;color:#4e762e;box-shadow:0 5px 22px #23492125;font:600 14px 'IBM Plex Sans Thai',sans-serif}
+/* Center the add symbol inside every library/picker button. */
+.add-block{display:grid;place-items:center;padding:0;line-height:1;text-align:center;justify-self:center;align-self:center}
