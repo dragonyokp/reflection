@@ -254,7 +254,11 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .mini-contentBlockquote .quote-mark{width:12px;height:20px;background:transparent;position:relative}
 .mini-contentBlockquote .quote-mark:before{content:"“";position:absolute;top:-5px;left:0;color:#65a341;font:bold 30px Georgia,serif}
 .mini-contentBlockquote .quote-line{height:13px;flex:1;background:linear-gradient(#9aa398 0 3px,transparent 3px 6px,#cbd0c8 6px 9px,transparent 9px)}
-.content-blockquote-preview{margin:32px 0;padding:20px 24px;border-left:4px solid #7ab637;background:#f4f8ef;color:#334b2c;font-size:18px;line-height:1.8}
+.preview-contentBlockquote{background:#f5f5f5}
+.content-blockquote-preview{position:relative;width:545px;max-width:100%;margin:30px auto;padding:5px 30px;border:0;background:transparent;color:#303438;text-align:center;font-size:26px;font-weight:400;line-height:1.2;box-sizing:border-box}
+.content-blockquote-preview:before,.content-blockquote-preview:after{content:"";position:absolute;top:0;width:15px;height:100%;border-top:2px solid #3aa537;border-bottom:2px solid #3aa537;box-sizing:border-box}
+.content-blockquote-preview:before{left:0;border-left:2px solid #3aa537}
+.content-blockquote-preview:after{right:0;border-right:2px solid #3aa537}
 /* A generous append target stays after the final structure card. */
 .append-bar{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 14px;margin:4px 0 0;border:1px dashed #9bbd80;border-radius:10px;background:#f6faef;color:#547843;font:inherit;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
 .append-plus{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:50%;background:#e5efd7;color:#4b8f31;font-size:22px;line-height:1}
@@ -277,7 +281,7 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .nested-content-item{position:relative;border:1px dashed #dce8d5;border-radius:8px;padding:8px 8px 36px;background:#fff}
 .nested-content-item .block-preview{padding:10px!important}.nested-content-item .preview-narrow{width:100%;max-width:none}
 .nested-content-controls{display:flex;gap:4px;position:absolute;right:7px;bottom:6px}.nested-content-controls .icon-button{width:24px;height:24px}
-.quote-with-copy .content-blockquote-preview{margin:8px 0;font-size:15px;padding:12px}
+.quote-with-copy .content-blockquote-preview{margin:12px auto;font-size:20px;padding:5px 25px}
 @media(max-width:700px){.quote-with-copy{grid-template-columns:1fr}}
 .quote-insert-zones,.quote-row-drop-zone{display:none}
 .has-content-drag .quote-drop-card .quote-insert-zones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;background:#f7fbf2}
