@@ -265,11 +265,15 @@ function makePreview(type) {
     const split = document.createElement('div');
     split.className = `split-quote-preview ${imageOnLeft ? 'image-on-left' : 'image-on-right'}`;
     const imageSide = document.createElement('div'); imageSide.className = 'split-quote-preview-image';
-    const demoImage = document.createElement('img');
-    demoImage.className = 'split-layout-demo-image';
-    demoImage.src = 'assets/split-layout-sample.webp';
-    demoImage.alt = 'ภาพถ่ายตัวอย่างสำหรับเลย์เอาต์รูปประกอบ';
-    imageSide.append(demoImage);
+    if (imageOnLeft) {
+      const demoImage = document.createElement('img');
+      demoImage.className = 'split-layout-demo-image';
+      demoImage.src = 'assets/split-layout-sample.webp';
+      demoImage.alt = 'ภาพถ่ายตัวอย่างสำหรับเลย์เอาต์รูปประกอบ';
+      imageSide.append(demoImage);
+    } else {
+      imageSide.append(imagePlaceholder('quote-1.webp · รูปประกอบ'));
+    }
     const copy = document.createElement('div'); copy.className = 'split-quote-preview-copy';
     const heading = document.createElement('h4'); heading.textContent = 'Lorem ipsum dolor sit amet'; copy.append(heading);
     previewParagraphs(copy, 2);
