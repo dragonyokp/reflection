@@ -279,3 +279,12 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .nested-content-controls{display:flex;gap:4px;position:absolute;right:7px;bottom:6px}.nested-content-controls .icon-button{width:24px;height:24px}
 .quote-with-copy .content-blockquote-preview{margin:8px 0;font-size:15px;padding:12px}
 @media(max-width:700px){.quote-with-copy{grid-template-columns:1fr}}
+.quote-insert-zones,.quote-row-drop-zone{display:none}
+.has-content-drag .quote-drop-card .quote-insert-zones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;background:#f7fbf2}
+.quote-copy-drop-zone{min-height:76px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;border:2px dashed #8cba67;border-radius:9px;color:#4b7b30;font-size:13px;background:#eef7e5}
+.quote-copy-drop-zone:hover{background:#d9efc5;border-color:#4c922d}
+.has-quote-drag .quote-drop-card .quote-row-drop-zone{display:block;padding:18px 12px;margin:10px;border:2px dashed #8cba67;border-radius:9px;text-align:center;background:#eef7e5;color:#4b7b30;font-size:13px}
+@media(max-width:600px){.has-content-drag .quote-drop-card .quote-insert-zones{grid-template-columns:1fr}}
+.library-card{touch-action:none}
+.is-library-pointer-dragging{user-select:none;cursor:grabbing}
+.library-drag-ghost{pointer-events:none;position:fixed;z-index:1000;max-width:280px;padding:12px 18px;border:1px solid #87af64;border-radius:10px;background:#f3fae9;color:#4e762e;box-shadow:0 5px 22px #23492125;font:600 14px 'IBM Plex Sans Thai',sans-serif}

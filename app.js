@@ -1,4 +1,5 @@
 const $ = (selector) => document.querySelector(selector);
+const MAX_QUOTE_COLUMNS = 4;
 
 const BLOCKS = [
   { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">Lorem....</h2>\n        </div>\n    </div>\n</div>` },
@@ -20,7 +21,7 @@ const BLOCKS = [
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
   { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'เลือกแบบปกติหรือพื้นหลังเขียว โดยแบบพื้นหลังเขียวมีทั้งแบบมีและไม่มีข้อความ' },
-  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · ลากรูป Quote ลงการ์ดเดิมเพื่อรวมแถวได้สูงสุด 3 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · ลากรูป Quote ลงการ์ดเดิมเพื่อรวมแถวได้สูงสุด 4 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
 ];
 
 let structure = [];
@@ -28,6 +29,8 @@ let nextId = 1;
 let dragging = null;
 let codeIsVisible = false;
 let quoteImageCounter = 0;
+let libraryPointer = null;
+let suppressLibraryClickUntil = 0;
 
 const loremHighlight = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius. Sed non augue eget erat consequat posuere.';
 
@@ -49,7 +52,7 @@ function makeQuoteImage(number) {
 
 function makeQuoteRow(images) {
   if (!images.length) return '';
-  const columnClass = images.length === 1 ? 'col-md-12' : images.length === 2 ? 'col-md-6' : 'col-md-4';
+  const columnClass = images.length === 1 ? 'col-md-12' : images.length === 2 ? 'col-md-6' : images.length === 3 ? 'col-md-4' : 'col-md-3';
   const columns = images.map((item) => `    <div class="${columnClass}">
 ${makeQuoteItem(item)}
     </div>`);
@@ -154,7 +157,7 @@ function renderLibrary() {
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'library-card';
-        card.draggable = true;
+        card.draggable = false;
         card.dataset.blockId = block.id;
         const text = document.createElement('span');
         text.innerHTML = '<span class="library-title"></span><span class="library-desc"></span>';
@@ -165,9 +168,14 @@ function renderLibrary() {
         add.setAttribute('aria-hidden', 'true');
         add.textContent = '+';
         card.append(makeMini(block.mini), text, add);
-        card.addEventListener('click', () => insertBlock(block.id));
+        card.addEventListener('click', () => { if (Date.now() >= suppressLibraryClickUntil) insertBlock(block.id); });
+        card.addEventListener('pointerdown', (event) => {
+          if (event.button !== 0) return;
+          libraryPointer = { blockId: block.id, x: event.clientX, y: event.clientY, active: false };
+        });
         card.addEventListener('dragstart', (event) => {
           dragging = { kind: 'library', blockId: block.id };
+          syncDragUi();
           event.dataTransfer.effectAllowed = 'copy';
           event.dataTransfer.setData('text/plain', block.id);
         });
@@ -352,6 +360,7 @@ function makeStructureCard(item, index) {
     card.dataset.instanceId = item.id;
     card.addEventListener('dragstart', (event) => {
       dragging = { kind: 'canvas', instanceId: item.id };
+      syncDragUi();
       card.classList.add('is-dragging');
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', item.id);
@@ -385,6 +394,19 @@ function makeStructureCard(item, index) {
     const preview = makePreview(item.type);
     if (item.type === 'contentQuoteImage') {
       card.classList.add('quote-drop-card');
+      const targets = document.createElement('div');
+      targets.className = 'quote-insert-zones';
+      for (const [side, label] of [['left', 'เพิ่มหัวข้อ / Text / Blockquote ด้านซ้ายของรูป'], ['right', 'เพิ่มหัวข้อ / Text / Blockquote ด้านขวาของรูป']]) {
+        const zone = document.createElement('div');
+        zone.className = 'quote-copy-drop-zone';
+        zone.dataset.copySide = side;
+        zone.textContent = '+ ' + label;
+        targets.append(zone);
+      }
+      const rowTarget = document.createElement('div');
+      rowTarget.className = 'quote-row-drop-zone';
+      rowTarget.textContent = '+ วางรูป Quote เพื่อเพิ่มในแถวนี้ (สูงสุด 4 รูป)';
+      card.append(targets, rowTarget);
       const hint = document.createElement('div');
       hint.className = 'quote-drop-hint';
       hint.textContent = 'วางรูป Quote เพื่อรวมแถว · วางหัวข้อ / Text / Blockquote เพื่อเพิ่มเนื้อหาข้างรูป';
@@ -408,7 +430,8 @@ function makeStructureCard(item, index) {
       }
       preview.append(hint);
     }
-    card.append(toolbar, preview);
+    card.prepend(toolbar);
+    card.append(preview);
     return card;
 }
 
@@ -419,7 +442,7 @@ function renderStructure() {
   for (let index = 0; index < structure.length;) {
     if (structure[index].type === 'contentQuoteImage') {
       let end = index + 1;
-      while (end < structure.length && structure[index].rowId && structure[end].rowId === structure[index].rowId && structure[end].type === 'contentQuoteImage' && end - index < 3) end++;
+      while (end < structure.length && structure[index].rowId && structure[end].rowId === structure[index].rowId && structure[end].type === 'contentQuoteImage' && end - index < MAX_QUOTE_COLUMNS) end++;
       if (end - index > 1) {
         const group = document.createElement('div');
         group.className = 'quote-image-group';
@@ -491,16 +514,23 @@ function clearDropMarks() {
   document.querySelectorAll('.append-bar.is-drop-target').forEach((bar) => bar.classList.remove('is-drop-target'));
   document.querySelectorAll('.is-nested-target').forEach((card) => card.classList.remove('is-nested-target'));
   $('#canvas').classList.remove('is-over');
+  if (!dragging) syncDragUi();
+}
+
+function syncDragUi() {
+  const type = dragging?.kind === 'library' ? dragging.blockId : structure.find((item) => item.id === dragging?.instanceId)?.type;
+  $('#canvas').classList.toggle('has-quote-drag', type === 'contentQuoteImage');
+  $('#canvas').classList.toggle('has-content-drag', ['contentHeading', 'contentText', 'contentBlockquote'].includes(type));
 }
 
 function nestedDropTarget(event) {
   const card = event.target.closest('.structure-card');
-  if (!card || !event.target.closest('.block-preview')) return null;
+  if (!card || event.target.closest('.structure-controls')) return null;
   const target = structure.find((item) => item.id === card.dataset.instanceId);
   const source = dragging?.kind === 'library' ? { type: dragging.blockId } : structure.find((item) => item.id === dragging?.instanceId);
   if (!target || !source || target === source || target.type !== 'contentQuoteImage') return null;
   if (!['contentQuoteImage', 'contentHeading', 'contentText', 'contentBlockquote'].includes(source.type)) return null;
-  if (source.type === 'contentQuoteImage' && target.rowId && structure.filter((item) => item.rowId === target.rowId).length >= 3) return null;
+  if (source.type === 'contentQuoteImage' && target.rowId && structure.filter((item) => item.rowId === target.rowId && item !== source).length >= MAX_QUOTE_COLUMNS) return null;
   return { target, source, card };
 }
 
@@ -519,7 +549,9 @@ function applyNestedDrop(event, match) {
   } else {
     target.children ||= [];
     target.children.push(item);
-    if (target.children.length === 1) {
+    const chosenSide = event.target?.closest('.quote-copy-drop-zone')?.dataset.copySide;
+    if (chosenSide) target.copySide = chosenSide;
+    else if (target.children.length === 1) {
       const rect = card.getBoundingClientRect();
       target.copySide = event.clientX < rect.left + rect.width / 2 ? 'left' : 'right';
     }
@@ -535,7 +567,7 @@ function dropIndex(event) {
   return idx + (event.clientY > rect.top + rect.height / 2 ? 1 : 0);
 }
 
-$('#canvas').addEventListener('dragover', (event) => {
+function handleCanvasDragOver(event) {
   if (!dragging) return;
   event.preventDefault();
   clearDropMarks();
@@ -549,13 +581,14 @@ $('#canvas').addEventListener('dragover', (event) => {
     const rect = card.getBoundingClientRect();
     card.classList.add(event.clientY > rect.top + rect.height / 2 ? 'drop-after' : 'drop-before');
   }
-});
+}
+$('#canvas').addEventListener('dragover', handleCanvasDragOver);
 
 $('#canvas').addEventListener('dragleave', (event) => {
   if (!$('#canvas').contains(event.relatedTarget)) clearDropMarks();
 });
 
-$('#canvas').addEventListener('drop', (event) => {
+function handleCanvasDrop(event) {
   if (!dragging) return;
   event.preventDefault();
   const nested = nestedDropTarget(event);
@@ -575,7 +608,46 @@ $('#canvas').addEventListener('drop', (event) => {
   }
   dragging = null;
   clearDropMarks();
-});
+}
+$('#canvas').addEventListener('drop', handleCanvasDrop);
+
+document.addEventListener('pointermove', (event) => {
+  if (!libraryPointer) return;
+  if (!libraryPointer.active && Math.hypot(event.clientX - libraryPointer.x, event.clientY - libraryPointer.y) < 6) return;
+  event.preventDefault();
+  if (!libraryPointer.active) {
+    libraryPointer.active = true;
+    dragging = { kind: 'library', blockId: libraryPointer.blockId };
+    syncDragUi();
+    const ghost = document.createElement('div');
+    ghost.id = 'libraryDragGhost'; ghost.className = 'library-drag-ghost';
+    ghost.textContent = '+ ' + blockInfo(libraryPointer.blockId).name;
+    document.body.append(ghost);
+    document.body.classList.add('is-library-pointer-dragging');
+  }
+  const ghost = $('#libraryDragGhost');
+  ghost.style.left = `${event.clientX + 12}px`; ghost.style.top = `${event.clientY + 12}px`;
+  const target = document.elementFromPoint(event.clientX, event.clientY);
+  if (target?.closest('#canvas')) handleCanvasDragOver({target, clientX:event.clientX, clientY:event.clientY, dataTransfer:{}, preventDefault(){}});
+  else clearDropMarks();
+  if (event.clientY > window.innerHeight - 65) window.scrollBy(0, 16);
+  else if (event.clientY < 90) window.scrollBy(0, -16);
+}, {passive:false});
+
+function finishLibraryPointer(event, cancelled = false) {
+  if (!libraryPointer) return;
+  if (libraryPointer.active) {
+    suppressLibraryClickUntil = Date.now() + 400;
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    if (!cancelled && target?.closest('#canvas')) handleCanvasDrop({target, clientX:event.clientX, clientY:event.clientY, preventDefault(){}});
+    $('#libraryDragGhost')?.remove();
+    document.body.classList.remove('is-library-pointer-dragging');
+    dragging = null; clearDropMarks();
+  }
+  libraryPointer = null;
+}
+document.addEventListener('pointerup', (event) => finishLibraryPointer(event));
+document.addEventListener('pointercancel', (event) => finishLibraryPointer(event, true));
 
 function updateCode() {
   quoteImageCounter = 0;
@@ -644,7 +716,7 @@ function composeRegularBodyBlocks(items) {
       const textItem = textItems[textIndex];
       if (textItem.type === 'contentQuoteImage') {
         let quoteCount = 1;
-        while (textItem.rowId && textItems[textIndex + quoteCount]?.rowId === textItem.rowId && textItems[textIndex + quoteCount]?.type === 'contentQuoteImage' && quoteCount < 3) quoteCount++;
+        while (textItem.rowId && textItems[textIndex + quoteCount]?.rowId === textItem.rowId && textItems[textIndex + quoteCount]?.type === 'contentQuoteImage' && quoteCount < MAX_QUOTE_COLUMNS) quoteCount++;
         if (quoteCount > 1) {
           innerParts.push(makeQuoteRow(textItems.slice(textIndex, textIndex + quoteCount)));
           textIndex += quoteCount - 1;
