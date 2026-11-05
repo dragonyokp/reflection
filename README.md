@@ -9,11 +9,14 @@ Static browser tool for assembling Bangchak Reflection CMS HTML structures. The 
 - `Subtitle + Audio`: combined heading and audio block.
 - If `Subtitle` and `Audio player` are placed next to each other, the exported HTML combines them into the `Subtitle + Audio` wrapper. Either order on the canvas is accepted; the exported code keeps the heading before the audio player.
 
-## Current highlight pattern
+## Current highlight and content patterns
 
-- One `Highlight + text` block is available. In the canvas, select image-before-text or text-before-image. Export creates the corresponding CMS wrapper and leaves a `highlight.webp` path placeholder for the real asset path.
+- `Highlight` is an image-only block. Place it before or after the content blocks on the canvas; export preserves that order and wraps the image and text rows in the shared Reflection container.
+- `หัวข้อ` exports an empty `<h4></h4>` element.
+- `Text` exports an empty `<p></p>` element. The canvas preview shows Lorem text as a visual guide.
+- Consecutive content blocks are grouped in one center-column layout. When text precedes a highlight, the text row is emitted first; when the highlight precedes text, the image row is emitted first.
 
-The canvas uses sample text and visual placeholders to show each layout. Exported text elements contain `Lorem....` for the subtitle and empty content slots for future patterns. The audio source uses the requested path pattern with `#####` placeholders. Fill in the real asset path before using the code.
+The canvas uses sample text and visual placeholders to show each layout. Exported subtitle code uses `Lorem....`; content heading and paragraph elements are empty for later editing. Audio and image sources use the requested path patterns with `#####` placeholders. Fill in the real asset paths before using the code.
 
 Additional highlight and content patterns will be added as their source structures are specified. The tool does not analyze Figma or make automatic layout decisions.
 

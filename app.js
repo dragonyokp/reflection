@@ -4,13 +4,15 @@ const BLOCKS = [
   { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">Lorem....</h2>\n        </div>\n    </div>\n</div>` },
   { id: 'audio', group: 'heading', name: 'Audio player', note: 'มีเฉพาะคลิปเสียง', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n\n        </div>\n    </div>\n</div>` },
   { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">Lorem....</h2>\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n        </div>\n    </div>\n</div>` },
-  { id: 'highlightText', group: 'highlight', name: 'Highlight + ข้อความ', note: 'รูปและข้อความในโครงเดียว · สลับลำดับได้', mini: 'highlightText', make: (variant = 'imageText') => makeHighlightMarkup(variant) }
+  { id: 'highlightImage', group: 'highlight', name: 'Highlight', note: 'รูปใหญ่ ไม่มีพื้นหลัง', mini: 'highlightImage', make: () => makeHighlightRow() },
+  { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
+  { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` }
 ];
 
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
-  { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'หนึ่งบล็อก มีรูปและข้อความ เลือกลำดับได้หลังวาง' },
-  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'รอรูปแบบจากคุณ' }
+  { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'ลากเฉพาะรูป แล้วจัดตำแหน่งร่วมกับข้อความเอง' },
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางเรียงตามต้องการ' }
 ];
 
 let structure = [];
@@ -18,14 +20,10 @@ let nextId = 1;
 let dragging = null;
 let codeIsVisible = false;
 
-const loremHighlight = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius. Sed non augue eget erat consequat posuere, et facilisis lorem posuere.';
+const loremHighlight = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius. Sed non augue eget erat consequat posuere.';
 
-function makeHighlightMarkup(variant) {
-  const image = `<div class="row justify-content-center mb-5">\n        <div class="col-md-12 col-xl-10 col-xxl-8">\n            <img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/highlight.webp">\n        </div>\n    </div>`;
-  const imageFirstText = `<div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <p class="mb-0">${loremHighlight}</p>\n        </div>\n    </div>`;
-  const textFirst = `<div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <p>${loremHighlight}</p>\n            <p class="mb-0">${loremHighlight}</p>\n        </div>\n    </div>`;
-  const content = variant === 'textImage' ? `${textFirst}\n\n    ${image}` : `${image}\n\n    ${imageFirstText}`;
-  return `<div class="container mb-5 mb-xl-mb-6">\n    ${content}\n</div>`;
+function makeHighlightRow() {
+  return `<div class="row justify-content-center mb-5">\n    <div class="col-md-12 col-xl-10 col-xxl-8">\n        <img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/highlight.webp">\n    </div>\n</div>`;
 }
 
 function blockInfo(id) {
@@ -43,7 +41,9 @@ function makeMini(type) {
   };
   if (type === 'subtitle') { add('title-line'); add('short-line'); }
   if (type === 'subtitleAudio') { add('title-line'); add('audio-line'); }
-  if (type === 'highlightText') { add('highlight-mini-image'); add('text-line'); }
+  if (type === 'highlightImage') { add('highlight-mini-image'); }
+  if (type === 'contentHeading') { add('title-line'); }
+  if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
   if (type === 'textBlock') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'headingSection') { add('title-line'); add('text-line'); add('short-line'); }
@@ -112,9 +112,7 @@ function renderLibrary() {
 
 function insertBlock(blockId, index = structure.length) {
   if (!blockInfo(blockId)) return;
-  const item = { id: `block-${nextId++}`, type: blockId };
-  if (blockId === 'highlightText') item.variant = 'imageText';
-  structure.splice(index, 0, item);
+  structure.splice(index, 0, { id: `block-${nextId++}`, type: blockId });
   renderStructure();
 }
 
@@ -142,7 +140,7 @@ function previewParagraphs(parent, count = 2) {
   for (let i = 0; i < count; i++) parent.append(previewText(lorem, 'preview-lorem'));
 }
 
-function makePreview(type, variant = 'imageText') {
+function makePreview(type) {
   const preview = document.createElement('div');
   preview.className = `block-preview preview-${type}`;
   preview.setAttribute('aria-label', `${blockInfo(type).name} — ตัวอย่างหน้าตาโดยประมาณ`);
@@ -150,16 +148,11 @@ function makePreview(type, variant = 'imageText') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow';
     const title = document.createElement('h3'); title.textContent = 'Lorem....';
     inner.append(title); preview.append(inner);
-  } else if (type === 'highlightText') {
-    const layout = document.createElement('div');
-    layout.className = `highlight-preview-layout ${variant === 'textImage' ? 'text-image' : 'image-text'}`;
+  } else if (type === 'highlightImage') {
+    const inner = document.createElement('div'); inner.className = 'highlight-preview-layout';
     const image = imagePlaceholder('highlight.webp · เติม path จริงใน HTML');
     image.classList.add('highlight-preview-image');
-    const copy = document.createElement('div'); copy.className = 'preview-narrow highlight-preview-copy';
-    previewParagraphs(copy, variant === 'textImage' ? 2 : 1);
-    if (variant === 'textImage') layout.append(copy, image);
-    else layout.append(image, copy);
-    preview.append(layout);
+    inner.append(image); preview.append(inner);
   } else if (type === 'audio' || type === 'video') {
     const player = document.createElement('div'); player.className = `mock-player ${type === 'video' ? 'mock-video' : ''}`;
     if (type === 'video') player.append(imagePlaceholder('พื้นที่วิดีโอ'));
@@ -178,6 +171,12 @@ function makePreview(type, variant = 'imageText') {
     const duration = document.createElement('small'); duration.textContent = '0:00 / 0:00';
     controls.append(play, track, duration); player.append(controls);
     inner.append(title, player); preview.append(inner);
+  } else if (type === 'contentHeading') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow';
+    const heading = document.createElement('h4'); heading.textContent = 'Lorem....';
+    inner.append(heading); preview.append(inner);
+  } else if (type === 'contentText') {
+    const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 1); preview.append(inner);
   } else if (type === 'textBlock') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow'; previewParagraphs(inner, 2); preview.append(inner);
   } else if (type === 'headingSection') {
@@ -263,21 +262,6 @@ function renderStructure() {
     name.append(subtitle);
     const actions = document.createElement('div');
     actions.className = 'structure-actions';
-    if (item.type === 'highlightText') {
-      const order = document.createElement('select');
-      order.className = 'variant-select';
-      order.setAttribute('aria-label', 'ลำดับรูปและข้อความ');
-      order.add(new Option('รูปก่อนข้อความ', 'imageText'));
-      order.add(new Option('ข้อความก่อนรูป', 'textImage'));
-      order.value = item.variant || 'imageText';
-      order.addEventListener('click', (event) => event.stopPropagation());
-      order.addEventListener('change', () => {
-        item.variant = order.value;
-        card.querySelector('.block-preview').replaceWith(makePreview(item.type, item.variant));
-        if (codeIsVisible) updateCode();
-      });
-      actions.append(order);
-    }
     const controls = document.createElement('div');
     controls.className = 'structure-controls';
     controls.append(
@@ -287,7 +271,7 @@ function renderStructure() {
     );
     actions.append(controls);
     toolbar.append(handle, name, actions);
-    card.append(toolbar, makePreview(item.type, item.variant));
+    card.append(toolbar, makePreview(item.type));
     canvas.append(card);
   });
   $('#structureCount').textContent = `${structure.length} ส่วน`;
@@ -363,11 +347,42 @@ function updateCode() {
     if (formsPair) {
       output.push(blockInfo('subtitleAudio').make());
       index++;
-    } else {
+    } else if (['subtitle', 'audio', 'subtitleAudio'].includes(current.type)) {
       output.push(blockInfo(current.type).make(current.variant));
+    } else {
+      const bodyBlocks = [];
+      while (index < structure.length && !['subtitle', 'audio', 'subtitleAudio'].includes(structure[index].type)) {
+        bodyBlocks.push(structure[index]);
+        index++;
+      }
+      index--;
+      output.push(composeBodyBlocks(bodyBlocks));
     }
   }
   $('#htmlOutput').value = output.join('\n\n');
+}
+
+function composeBodyBlocks(items) {
+  const rows = [];
+  const hasHighlight = items.some((item) => item.type === 'highlightImage');
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    if (item.type === 'highlightImage') {
+      rows.push(makeHighlightRow());
+      continue;
+    }
+    const textItems = [];
+    while (index < items.length && items[index].type !== 'highlightImage') textItems.push(items[index++]);
+    index--;
+    const nextIsHighlight = items[index + 1]?.type === 'highlightImage';
+    const rowClasses = ['row', 'justify-content-center'];
+    if (!hasHighlight || nextIsHighlight) rowClasses.push('mb-5');
+    const inner = textItems.map((textItem) => blockInfo(textItem.type).make()).join('\n            ');
+    rows.push(`<div class="${rowClasses.join(' ')}">\n    <div class="col-md-10 col-xl-8 col-xxl-6">\n        ${inner}\n    </div>\n</div>`);
+  }
+  const containerClass = hasHighlight ? 'container mb-5 mb-xl-mb-6' : 'container';
+  const content = rows.map((row) => row.split('\n').map((line) => `    ${line}`).join('\n')).join('\n\n');
+  return `<div class="${containerClass}">\n${content}\n</div>`;
 }
 
 $('#exportBtn').addEventListener('click', () => {
