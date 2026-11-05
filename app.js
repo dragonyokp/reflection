@@ -44,7 +44,7 @@ function makeHighlightRow() {
 }
 
 function makeGreenHighlight(withText) {
-  const imageSection = `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="/storage/newsroom/refaction/2026/10/green-miles/highlight.webp" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
+  const imageSection = `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="/storage/newsroom/refaction/#####/#####/#####/highlight.webp" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
   const textSection = withText
     ? `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white"></p>\n            </div>\n        </div>\n    </div>\n</div>`
     : `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5"></div>`;
