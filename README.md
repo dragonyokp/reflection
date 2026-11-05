@@ -18,8 +18,8 @@ Static browser tool for assembling Bangchak Reflection CMS HTML structures. The 
 - `Text` exports an empty `<p></p>` element. The canvas preview shows Lorem text as a visual guide.
 - `รูป Quote` inserts an inline `<figure class="text-center my-5">` image. Consecutive `รูป Quote` blocks automatically appear side by side in the canvas and export as one row of two or three columns. Quote images are numbered `quote-1.webp`, `quote-2.webp`, and so on in exported order. A paragraph directly before quote imagery gets `mb-0`.
 - `รูป Quote ขวา + เนื้อหาซ้าย` and `รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา` use the full-width split quote layout from the supplied Reflection samples. The photo and caption sit on the green half; the copy is on the light half. Their quote image numbering shares the sequence with inline quote images.
-- `รูปซ้าย + เนื้อหาขวา` outputs the full-width split media layout with a quote image on the left green panel and two empty paragraphs on the right.
-- `หัวข้อและเนื้อหาซ้าย + รูปขวา` outputs the mirrored split media layout with an empty `<h4>`, two empty paragraphs, and a quote image on the right green panel.
+- `รูปครึ่งซ้ายพื้นหลังเขียว + เนื้อหาขวา` outputs the full-width split media layout with an image on the left green half and two empty paragraphs on the right.
+- `หัวข้อและเนื้อหาซ้าย + รูปครึ่งขวาพื้นหลังเขียว` outputs the mirrored split media layout with an empty `<h4>`, two empty paragraphs, and an image on the right green half.
 - Both split media patterns are standalone full-width sections and share the sequential `quote-N.webp` numbering with inline and split quote images.
 - Consecutive content blocks are grouped in one center-column layout. When text precedes a highlight, the text row is emitted first; when the highlight precedes text, the image row is emitted first.
 
