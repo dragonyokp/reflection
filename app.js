@@ -5,13 +5,15 @@ const BLOCKS = [
   { id: 'audio', group: 'heading', name: 'Audio player', note: 'มีเฉพาะคลิปเสียง', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n\n        </div>\n    </div>\n</div>` },
   { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">Lorem....</h2>\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n        </div>\n    </div>\n</div>` },
   { id: 'highlightImage', group: 'highlight', name: 'Highlight', note: 'รูปใหญ่ ไม่มีพื้นหลัง', mini: 'highlightImage', make: () => makeHighlightRow() },
+  { id: 'highlightGreenText', group: 'highlight', name: 'Highlight + พื้นหลังเขียว + ข้อความ', note: 'รูปใหญ่และแถบข้อความสีขาว', mini: 'highlightGreenText', make: () => makeGreenHighlight(true) },
+  { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` }
 ];
 
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
-  { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'ลากเฉพาะรูป แล้วจัดตำแหน่งร่วมกับข้อความเอง' },
+  { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'เลือกแบบปกติหรือพื้นหลังเขียว โดยแบบพื้นหลังเขียวมีทั้งแบบมีและไม่มีข้อความ' },
   { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางเรียงตามต้องการ' }
 ];
 
@@ -24,6 +26,14 @@ const loremHighlight = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 function makeHighlightRow() {
   return `<div class="row justify-content-center mb-5">\n    <div class="col-md-12 col-xl-10 col-xxl-8">\n        <img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/highlight.webp">\n    </div>\n</div>`;
+}
+
+function makeGreenHighlight(withText) {
+  const imageSection = `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="/storage/newsroom/refaction/2026/10/green-miles/highlight.webp" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
+  const textSection = withText
+    ? `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white"></p>\n            </div>\n        </div>\n    </div>\n</div>`
+    : `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5"></div>`;
+  return `${imageSection}\n\n${textSection}`;
 }
 
 function blockInfo(id) {
@@ -42,6 +52,7 @@ function makeMini(type) {
   if (type === 'subtitle') { add('title-line'); add('short-line'); }
   if (type === 'subtitleAudio') { add('title-line'); add('audio-line'); }
   if (type === 'highlightImage') { add('highlight-mini-image'); }
+  if (type === 'highlightGreenText' || type === 'highlightGreenEmpty') { add('green-highlight-image'); add('green-highlight-band'); }
   if (type === 'contentHeading') { add('title-line'); }
   if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
@@ -153,6 +164,17 @@ function makePreview(type) {
     const image = imagePlaceholder('highlight.webp · เติม path จริงใน HTML');
     image.classList.add('highlight-preview-image');
     inner.append(image); preview.append(inner);
+  } else if (type === 'highlightGreenText' || type === 'highlightGreenEmpty') {
+    const frame = document.createElement('div'); frame.className = `green-highlight-preview ${type === 'highlightGreenEmpty' ? 'is-empty' : ''}`;
+    const image = imagePlaceholder('highlight.webp · รูปอยู่บนพื้นหลังเขียว');
+    image.classList.add('green-highlight-preview-image');
+    frame.append(image);
+    if (type === 'highlightGreenText') {
+      const copy = document.createElement('div'); copy.className = 'green-highlight-preview-copy';
+      const lorem = previewText(loremHighlight, 'preview-lorem text-white');
+      copy.append(lorem); frame.append(copy);
+    }
+    preview.append(frame);
   } else if (type === 'audio' || type === 'video') {
     const player = document.createElement('div'); player.className = `mock-player ${type === 'video' ? 'mock-video' : ''}`;
     if (type === 'video') player.append(imagePlaceholder('พื้นที่วิดีโอ'));
@@ -363,6 +385,22 @@ function updateCode() {
 }
 
 function composeBodyBlocks(items) {
+  const sections = [];
+  let regularItems = [];
+  for (const item of items) {
+    if (item.type === 'highlightGreenText' || item.type === 'highlightGreenEmpty') {
+      if (regularItems.length) sections.push(composeRegularBodyBlocks(regularItems));
+      sections.push(blockInfo(item.type).make());
+      regularItems = [];
+    } else {
+      regularItems.push(item);
+    }
+  }
+  if (regularItems.length) sections.push(composeRegularBodyBlocks(regularItems));
+  return sections.join('\n\n');
+}
+
+function composeRegularBodyBlocks(items) {
   const rows = [];
   const hasHighlight = items.some((item) => item.type === 'highlightImage');
   for (let index = 0; index < items.length; index++) {

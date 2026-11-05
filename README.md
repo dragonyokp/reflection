@@ -12,11 +12,13 @@ Static browser tool for assembling Bangchak Reflection CMS HTML structures. The 
 ## Current highlight and content patterns
 
 - `Highlight` is an image-only block. Place it before or after the content blocks on the canvas; export preserves that order and wraps the image and text rows in the shared Reflection container.
+- `Highlight + พื้นหลังเขียว + ข้อความ` exports the wide image followed by a green gradient band with an empty white-text paragraph.
+- `Highlight + พื้นหลังเขียว` exports the same wide image and green background band without a paragraph.
 - `หัวข้อ` exports an empty `<h4></h4>` element.
 - `Text` exports an empty `<p></p>` element. The canvas preview shows Lorem text as a visual guide.
 - Consecutive content blocks are grouped in one center-column layout. When text precedes a highlight, the text row is emitted first; when the highlight precedes text, the image row is emitted first.
 
-The canvas uses sample text and visual placeholders to show each layout. Exported subtitle code uses `Lorem....`; content heading and paragraph elements are empty for later editing. Audio and image sources use the requested path patterns with `#####` placeholders. Fill in the real asset paths before using the code.
+The canvas uses sample text and visual placeholders to show each layout. Exported subtitle code uses `Lorem....`; content heading and paragraph elements are empty for later editing. Standard audio and image sources use `#####` path placeholders. The two green-background highlight patterns retain the supplied `/storage/newsroom/refaction/2026/10/green-miles/highlight.webp` path; change it when using a different article.
 
 Additional highlight and content patterns will be added as their source structures are specified. The tool does not analyze Figma or make automatic layout decisions.
 
