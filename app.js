@@ -11,6 +11,11 @@ const BLOCKS = [
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
   { id: 'contentBlockquote', group: 'content', name: 'Blockquote', note: 'ข้อความอ้างอิง · my-md-5 my-4', mini: 'contentBlockquote', make: () => `<blockquote class="my-md-5 my-4"></blockquote>` },
+  { id: 'contentMedia', group: 'content', name: 'หัวข้อพร้อมไอคอน', note: 'media · ไอคอน + h4 + ข้อความ · 1–2 คอลัมน์', mini: 'contentMedia', make: (item = {}) => makeMediaPattern(item.variant || '1') },
+  { id: 'contentQuoteCard', group: 'content', name: 'การ์ดคำพูด', note: 'card--quote · เครื่องหมายคำพูดบน–ล่าง', mini: 'contentQuoteCard', make: () => makeQuoteCard() },
+  { id: 'contentPortraitQuote', group: 'content', name: 'รูปบุคคลคู่คำพูด', note: 'รูป + การ์ดคำพูด + ชื่อผู้พูด · สลับซ้าย–ขวาได้', mini: 'contentPortraitQuote', make: (item = {}) => makeQuoteCard(item.variant || 'left') },
+  { id: 'contentModal', group: 'content', name: 'ปุ่มเปิดรายละเอียด Popup', note: 'ปุ่มอ่านเพิ่มเติม + Modal · รหัสไม่ซ้ำกัน', mini: 'contentModal', make: (item = {}) => makeModalButton(item) },
+  { id: 'contentSpeakers', group: 'content', name: 'คำพูดหลายคนพร้อมเส้นคั่น', note: 'คำพูด + ชื่อผู้พูด + เส้นคั่น · 2–3 คน', mini: 'contentSpeakers', make: (item = {}) => makeSpeakers(item.variant || '2') },
   { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'วางในการ์ดเดิมเพื่อรวมแถว · วางด้านนอกเพื่อขึ้นการ์ดใหม่', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
   { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
   { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
@@ -94,6 +99,73 @@ function makeSplitMediaBlock(imageSide, number, withHeading) {
   return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row no-gutters justify-content-end">\n        <div class="col-lg-6 col-xl-5 order-lg-2 bg-split-news-right py-5">\n            <div class="d-flex h-100 align-items-center justify-content-center p-5">\n                <img src="${imagePath}" alt="" width="800" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-lg-6 col-xl-5 align-self-center order-lg-1">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
 }
 
+function makeMediaPattern(columns = '1') {
+  const count = columns === '2' ? 2 : 1;
+  const parts = Array.from({ length: count }, (_, index) => `
+    <div class="${count === 2 ? 'col-md-6' : 'col-12'}">
+        <div class="media align-items-center mb-4">
+            <img src="/storage/newsroom/refaction/#####/#####/#####/icon-${String(index + 1).padStart(2, '0')}.svg" width="50" class="mr-3" alt="">
+            <div class="media-body">
+                <h4 class="mt-0 mb-0"></h4>
+            </div>
+        </div>
+        <p class="mb-0"></p>
+    </div>`);
+  return `<div class="row my-5">${parts.join('\n')}</div>`;
+}
+
+function makeQuoteCard(imageSide) {
+  const body = `<div class="card__body">
+    <div class="card__icon"><i class="icon-quote-up"></i></div>
+    <div class="card__text pt-2"><p class="text-black mb-0"><strong></strong></p></div>
+    <div class="card__icon"><i class="icon-quote-down"></i></div>
+    ${imageSide ? '<p class="text-black mt-3"></p>' : ''}
+</div>`;
+  if (!imageSide) return `<div class="card card--quote card--quote-green mb-4 mb-md-5"><div class="row"><div class="col-12">${body}</div></div></div>`;
+  const number = ++quoteImageCounter;
+  return `<div class="card card--quote card--quote-green my-5">
+    <div class="row">
+        <div class="col-lg-6 mb-3 mb-lg-0${imageSide === 'right' ? ' order-lg-2' : ''}">
+            <img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" class="card__image img-fluid" alt="">
+        </div>
+        <div class="col-lg-6${imageSide === 'right' ? ' order-lg-1' : ''}">${body}</div>
+    </div>
+</div>`;
+}
+
+function modalId(item = {}) {
+  return `reflection-modal-${String(item.id || 'preview').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+}
+
+function makeModalButton(item) {
+  return `<p class="my-5"><a href="#${modalId(item)}" class="btn btn--primary" data-toggle="modal" data-target="#${modalId(item)}"><span class="btn__text btn__text--sm">อ่านข้อมูลเพิ่มเติม</span></a></p>`;
+}
+
+function makeModalMarkup(item) {
+  const number = ++quoteImageCounter;
+  return `<div class="modal modal--reflection fade" id="${modalId(item)}" tabindex="-1" role="dialog" aria-labelledby="${modalId(item)}-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-button">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><i class="far fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <h4 class="modal__headline" id="${modalId(item)}-title"></h4>
+                <figure class="modal-figure text-center my-4"><img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" class="img-fluid" alt=""></figure>
+                <p></p>
+            </div>
+        </div>
+    </div>
+</div>`;
+}
+
+function makeSpeakers(count = '2') {
+  const parts = Array.from({ length: count === '3' ? 3 : 2 }, () => '<p class="mb-4"><strong></strong></p><p></p>');
+  return `<div class="my-md-5 my-4">${parts.join('<hr class="hr-lg-dark-green my-4">')}</div>`;
+}
+
 function blockInfo(id) {
   return BLOCKS.find((block) => block.id === id);
 }
@@ -115,6 +187,14 @@ function makeMini(type) {
   if (type === 'contentText') { add('text-line'); add('text-line'); add('short-line'); }
   if (type === 'contentQuoteImage') { add('quote-image'); }
   if (type === 'contentBlockquote') { add('quote-mark'); add('quote-line'); }
+  if (['contentMedia', 'contentQuoteCard', 'contentPortraitQuote', 'contentModal', 'contentSpeakers'].includes(type)) {
+    mini.classList.add('mini-pattern');
+    if (type === 'contentMedia') { add('pattern-mini-icon'); add('pattern-mini-lines'); }
+    if (type === 'contentQuoteCard') { add('pattern-mini-quote'); add('pattern-mini-lines'); }
+    if (type === 'contentPortraitQuote') { add('pattern-mini-image'); add('pattern-mini-quote'); }
+    if (type === 'contentModal') { add('pattern-mini-window'); add('pattern-mini-button'); }
+    if (type === 'contentSpeakers') { add('pattern-mini-speakers'); }
+  }
   if (type === 'contentSplitQuoteRight' || type === 'contentSplitQuoteLeft') { add('split-quote-image'); add('split-quote-copy'); }
   if (type === 'contentSplitImageLeft' || type === 'contentSplitImageRight') { add('split-quote-image'); add('split-quote-copy'); }
   if (type === 'audio' || type === 'video') { add('play-dot'); add('control-line'); add('control-dot'); }
@@ -219,10 +299,64 @@ function previewParagraphs(parent, count = 2) {
   for (let i = 0; i < count; i++) parent.append(previewText(lorem, 'preview-lorem'));
 }
 
-function makePreview(type) {
+function showExampleModal() {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'reflection-example-dialog';
+  dialog.setAttribute('aria-label', 'ตัวอย่างรายละเอียดเพิ่มเติม');
+  dialog.innerHTML = '<form method="dialog"><button aria-label="ปิดตัวอย่าง" class="icon-button">×</button></form><h4>Lorem ipsum dolor sit amet</h4><div class="example-dialog-image"></div><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius.</p>';
+  dialog.querySelector('.example-dialog-image').append(imagePlaceholder('quote-N.webp · รูปภายใน Popup'));
+  dialog.addEventListener('close', () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+function makeAdditionalPreview(type, item) {
+  const frame = document.createElement('div'); frame.className = 'preview-narrow additional-pattern';
+  const lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius.';
+  if (type === 'contentMedia') {
+    frame.classList.add('example-media-grid');
+    frame.style.setProperty('--media-columns', item.variant === '2' ? 2 : 1);
+    for (let i = 0; i < (item.variant === '2' ? 2 : 1); i++) {
+      const column = document.createElement('div'); column.className = 'example-media-column';
+      column.innerHTML = `<div class="example-media-heading"><span>${i + 1}</span><h4>Lorem ipsum dolor sit amet</h4></div><p>${lorem}</p>`;
+      frame.append(column);
+    }
+  } else if (type === 'contentQuoteCard' || type === 'contentPortraitQuote') {
+    frame.classList.add('example-quote-card');
+    const copy = document.createElement('div'); copy.className = 'example-quote-body';
+    copy.innerHTML = `<span class="example-quote-open" aria-hidden="true">“</span><p><strong>${lorem}</strong></p><span class="example-quote-close" aria-hidden="true">”</span>`;
+    if (type === 'contentPortraitQuote') {
+      frame.classList.add('with-portrait');
+      const portrait = imagePlaceholder('quote-N.webp · รูปบุคคล'); portrait.classList.add('example-portrait');
+      const author = document.createElement('p'); author.className = 'example-author'; author.textContent = '— Lorem ipsum —'; copy.append(author);
+      if (item.variant === 'right') frame.append(copy, portrait);
+      else frame.append(portrait, copy);
+    } else frame.append(copy);
+  } else if (type === 'contentModal') {
+    const note = document.createElement('p'); note.className = 'example-modal-note'; note.textContent = 'กดปุ่มเพื่อดูตัวอย่าง Popup';
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'example-modal-button'; button.textContent = 'อ่านข้อมูลเพิ่มเติม';
+    button.addEventListener('pointerdown', (event) => event.stopPropagation());
+    button.addEventListener('click', (event) => { event.stopPropagation(); showExampleModal(); });
+    frame.append(note, button);
+  } else if (type === 'contentSpeakers') {
+    frame.classList.add('example-speakers');
+    for (let i = 0; i < (item.variant === '3' ? 3 : 2); i++) {
+      if (i) frame.append(document.createElement('hr'));
+      const section = document.createElement('div');
+      section.innerHTML = `<p><strong>“${lorem}”</strong></p><p class="example-speaker-name">Lorem ipsum · ผู้พูด ${i + 1}</p>`; frame.append(section);
+    }
+  }
+  return frame;
+}
+
+function makePreview(type, item = {}) {
   const preview = document.createElement('div');
   preview.className = `block-preview preview-${type}`;
   preview.setAttribute('aria-label', `${blockInfo(type).name} — ตัวอย่างหน้าตาโดยประมาณ`);
+  if (['contentMedia', 'contentQuoteCard', 'contentPortraitQuote', 'contentModal', 'contentSpeakers'].includes(type)) {
+    preview.append(makeAdditionalPreview(type, item));
+    return preview;
+  }
   if (type === 'subtitle') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow';
     const title = document.createElement('h3'); title.textContent = 'Lorem....';
@@ -389,9 +523,26 @@ function makeStructureCard(item, index) {
       makeControl('เลื่อนลง', '↓', '', () => moveBlock(index, 1), index === structure.length - 1),
       makeControl('ลบส่วนนี้', '×', 'remove', () => { structure.splice(index, 1); renderStructure(); })
     );
+    const optionSets = {
+      contentMedia: [['1', '1 คอลัมน์'], ['2', '2 คอลัมน์']],
+      contentPortraitQuote: [['left', 'รูปอยู่ซ้าย'], ['right', 'รูปอยู่ขวา']],
+      contentSpeakers: [['2', 'ผู้พูด 2 คน'], ['3', 'ผู้พูด 3 คน']]
+    };
+    if (optionSets[item.type]) {
+      const select = document.createElement('select'); select.className = 'pattern-option';
+      select.setAttribute('aria-label', 'ตัวเลือก ' + info.name);
+      for (const [value, label] of optionSets[item.type]) {
+        const option = document.createElement('option'); option.value = value; option.textContent = label; select.append(option);
+      }
+      select.value = item.variant || optionSets[item.type][0][0];
+      select.addEventListener('change', () => { item.variant = select.value; renderStructure(); });
+      select.addEventListener('pointerdown', (event) => event.stopPropagation());
+      select.addEventListener('dragstart', (event) => event.preventDefault());
+      actions.append(select);
+    }
     actions.append(controls);
     toolbar.append(handle, name, actions);
-    const preview = makePreview(item.type);
+    const preview = makePreview(item.type, item);
     if (item.type === 'contentQuoteImage') {
       card.classList.add('quote-drop-card');
       const targets = document.createElement('div');
@@ -700,6 +851,7 @@ function updateCode() {
       output.push(composeBodyBlocks(bodyBlocks));
     }
   }
+  for (const item of structure.filter((entry) => entry.type === 'contentModal')) output.push(makeModalMarkup(item));
   $('#htmlOutput').value = formatGeneratedHtml(output.filter(Boolean).join('\n\n'));
 }
 

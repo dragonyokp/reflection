@@ -35,3 +35,13 @@ Additional highlight and content patterns will be added as their source structur
 4. Open the Pages URL when GitHub reports the deployment is ready.
 
 The builder has no account connection, API token, or external AI requirement. It runs in the user's browser.
+
+## Additional content patterns
+
+- Icon heading: Bootstrap `.media` heading with an icon and paragraph, selectable as one or two columns.
+- Quote card: `.card.card--quote.card--quote-green` with quotation icons and an empty bold quotation.
+- Portrait quote: quote card with a sequential `quote-N.webp` image and speaker attribution; image can be on either side.
+- Details popup: an article button linked to a unique `.modal--reflection` block. Modal markup is appended outside the article containers. The builder preview button opens a local example dialog; exported markup uses the original CMS Bootstrap modal attributes.
+- Multiple speakers: two or three quotations and speaker names separated by `.hr-lg-dark-green` dividers.
+
+All new article text fields are empty in exported HTML. Lorem content and green image placeholders appear only in the builder preview.

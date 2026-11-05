@@ -290,3 +290,27 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .library-drag-ghost{pointer-events:none;position:fixed;z-index:1000;max-width:280px;padding:12px 18px;border:1px solid #87af64;border-radius:10px;background:#f3fae9;color:#4e762e;box-shadow:0 5px 22px #23492125;font:600 14px 'IBM Plex Sans Thai',sans-serif}
 /* Center the add symbol inside every library/picker button. */
 .add-block{display:grid;place-items:center;padding:0;line-height:1;text-align:center;justify-self:center;align-self:center}
+/* Additional content patterns: schematic thumbnails, no real sample photos. */
+.mini-pattern{align-items:center;justify-content:center;position:relative;gap:4px}
+.mini-pattern .pattern-mini-icon{width:13px;height:13px;border-radius:50%;background:#78ae43}
+.mini-pattern .pattern-mini-lines{width:24px;height:18px;background:linear-gradient(#879c7f 0 3px,transparent 3px 7px,#c9d5c2 7px 10px,transparent 10px 14px,#c9d5c2 14px 17px,transparent 17px)}
+.mini-pattern .pattern-mini-quote{width:15px;height:25px;background:transparent;position:relative}.pattern-mini-quote:before{content:'“';position:absolute;left:0;top:-6px;font:700 30px Georgia,serif;color:#65a33b}
+.mini-pattern .pattern-mini-image{width:23px;height:27px;background:linear-gradient(135deg,#c5e5d8,#87c8ad);border:1px solid #aac997;border-radius:0}
+.mini-pattern .pattern-mini-window{width:35px;height:25px;border:1px solid #9cbb87;background:linear-gradient(#95b77a 0 5px,#f1f7ec 5px)}
+.mini-pattern .pattern-mini-button{position:absolute;bottom:10px;left:18px;width:19px;height:5px;border-radius:3px;background:#73a544}
+.mini-pattern .pattern-mini-speakers{width:35px;height:27px;background:linear-gradient(#89a17c 0 3px,transparent 3px 6px,#c5d1bf 6px 8px,transparent 8px 12px,#4d9d6a 12px 13px,transparent 13px 17px,#89a17c 17px 20px,transparent 20px 23px,#c5d1bf 23px 25px,transparent 25px)}
+.pattern-option{max-width:150px;padding:5px 8px;border:1px solid #d9e6d0;border-radius:7px;background:#fff;color:#49623c;font:inherit;font-size:12px}
+.additional-pattern h4{font-size:16px;line-height:1.5;margin:0 0 12px}.additional-pattern p{font-size:13px;line-height:1.8;margin:0 0 12px}
+.example-media-grid{display:grid;grid-template-columns:repeat(var(--media-columns),minmax(0,1fr));gap:28px;padding:18px 0}
+.example-media-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px}.example-media-heading h4{margin:0}.example-media-heading>span{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;background:linear-gradient(135deg,#90bd29,#3ca13c);border-radius:50%;color:white;font-weight:700}
+.example-quote-card{background:white}
+.example-quote-body{padding:24px 28px;min-width:0;min-height:250px;display:flex;flex-direction:column;justify-content:center;text-align:center;border:1px solid #91bd27;border-radius:10px}.example-quote-body p{color:#33442c}.example-quote-open,.example-quote-close{display:block;color:#3aa537;font:700 42px/1 Georgia,serif}.example-quote-close{text-align:center}.example-quote-body .example-author{margin:14px 0 0;font-size:12px;font-weight:400}
+.example-quote-card.with-portrait{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:20px}
+.example-portrait{min-height:240px!important;border:0!important;border-radius:10px!important;background:linear-gradient(135deg,#c5e5d8,#87c8ad)!important}
+.example-speakers{padding:18px 0}.example-speakers hr{height:1px;background:#409468;border:0;margin:24px 0}.example-speakers .example-speaker-name{font-size:12px;color:#7c8d76;margin-top:12px}
+.example-modal-note{color:#7f8e76}.example-modal-button{border:0;border-radius:24px;background:linear-gradient(90deg,#48a044,#91bd27);color:#fff;padding:12px 24px;font:600 14px 'IBM Plex Sans Thai',sans-serif;cursor:pointer}
+.reflection-example-dialog{width:min(700px,calc(100vw - 32px));max-height:85vh;padding:24px;border:1px solid #d9e6ce;border-radius:14px;background:#fff;color:#33412e;box-shadow:0 20px 60px #163c2940}
+.reflection-example-dialog::backdrop{background:#172f266b}.reflection-example-dialog form{display:flex;justify-content:flex-end;margin:0 0 12px}.reflection-example-dialog h4{font-size:20px;margin:0 0 20px}.reflection-example-dialog p{font-size:15px;line-height:1.8}.example-dialog-image .preview-image-placeholder{min-height:220px;margin:20px 0;background:linear-gradient(135deg,#c5e5d8,#87c8ad)}
+@media(max-width:700px){.example-media-grid,.example-quote-card.with-portrait{grid-template-columns:1fr}.pattern-option{max-width:120px}.structure-actions{flex-wrap:wrap}.example-portrait{min-height:180px!important}}
+/* Preview content is decorative by default; these controls remain interactive. */
+.example-modal-button,.nested-content-controls{pointer-events:auto}
