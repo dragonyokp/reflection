@@ -377,7 +377,12 @@ function composeBodyBlocks(items) {
     const nextIsHighlight = items[index + 1]?.type === 'highlightImage';
     const rowClasses = ['row', 'justify-content-center'];
     if (!hasHighlight || nextIsHighlight) rowClasses.push('mb-5');
-    const inner = textItems.map((textItem) => blockInfo(textItem.type).make()).join('\n            ');
+    const inner = textItems.map((textItem, textIndex) => {
+      const markup = blockInfo(textItem.type).make();
+      // Separate the final paragraph from the next h4 within the same content section.
+      const paragraphBeforeHeading = textItem.type === 'contentText' && textItems[textIndex + 1]?.type === 'contentHeading';
+      return paragraphBeforeHeading ? markup.replace('<p>', '<p class="mb-5">') : markup;
+    }).join('\n            ');
     rows.push(`<div class="${rowClasses.join(' ')}">\n    <div class="col-md-10 col-xl-8 col-xxl-6">\n        ${inner}\n    </div>\n</div>`);
   }
   const containerClass = hasHighlight ? 'container mb-5 mb-xl-mb-6' : 'container';
