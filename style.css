@@ -212,7 +212,7 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .mini-contentSplitQuoteRight,.mini-contentSplitQuoteLeft{display:flex;align-items:center;gap:3px;padding:4px;background:#f1f2ef}
 .mini-contentSplitQuoteRight .split-quote-image,.mini-contentSplitQuoteLeft .split-quote-image{height:34px;width:23px;background:linear-gradient(180deg,#92be2e,#45a044);border-radius:1px}
 .mini-contentSplitQuoteRight .split-quote-copy,.mini-contentSplitQuoteLeft .split-quote-copy{height:24px;flex:1;background:linear-gradient(#9aa398 0 3px,transparent 3px 7px,#cbd0c8 7px 10px,transparent 10px 14px,#cbd0c8 14px 17px,transparent 17px)}
-.mini-contentSplitQuoteLeft{flex-direction:row-reverse}
+.mini-contentSplitQuoteRight{flex-direction:row-reverse}
 .preview-contentSplitQuoteRight,.preview-contentSplitQuoteLeft{padding:0;background:#f1f2ef}
 .split-quote-preview{display:grid;grid-template-columns:58% 42%;min-height:330px;background:#f1f2ef}
 .split-quote-preview.image-on-left{grid-template-columns:42% 58%}
