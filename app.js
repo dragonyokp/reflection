@@ -12,8 +12,8 @@ const BLOCKS = [
   { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'ลากซ้ำติดกันเพื่อจัดเป็นแถว 2–3 รูป', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
   { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + เนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, false) },
   { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
-  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปครึ่งซ้ายพื้นหลังเขียว + เนื้อหาขวา', note: 'แบ่งครึ่งหน้า · รูปอยู่บนพื้นหลังเขียวซ้าย · 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, false) },
-  { id: 'contentSplitImageRight', group: 'content', name: 'หัวข้อและเนื้อหาซ้าย + รูปครึ่งขวาพื้นหลังเขียว', note: 'แบ่งครึ่งหน้า · รูปอยู่บนพื้นหลังเขียวขวา · 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) }
+  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + เนื้อหาขวา', note: 'รูปพาดรอยต่อพื้นเขียว/เทาครึ่งคอลัมน์ · 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, false) },
+  { id: 'contentSplitImageRight', group: 'content', name: 'หัวข้อและเนื้อหาซ้าย + รูปขวา', note: 'รูปพาดรอยต่อพื้นเทา/เขียวครึ่งคอลัมน์ · หัวข้อ + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) }
 ];
 
 const BLOCK_GROUPS = [

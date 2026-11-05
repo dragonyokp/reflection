@@ -237,6 +237,8 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .split-quote-preview-copy .preview-lorem{font-size:12px;line-height:1.8;color:#42463f;margin:0}
 .preview-contentSplitImageLeft .split-quote-preview,.preview-contentSplitImageRight .split-quote-preview{min-height:360px}
 .preview-contentSplitImageLeft .split-quote-preview-image,.preview-contentSplitImageRight .split-quote-preview-image{padding:28px clamp(18px,4vw,58px)}
+.preview-contentSplitImageLeft .split-quote-preview-image{background:linear-gradient(90deg,transparent 0 50%,#f1f2ef 50% 100%),linear-gradient(0deg,#3aa537,#91bd27)}
+.preview-contentSplitImageRight .split-quote-preview-image{background:linear-gradient(90deg,#f1f2ef 0 50%,transparent 50% 100%),linear-gradient(0deg,#3aa537,#91bd27)}
 .preview-contentSplitImageLeft .split-quote-preview-image .preview-image-placeholder,.preview-contentSplitImageRight .split-quote-preview-image .preview-image-placeholder{width:min(100%,600px);aspect-ratio:1.5/1;min-height:190px}
 .preview-contentSplitImageLeft .split-quote-preview-copy,.preview-contentSplitImageRight .split-quote-preview-copy{padding:36px clamp(24px,5vw,82px)}
 .preview-contentSplitImageLeft .split-quote-preview-copy .preview-lorem,.preview-contentSplitImageRight .split-quote-preview-copy .preview-lorem{font-size:13px;line-height:1.8;margin-bottom:12px}
