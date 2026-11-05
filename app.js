@@ -12,7 +12,7 @@ const BLOCKS = [
   { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'ลากซ้ำติดกันเพื่อจัดเป็นแถว 2–3 รูป', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
   { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + เนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, false) },
   { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
-  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + เนื้อหาขวา', note: 'รูปพาดรอยต่อพื้นเขียว/เทาครึ่งคอลัมน์ · 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, false) },
+  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + เนื้อหาขวา', note: 'รูปพาดรอยต่อพื้นเขียว/เทาครึ่งคอลัมน์ · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, true) },
   { id: 'contentSplitImageRight', group: 'content', name: 'หัวข้อและเนื้อหาซ้าย + รูปขวา', note: 'รูปพาดรอยต่อพื้นเทา/เขียวครึ่งคอลัมน์ · หัวข้อ + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) }
 ];
 
@@ -68,10 +68,10 @@ function makeSplitQuoteBlock(imageSide, number, withHeading) {
 
 function makeSplitMediaBlock(imageSide, number, withHeading) {
   const imagePath = `/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp`;
-  if (imageSide === 'left') {
-    return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row justify-content-lg-start justify-content-center no-gutters">\n        <div class="col-lg-6 col-xl-5 bg-split-news-left mb-md-0 mb-4">\n            <div class="d-flex h-100 align-items-center justify-content-center p-4 p-md-6">\n                <img src="${imagePath}" alt="" width="600" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-md-10 col-lg-6 col-xl-6 align-self-center">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
-  }
   const heading = withHeading ? '                <h4></h4>\n' : '';
+  if (imageSide === 'left') {
+    return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row justify-content-lg-start justify-content-center no-gutters">\n        <div class="col-lg-6 col-xl-5 bg-split-news-left mb-md-0 mb-4">\n            <div class="d-flex h-100 align-items-center justify-content-center p-4 p-md-6">\n                <img src="${imagePath}" alt="" width="600" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-md-10 col-lg-6 col-xl-6 align-self-center">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
+  }
   return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row no-gutters justify-content-end">\n        <div class="col-lg-6 col-xl-5 order-lg-2 bg-split-news-right py-5">\n            <div class="d-flex h-100 align-items-center justify-content-center p-5">\n                <img src="${imagePath}" alt="" width="800" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-lg-6 col-xl-5 align-self-center order-lg-1">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
 }
 
@@ -265,11 +265,13 @@ function makePreview(type) {
     const split = document.createElement('div');
     split.className = `split-quote-preview ${imageOnLeft ? 'image-on-left' : 'image-on-right'}`;
     const imageSide = document.createElement('div'); imageSide.className = 'split-quote-preview-image';
-    imageSide.append(imagePlaceholder('quote-1.webp · รูปประกอบ'));
+    const demoImage = document.createElement('img');
+    demoImage.className = 'split-layout-demo-image';
+    demoImage.src = 'assets/split-layout-sample.webp';
+    demoImage.alt = 'ภาพถ่ายตัวอย่างสำหรับเลย์เอาต์รูปประกอบ';
+    imageSide.append(demoImage);
     const copy = document.createElement('div'); copy.className = 'split-quote-preview-copy';
-    if (!imageOnLeft) {
-      const heading = document.createElement('h4'); heading.textContent = 'Lorem ipsum dolor sit amet'; copy.append(heading);
-    }
+    const heading = document.createElement('h4'); heading.textContent = 'Lorem ipsum dolor sit amet'; copy.append(heading);
     previewParagraphs(copy, 2);
     split.append(imageSide, copy); preview.append(split);
   } else if (type === 'textBlock') {
