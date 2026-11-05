@@ -209,17 +209,19 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .quote-image-preview-figure{width:min(62%,520px);margin:0 auto;padding:8px 0}
 .quote-image-preview-figure .preview-image-placeholder{aspect-ratio:2.1/1;min-height:95px;border:1px solid #dce8d8;background:linear-gradient(135deg,#f5f8f1,#e8f0e3)}
 @media(max-width:600px){.quote-image-preview-figure{width:78%}.quote-image-preview-figure .preview-image-placeholder{min-height:75px}}
-.mini-contentSplitQuoteRight,.mini-contentSplitQuoteLeft{display:flex;align-items:center;gap:3px;padding:4px;background:#f1f2ef}
-.mini-contentSplitQuoteRight .split-quote-image,.mini-contentSplitQuoteLeft .split-quote-image{height:34px;width:23px;background:linear-gradient(180deg,#92be2e,#45a044);border-radius:1px}
-.mini-contentSplitQuoteRight .split-quote-copy,.mini-contentSplitQuoteLeft .split-quote-copy{height:24px;flex:1;background:linear-gradient(#9aa398 0 3px,transparent 3px 7px,#cbd0c8 7px 10px,transparent 10px 14px,#cbd0c8 14px 17px,transparent 17px)}
-.mini-contentSplitQuoteRight{flex-direction:row-reverse}
-.mini-contentSplitImageLeft,.mini-contentSplitImageRight{align-items:center;gap:3px;padding:4px;background:#f1f2ef}
-.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{height:32px;width:22px;background:linear-gradient(180deg,#92be2e,#45a044);border-radius:1px}
-.mini-contentSplitImageLeft .split-quote-copy,.mini-contentSplitImageRight .split-quote-copy{height:24px;flex:1;background:linear-gradient(#9aa398 0 3px,transparent 3px 7px,#cbd0c8 7px 10px,transparent 10px 14px,#cbd0c8 14px 17px,transparent 17px)}
-.mini-contentSplitImageRight{flex-direction:row-reverse}
-.mini-contentSplitImageLeft{background:linear-gradient(90deg,#6baa39 0 50%,#f1f2ef 50%)}
-.mini-contentSplitImageRight{background:linear-gradient(90deg,#f1f2ef 0 50%,#6baa39 50%)}
-.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{background:linear-gradient(135deg,#c5e5d8,#87c8ad);border:1px solid #fff}
+/* Library diagrams use the same image/text proportions as the canvas. */
+.mini-contentSplitQuoteRight,.mini-contentSplitQuoteLeft,.mini-contentSplitImageLeft,.mini-contentSplitImageRight{display:block;position:relative;padding:0;background:#f1f2ef}
+.mini-contentSplitQuoteLeft{background:linear-gradient(90deg,#6baa39 0 42%,#f1f2ef 42%)}
+.mini-contentSplitQuoteRight{background:linear-gradient(90deg,#f1f2ef 0 58%,#6baa39 58%)}
+.mini-contentSplitImageLeft{background:linear-gradient(90deg,#6baa39 0 21%,#f1f2ef 21%)}
+.mini-contentSplitImageRight{background:linear-gradient(90deg,#f1f2ef 0 79%,#6baa39 79%)}
+.mini-contentSplitQuoteLeft .split-quote-image,.mini-contentSplitQuoteRight .split-quote-image,.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{position:absolute;top:11px;width:34%;height:13px;border:1px solid #fff;border-radius:0;background:linear-gradient(135deg,#c5e5d8,#87c8ad)}
+.mini-contentSplitQuoteLeft .split-quote-image,.mini-contentSplitImageLeft .split-quote-image{left:4%}
+.mini-contentSplitQuoteRight .split-quote-image,.mini-contentSplitImageRight .split-quote-image{right:4%;left:auto}
+.mini-contentSplitQuoteLeft .split-quote-image:after,.mini-contentSplitQuoteRight .split-quote-image:after{content:"";position:absolute;top:16px;left:10%;width:80%;height:1px;background:#fff}
+.mini-contentSplitQuoteLeft .split-quote-copy,.mini-contentSplitQuoteRight .split-quote-copy,.mini-contentSplitImageLeft .split-quote-copy,.mini-contentSplitImageRight .split-quote-copy{position:absolute;top:11px;width:45%;height:16px;background:linear-gradient(#9aa398 0 2px,transparent 2px 5px,#cbd0c8 5px 7px,transparent 7px 10px,#cbd0c8 10px 12px,transparent 12px)}
+.mini-contentSplitQuoteLeft .split-quote-copy,.mini-contentSplitImageLeft .split-quote-copy{right:4%;left:auto}
+.mini-contentSplitQuoteRight .split-quote-copy,.mini-contentSplitImageRight .split-quote-copy{left:4%;right:auto}
 .quote-image-group{display:grid;grid-template-columns:repeat(var(--quote-image-columns),minmax(0,1fr));gap:9px;min-width:0}
 .quote-image-group .structure-card{min-width:0}
 .quote-image-group .quote-image-preview-figure{width:100%;padding:8px}
@@ -247,9 +249,3 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .preview-contentSplitImageLeft .split-quote-preview-copy,.preview-contentSplitImageRight .split-quote-preview-copy{padding:36px clamp(24px,5vw,82px)}
 .preview-contentSplitImageLeft .split-quote-preview-copy .preview-lorem,.preview-contentSplitImageRight .split-quote-preview-copy .preview-lorem{font-size:13px;line-height:1.8;margin-bottom:12px}
 @media(max-width:700px){.split-quote-preview,.split-quote-preview.image-on-left{grid-template-columns:1fr}.split-quote-preview-image,.image-on-left .split-quote-preview-image{grid-column:1;grid-row:1}.split-quote-preview-copy,.image-on-left .split-quote-preview-copy{grid-column:1;grid-row:2;padding:24px 20px}.split-quote-preview-image .preview-image-placeholder{min-height:145px;width:82%}.split-layout-demo-image{width:82%;min-height:145px}}
-/* Library thumbnails: image placeholder crosses the split background. */
-.mini-contentSplitImageLeft,.mini-contentSplitImageRight{display:block;position:relative}
-.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{position:absolute;top:4px;left:2px;z-index:2;width:32px;height:28px;background:linear-gradient(135deg,#c5e5d8,#87c8ad);border:1px solid #fff}
-.mini-contentSplitImageLeft .split-quote-copy{position:absolute;top:7px;left:35px;right:3px;z-index:1;height:24px}
-.mini-contentSplitImageRight .split-quote-image{left:auto;right:2px}
-.mini-contentSplitImageRight .split-quote-copy{position:absolute;top:7px;left:3px;right:35px;z-index:1;height:24px}
