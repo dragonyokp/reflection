@@ -318,3 +318,16 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 @media(max-width:700px){.example-media-grid,.example-quote-card.with-portrait{grid-template-columns:1fr}.pattern-option{max-width:120px}.structure-actions{flex-wrap:wrap}.example-portrait{min-height:180px!important}}
 /* Preview content is decorative by default; these controls remain interactive. */
 .example-modal-button,.nested-content-controls{pointer-events:auto}
+/* Content group folds independently; palette stays within the desktop viewport. */
+.block-group-accordion>summary{position:relative;display:block;list-style:none;cursor:pointer;padding-right:28px;border-radius:6px}
+.block-group-accordion>summary::-webkit-details-marker{display:none}
+.block-group-accordion>summary:after{content:'⌄';position:absolute;right:5px;top:0;color:#5e8d3d;font-size:22px;line-height:22px;transform:rotate(-90deg);transition:transform .15s}
+.block-group-accordion[open]>summary:after{transform:rotate(0)}
+.block-group-accordion>summary:hover{background:#f4f8ee}
+.block-group-accordion>summary:focus-visible{outline:2px solid #ef982c;outline-offset:3px}
+@media(min-width:721px){
+ .palette-panel{position:sticky;top:82px;align-self:start;z-index:2;display:flex;flex-direction:column;max-height:calc(100vh - 98px);max-height:calc(100dvh - 98px);overflow:hidden}
+ .palette-panel>.panel-heading,.palette-panel>.panel-hint{flex-shrink:0}
+ .palette-panel .block-library{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:3px 7px 4px 3px;scrollbar-width:thin;scrollbar-color:#a9c58c transparent}
+ .palette-panel .block-library>.block-group{flex:0 0 auto}
+}

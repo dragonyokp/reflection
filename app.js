@@ -214,9 +214,11 @@ function renderLibrary() {
   library.replaceChildren();
   $('#paletteCount').textContent = `${BLOCKS.length} แบบ`;
   for (const group of BLOCK_GROUPS) {
-    const section = document.createElement('section');
-    section.className = 'block-group';
-    const heading = document.createElement('div');
+    const isAccordion = group.id === 'content';
+    const section = document.createElement(isAccordion ? 'details' : 'section');
+    section.className = isAccordion ? 'block-group block-group-accordion' : 'block-group';
+    if (isAccordion) section.open = true;
+    const heading = document.createElement(isAccordion ? 'summary' : 'div');
     heading.className = 'block-group-heading';
     const title = document.createElement('h3');
     title.textContent = group.title;

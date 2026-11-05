@@ -47,3 +47,7 @@ The builder has no account connection, API token, or external AI requirement. It
 All new article text fields are empty in exported HTML. Lorem content and green image placeholders appear only in the builder preview.
 
 The final standalone image in a vertical content section uses `mt-5 mb-0`; intermediate images use `my-5`.
+
+## Palette navigation
+
+Group 3 (content) is a native details/summary accordion, initially open and keyboard accessible. On desktop widths above 720px, the left palette is sticky below the top bar and its library scrolls internally. On narrower screens the palette stays in normal document flow. Article export is unchanged.
