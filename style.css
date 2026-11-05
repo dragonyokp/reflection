@@ -247,16 +247,5 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .preview-contentSplitImageLeft .split-quote-preview-copy,.preview-contentSplitImageRight .split-quote-preview-copy{padding:36px clamp(24px,5vw,82px)}
 .preview-contentSplitImageLeft .split-quote-preview-copy .preview-lorem,.preview-contentSplitImageRight .split-quote-preview-copy .preview-lorem{font-size:13px;line-height:1.8;margin-bottom:12px}
 @media(max-width:700px){.split-quote-preview,.split-quote-preview.image-on-left{grid-template-columns:1fr}.split-quote-preview-image,.image-on-left .split-quote-preview-image{grid-column:1;grid-row:1}.split-quote-preview-copy,.image-on-left .split-quote-preview-copy{grid-column:1;grid-row:2;padding:24px 20px}.split-quote-preview-image .preview-image-placeholder{min-height:145px;width:82%}.split-layout-demo-image{width:82%;min-height:145px}}
-/* Split media examples: show the actual photo crossing the green/grey boundary. */
-.mini-contentSplitImageLeft,.mini-contentSplitImageRight{position:relative;gap:0}
-.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{position:relative;z-index:2;flex:0 0 28px;width:28px;height:28px}
-.mini-contentSplitImageLeft .split-quote-copy,.mini-contentSplitImageRight .split-quote-copy{position:relative;z-index:1;flex:1;min-width:0}
-.preview-contentSplitImageLeft .split-quote-preview,.preview-contentSplitImageRight .split-quote-preview{position:relative;background:#f1f2ef}
-.preview-contentSplitImageLeft .split-quote-preview{background:linear-gradient(90deg,#91bf2f 0 50%,#f1f2ef 50% 100%)}
-.preview-contentSplitImageRight .split-quote-preview{background:linear-gradient(90deg,#f1f2ef 0 50%,#91bf2f 50% 100%)}
-.preview-contentSplitImageLeft .split-quote-preview-image,.preview-contentSplitImageRight .split-quote-preview-image{position:relative;z-index:1;overflow:visible;padding:28px 0;background:transparent}
-.preview-contentSplitImageLeft .split-quote-preview-copy,.preview-contentSplitImageRight .split-quote-preview-copy{position:relative;z-index:2;background:transparent}
-.split-layout-demo-image{width:min(58vw,640px);max-width:none;flex:0 0 auto}
-.preview-contentSplitImageLeft .split-quote-preview-copy{padding-left:clamp(44px,6vw,90px)}
-.preview-contentSplitImageRight .split-quote-preview-copy{padding-right:clamp(44px,6vw,90px)}
-@media(max-width:700px){.split-layout-demo-image{width:82%;max-width:82%}.preview-contentSplitImageLeft .split-quote-preview,.preview-contentSplitImageRight .split-quote-preview{background:linear-gradient(90deg,#91bf2f 0 50%,#f1f2ef 50%)}.preview-contentSplitImageLeft .split-quote-preview-copy,.preview-contentSplitImageRight .split-quote-preview-copy{padding:24px 20px}}
+/* Only the two library thumbnails use the photo to clarify the split pattern. */
+.mini-contentSplitImageLeft .split-quote-image,.mini-contentSplitImageRight .split-quote-image{flex:0 0 30px;width:30px;height:28px}
