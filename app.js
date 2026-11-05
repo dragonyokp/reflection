@@ -10,7 +10,7 @@ const BLOCKS = [
   { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
   { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
   { id: 'contentBlockquote', group: 'content', name: 'Blockquote', note: 'ข้อความอ้างอิง · my-md-5 my-4', mini: 'contentBlockquote', make: () => `<blockquote class="my-md-5 my-4"></blockquote>` },
-  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'ลากซ้ำติดกันเพื่อจัดเป็นแถว 2–3 รูป', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
+  { id: 'contentQuoteImage', group: 'content', name: 'รูป Quote', note: 'วางในการ์ดเดิมเพื่อรวมแถว · วางด้านนอกเพื่อขึ้นการ์ดใหม่', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
   { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
   { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
   { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, true) },
@@ -20,7 +20,7 @@ const BLOCKS = [
 const BLOCK_GROUPS = [
   { id: 'heading', title: '1. รูปแบบหัวข้อ', help: 'ลาก Subtitle และ Audio มาติดกันได้ ระบบจะประกอบเป็นโครงรวมให้อัตโนมัติ' },
   { id: 'highlight', title: '2. รูปแบบรูป highlight', help: 'เลือกแบบปกติหรือพื้นหลังเขียว โดยแบบพื้นหลังเขียวมีทั้งแบบมีและไม่มีข้อความ' },
-  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · เพิ่มรูป Quote เข้าแถวได้สูงสุด 3 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
+  { id: 'content', title: '3. รูปแบบเนื้อหา', help: 'ลากหัวข้อและ Text มาวางตามลำดับ · ลากรูป Quote ลงการ์ดเดิมเพื่อรวมแถวได้สูงสุด 3 รูป · มี layout รูปสลับด้านพร้อมเนื้อหา' }
 ];
 
 let structure = [];
@@ -50,11 +50,27 @@ function makeQuoteImage(number) {
 function makeQuoteRow(images) {
   if (!images.length) return '';
   const columnClass = images.length === 1 ? 'col-md-12' : images.length === 2 ? 'col-md-6' : 'col-md-4';
-  const columns = images.map(() => {
-    const imageNumber = ++quoteImageCounter;
-    return `    <div class="${columnClass}">\n        <figure class="text-center my-5"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${imageNumber}.webp"></figure>\n    </div>`;
-  });
+  const columns = images.map((item) => `    <div class="${columnClass}">
+${makeQuoteItem(item)}
+    </div>`);
   return `<div class="row">\n${columns.join('\n')}\n</div>`;
+}
+
+function makeNestedContent(items = []) {
+  return items.map((item, index) => {
+    let markup = blockInfo(item.type).make();
+    if (item.type === 'contentText' && items[index + 1]?.type === 'contentHeading') markup = markup.replace('<p>', '<p class="mb-5">');
+    return markup;
+  }).join('\n');
+}
+
+function makeQuoteItem(item) {
+  const image = makeQuoteImage(++quoteImageCounter);
+  if (!item.children?.length) return image;
+  const copy = makeNestedContent(item.children);
+  const imageColumn = `<div class="col-md-6">${image}</div>`;
+  const copyColumn = `<div class="col-md-6">${copy}</div>`;
+  return `<div class="row align-items-center">${item.copySide === 'left' ? copyColumn + imageColumn : imageColumn + copyColumn}</div>`;
 }
 
 function makeSplitQuoteBlock(imageSide, number, withHeading, captionLines = withHeading ? 2 : 3) {
@@ -367,6 +383,31 @@ function makeStructureCard(item, index) {
     actions.append(controls);
     toolbar.append(handle, name, actions);
     const preview = makePreview(item.type);
+    if (item.type === 'contentQuoteImage') {
+      card.classList.add('quote-drop-card');
+      const hint = document.createElement('div');
+      hint.className = 'quote-drop-hint';
+      hint.textContent = 'วางรูป Quote เพื่อรวมแถว · วางหัวข้อ / Text / Blockquote เพื่อเพิ่มเนื้อหาข้างรูป';
+      if (item.children?.length) {
+        const copy = document.createElement('div');
+        copy.className = 'quote-card-copy';
+        for (const [childIndex, child] of item.children.entries()) {
+          const section = document.createElement('div'); section.className = 'nested-content-item';
+          section.append(makePreview(child.type));
+          const controls = document.createElement('div'); controls.className = 'nested-content-controls';
+          controls.append(
+            makeControl('เลื่อนเนื้อหาขึ้น', '↑', '', () => { [item.children[childIndex - 1], item.children[childIndex]] = [item.children[childIndex], item.children[childIndex - 1]]; renderStructure(); }, childIndex === 0),
+            makeControl('เลื่อนเนื้อหาลง', '↓', '', () => { [item.children[childIndex + 1], item.children[childIndex]] = [item.children[childIndex], item.children[childIndex + 1]]; renderStructure(); }, childIndex === item.children.length - 1),
+            makeControl('ลบเนื้อหา', '×', 'remove', () => { item.children.splice(childIndex, 1); renderStructure(); })
+          );
+          section.append(controls); copy.append(section);
+        }
+        preview.classList.add('quote-with-copy');
+        if (item.copySide === 'left') { preview.classList.add('copy-on-left'); preview.prepend(copy); }
+        else preview.append(copy);
+      }
+      preview.append(hint);
+    }
     card.append(toolbar, preview);
     return card;
 }
@@ -378,7 +419,7 @@ function renderStructure() {
   for (let index = 0; index < structure.length;) {
     if (structure[index].type === 'contentQuoteImage') {
       let end = index + 1;
-      while (end < structure.length && structure[end].type === 'contentQuoteImage' && end - index < 3) end++;
+      while (end < structure.length && structure[index].rowId && structure[end].rowId === structure[index].rowId && structure[end].type === 'contentQuoteImage' && end - index < 3) end++;
       if (end - index > 1) {
         const group = document.createElement('div');
         group.className = 'quote-image-group';
@@ -448,7 +489,42 @@ function moveBlock(index, direction) {
 function clearDropMarks() {
   document.querySelectorAll('.drop-before,.drop-after').forEach((card) => card.classList.remove('drop-before', 'drop-after'));
   document.querySelectorAll('.append-bar.is-drop-target').forEach((bar) => bar.classList.remove('is-drop-target'));
+  document.querySelectorAll('.is-nested-target').forEach((card) => card.classList.remove('is-nested-target'));
   $('#canvas').classList.remove('is-over');
+}
+
+function nestedDropTarget(event) {
+  const card = event.target.closest('.structure-card');
+  if (!card || !event.target.closest('.block-preview')) return null;
+  const target = structure.find((item) => item.id === card.dataset.instanceId);
+  const source = dragging?.kind === 'library' ? { type: dragging.blockId } : structure.find((item) => item.id === dragging?.instanceId);
+  if (!target || !source || target === source || target.type !== 'contentQuoteImage') return null;
+  if (!['contentQuoteImage', 'contentHeading', 'contentText', 'contentBlockquote'].includes(source.type)) return null;
+  if (source.type === 'contentQuoteImage' && target.rowId && structure.filter((item) => item.rowId === target.rowId).length >= 3) return null;
+  return { target, source, card };
+}
+
+function applyNestedDrop(event, match) {
+  const { target, source, card } = match;
+  let item;
+  if (dragging.kind === 'library') item = { id: `block-${nextId++}`, type: source.type };
+  else item = structure.splice(structure.indexOf(source), 1)[0];
+  delete item.rowId;
+  if (item.type === 'contentQuoteImage') {
+    target.rowId ||= `row-${nextId++}`;
+    item.rowId = target.rowId;
+    let position = structure.indexOf(target) + 1;
+    while (position < structure.length && structure[position].rowId === target.rowId) position++;
+    structure.splice(position, 0, item);
+  } else {
+    target.children ||= [];
+    target.children.push(item);
+    if (target.children.length === 1) {
+      const rect = card.getBoundingClientRect();
+      target.copySide = event.clientX < rect.left + rect.width / 2 ? 'left' : 'right';
+    }
+  }
+  renderStructure();
 }
 
 function dropIndex(event) {
@@ -466,6 +542,8 @@ $('#canvas').addEventListener('dragover', (event) => {
   $('#canvas').classList.add('is-over');
   event.dataTransfer.dropEffect = dragging.kind === 'library' ? 'copy' : 'move';
   event.target.closest('.append-bar')?.classList.add('is-drop-target');
+  const nested = nestedDropTarget(event);
+  if (nested) { nested.card.classList.add('is-nested-target'); return; }
   const card = event.target.closest('.structure-card');
   if (card) {
     const rect = card.getBoundingClientRect();
@@ -480,6 +558,8 @@ $('#canvas').addEventListener('dragleave', (event) => {
 $('#canvas').addEventListener('drop', (event) => {
   if (!dragging) return;
   event.preventDefault();
+  const nested = nestedDropTarget(event);
+  if (nested) { applyNestedDrop(event, nested); dragging = null; clearDropMarks(); return; }
   const targetIndex = dropIndex(event);
   if (dragging.kind === 'library') {
     insertBlock(dragging.blockId, targetIndex);
@@ -487,6 +567,7 @@ $('#canvas').addEventListener('drop', (event) => {
     const from = structure.findIndex((item) => item.id === dragging.instanceId);
     if (from >= 0) {
       const [item] = structure.splice(from, 1);
+      delete item.rowId;
       const adjustedIndex = targetIndex > from ? targetIndex - 1 : targetIndex;
       structure.splice(Math.max(0, Math.min(adjustedIndex, structure.length)), 0, item);
       renderStructure();
@@ -563,14 +644,14 @@ function composeRegularBodyBlocks(items) {
       const textItem = textItems[textIndex];
       if (textItem.type === 'contentQuoteImage') {
         let quoteCount = 1;
-        while (textItems[textIndex + quoteCount]?.type === 'contentQuoteImage' && quoteCount < 3) quoteCount++;
+        while (textItem.rowId && textItems[textIndex + quoteCount]?.rowId === textItem.rowId && textItems[textIndex + quoteCount]?.type === 'contentQuoteImage' && quoteCount < 3) quoteCount++;
         if (quoteCount > 1) {
-          innerParts.push(makeQuoteRow(Array.from({ length: quoteCount })));
+          innerParts.push(makeQuoteRow(textItems.slice(textIndex, textIndex + quoteCount)));
           textIndex += quoteCount - 1;
           continue;
         }
       }
-      let markup = blockInfo(textItem.type).make(textItem);
+      let markup = textItem.type === 'contentQuoteImage' ? makeQuoteItem(textItem) : blockInfo(textItem.type).make(textItem);
       if (!markup) continue;
       // Leave space before a new heading; close a paragraph before inline quote imagery.
       const nextTextItem = textItems[textIndex + 1];

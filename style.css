@@ -267,3 +267,15 @@ body{background:linear-gradient(115deg,#91bf2f 0%,#68ad32 52%,#429f3a 100%);colo
 .picker-blocks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .picker-blocks h3{grid-column:1/-1;font-size:14px;margin:12px 0 0;color:#527b38}
 @media(max-width:600px){.picker-blocks{grid-template-columns:1fr}.append-bar{font-size:12px}}
+.quote-drop-card.is-nested-target{outline:3px solid #6da23e;outline-offset:2px;box-shadow:0 0 0 7px #8abc4930}
+.quote-drop-card .block-preview{position:relative;padding-bottom:34px}
+.quote-drop-hint{grid-column:1/-1;color:#71915e;font-size:11px;text-align:center;padding:7px 12px;border-top:1px dashed #d6e5ca;margin-top:12px}
+.quote-drop-card.is-nested-target .quote-drop-hint{color:#3e7525;background:#eaf6df;font-weight:600}
+.quote-with-copy{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;gap:18px;padding:24px}
+.quote-with-copy .quote-image-preview-figure{width:100%;margin:0;min-width:0}
+.quote-card-copy{min-width:0;display:grid;gap:10px}
+.nested-content-item{position:relative;border:1px dashed #dce8d5;border-radius:8px;padding:8px 8px 36px;background:#fff}
+.nested-content-item .block-preview{padding:10px!important}.nested-content-item .preview-narrow{width:100%;max-width:none}
+.nested-content-controls{display:flex;gap:4px;position:absolute;right:7px;bottom:6px}.nested-content-controls .icon-button{width:24px;height:24px}
+.quote-with-copy .content-blockquote-preview{margin:8px 0;font-size:15px;padding:12px}
+@media(max-width:700px){.quote-with-copy{grid-template-columns:1fr}}
