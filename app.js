@@ -1,284 +1,243 @@
 const $ = (selector) => document.querySelector(selector);
-let images = [];
-let documents = [];
-let figmaReferences = [];
 
-function sizeLabel(bytes) {
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const BLOCKS = [
+  { id: 'articleTitle', name: 'หัวข้อบทความ', note: 'หัวเรื่อง Reflection', mini: 'title', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <h2 class="news__subtitle mb-4"></h2>\n        </div>\n    </div>\n</div>` },
+  { id: 'audio', name: 'เสียงประกอบ', note: 'Audio player', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <audio controls="controls" src="###"></audio>\n        </div>\n    </div>\n</div>` },
+  { id: 'video', name: 'วิดีโอประกอบ', note: 'Video player', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            <video controls="controls" src="###"></video>\n        </div>\n    </div>\n</div>` },
+  { id: 'textBlock', name: 'ข้อความในคอลัมน์กลาง', note: 'ย่อหน้าใน container', mini: 'text', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <p></p>\n            <p></p>\n        </div>\n    </div>\n</div>` },
+  { id: 'headingSection', name: 'หัวข้อย่อยและเนื้อหา', note: 'หัวข้อ h4 พร้อมย่อหน้า', mini: 'title', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h4></h4>\n            <p></p>\n            <p></p>\n            <p class="mb-0"></p>\n        </div>\n    </div>\n</div>` },
+  { id: 'centerImage', name: 'รูปภาพจัดกลาง', note: 'Figure · img-fluid · my-5', mini: 'image', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <figure class="text-center my-5"><img class="img-fluid" src="###"></figure>\n        </div>\n    </div>\n</div>` },
+  { id: 'wideBanner', name: 'รูปใหญ่บนแถบพื้นหลัง', note: 'bg-split-news-big-image', mini: 'banner', make: () => `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="###" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>` },
+  { id: 'greenBand', name: 'แถบไล่สีเขียวพร้อมข้อความ', note: 'bg-green-gradient-vertical', mini: 'green', make: () => `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white"></p>\n            </div>\n        </div>\n    </div>\n</div>` },
+  { id: 'splitImage', name: 'ข้อความคู่กับรูปด้านขวา', note: 'แถบเทา · ข้อความซ้าย · รูปขวา', mini: 'split', make: () => `<div class="bg-light-grey container-fluid my-5 px-0">\n    <div class="row justify-content-end no-gutters">\n        <div class="bg-split-news-right col-lg-6 col-xl-5 order-lg-2 py-5">\n            <div class="align-items-center d-flex h-100 justify-content-center p-2 p-lg-5">\n                <img class="img-fluid" src="###">\n            </div>\n        </div>\n        <div class="align-self-center col-lg-6 order-lg-1">\n            <div class="pl-xl-0 px-3 px-md-5 py-5">\n                <p class="mb-0"></p>\n            </div>\n        </div>\n    </div>\n</div>` },
+  { id: 'twoColumnMedia', name: 'สองคอลัมน์พร้อมหัวข้อและไอคอน', note: 'row · col-md-6 · media', mini: 'columns', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <div class="row">\n                <div class="col-md-6">\n                    <div class="media align-items-center mb-4">\n                        <img src="###" width="50" class="mr-3">\n                        <div class="media-body"><h4 class="mt-0 mb-0"></h4></div>\n                    </div>\n                    <p></p>\n                    <p class="mb-0"></p>\n                </div>\n                <div class="col-md-6">\n                    <div class="media align-items-center mb-4">\n                        <img src="###" width="50" class="mr-3">\n                        <div class="media-body"><h4 class="mt-0 mb-0"></h4></div>\n                    </div>\n                    <p class="mb-0"></p>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>` },
+  { id: 'imagePair', name: 'รูปภาพสองคอลัมน์', note: 'รูปคู่ใน row · col-md-6', mini: 'pair', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <div class="row">\n                <div class="col-md-6">\n                    <figure class="text-center my-5"><img class="img-fluid" src="###"></figure>\n                </div>\n                <div class="col-md-6">\n                    <figure class="text-center my-5"><img class="img-fluid" src="###"></figure>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>` },
+  { id: 'quote', name: 'ข้อความอ้างอิง', note: 'blockquote', mini: 'quote', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <blockquote></blockquote>\n        </div>\n    </div>\n</div>` }
+];
+
+let structure = [];
+let nextId = 1;
+let dragging = null;
+let codeIsVisible = false;
+
+function blockInfo(id) {
+  return BLOCKS.find((block) => block.id === id);
 }
 
-function appendUnique(target, incoming) {
-  for (const file of incoming) {
-    if (!target.some((item) => item.name === file.name && item.size === file.size)) target.push(file);
-  }
+function makeMini(type) {
+  const mini = document.createElement('span');
+  mini.className = `mini mini-${type}`;
+  mini.setAttribute('aria-hidden', 'true');
+  const count = type === 'columns' || type === 'pair' || type === 'split' ? 2 : type === 'audio' ? 3 : type === 'quote' ? 1 : 3;
+  for (let i = 0; i < count; i++) mini.append(document.createElement('i'));
+  return mini;
 }
 
-function activateWorkspace() {
-  document.body.classList.add('has-started');
-}
-
-function renderList(target, container, type) {
-  container.replaceChildren();
-  target.forEach((file, index) => {
-    const name = type === 'image' ? (index === 0 ? 'highlight.webp' : `quote-${index}.webp`) : file.name;
-    const row = document.createElement('div');
-    row.className = 'file-row';
-    row.innerHTML = `<span class="file-type">${type === 'image' ? 'IMG' : 'DOC'}</span><span class="file-meta"><b></b><small>${sizeLabel(file.size)}</small></span>${type === 'image' ? '<span class="file-output-name"></span>' : ''}<button class="remove-file" aria-label="ลบไฟล์">×</button>`;
-    row.querySelector('.file-meta b').textContent = file.name;
-    row.querySelector('.file-output-name')?.replaceChildren(document.createTextNode(name));
-    row.querySelector('.remove-file').addEventListener('click', () => {
-      target.splice(index, 1);
-      renderList(target, container, type);
+function renderLibrary() {
+  const library = $('#blockLibrary');
+  library.replaceChildren();
+  $('#paletteCount').textContent = `${BLOCKS.length} แบบ`;
+  for (const block of BLOCKS) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'library-card';
+    card.draggable = true;
+    card.dataset.blockId = block.id;
+    const text = document.createElement('span');
+    text.innerHTML = '<span class="library-title"></span><span class="library-desc"></span>';
+    text.querySelector('.library-title').textContent = block.name;
+    text.querySelector('.library-desc').textContent = block.note;
+    const add = document.createElement('span');
+    add.className = 'add-block';
+    add.setAttribute('aria-hidden', 'true');
+    add.textContent = '+';
+    card.append(makeMini(block.mini), text, add);
+    card.addEventListener('click', () => insertBlock(block.id));
+    card.addEventListener('dragstart', (event) => {
+      dragging = { kind: 'library', blockId: block.id };
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('text/plain', block.id);
     });
-    container.append(row);
-  });
+    card.addEventListener('dragend', () => { dragging = null; clearDropMarks(); });
+    library.append(card);
+  }
 }
 
-function setupDropzone(zone, input, target, container, type) {
-  const browse = zone.querySelector('button');
-  browse.addEventListener('click', (event) => { event.stopPropagation(); input.click(); });
-  zone.addEventListener('click', () => input.click());
-  input.addEventListener('change', (event) => {
-    const incoming = [...event.target.files];
-    if (incoming.length) activateWorkspace();
-    appendUnique(target, incoming);
-    renderList(target, container, type);
-    input.value = '';
-  });
-  zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', (event) => {
-    event.preventDefault();
-    zone.classList.remove('dragover');
-    const accepted = [...event.dataTransfer.files].filter((file) => type === 'image' ? file.type.startsWith('image/') : /\.(docx|doc|txt|mp3|mp4|m4a|wav)$/i.test(file.name));
-    if (accepted.length) activateWorkspace();
-    appendUnique(target, accepted);
-    renderList(target, container, type);
-  });
+function insertBlock(blockId, index = structure.length) {
+  if (!blockInfo(blockId)) return;
+  structure.splice(index, 0, { id: `block-${nextId++}`, type: blockId });
+  renderStructure();
 }
 
-setupDropzone($('#imageDropzone'), $('#imageInput'), images, $('#imageList'), 'image');
-setupDropzone($('#docDropzone'), $('#docInput'), documents, $('#docList'), 'doc');
+function makeVisual(type) {
+  const visual = document.createElement('div');
+  visual.className = 'structure-visual';
+  visual.dataset.type = type;
+  visual.setAttribute('aria-hidden', 'true');
+  const count = type === 'twoColumnMedia' || type === 'imagePair' || type === 'splitImage' ? 2 : type === 'audio' || type === 'video' ? 3 : 4;
+  for (let i = 0; i < count; i++) {
+    const block = document.createElement('i');
+    block.className = 'visual-block';
+    visual.append(block);
+  }
+  return visual;
+}
 
-function renderFigmaReferences() {
-  const container = $('#figmaImageList');
-  container.querySelectorAll('.reference-thumbnail').forEach((thumbnail) => URL.revokeObjectURL(thumbnail.src));
-  container.replaceChildren();
-  figmaReferences.forEach((file, index) => {
-    const row = document.createElement('div');
-    row.className = 'file-row reference-row';
-    const thumbnail = document.createElement('img');
-    thumbnail.className = 'reference-thumbnail';
-    thumbnail.src = URL.createObjectURL(file);
-    thumbnail.alt = '';
-    const meta = document.createElement('span');
-    meta.className = 'file-meta';
-    const name = document.createElement('b');
-    name.textContent = file.name;
-    const size = document.createElement('small');
-    size.textContent = sizeLabel(file.size);
-    meta.append(name, size);
-    const remove = document.createElement('button');
-    remove.className = 'remove-file';
-    remove.type = 'button';
-    remove.setAttribute('aria-label', 'ลบภาพอ้างอิง Figma');
-    remove.textContent = '×';
-    remove.addEventListener('click', () => {
-      figmaReferences.splice(index, 1);
-      renderFigmaReferences();
+function makeControl(label, symbol, className, onClick, disabled = false) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `icon-button ${className || ''}`.trim();
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.textContent = symbol;
+  button.disabled = disabled;
+  button.addEventListener('click', (event) => { event.stopPropagation(); onClick(); });
+  return button;
+}
+
+function renderStructure() {
+  const canvas = $('#canvas');
+  canvas.querySelectorAll('.structure-card').forEach((card) => card.remove());
+  $('#emptyState').hidden = structure.length > 0;
+  structure.forEach((item, index) => {
+    const info = blockInfo(item.type);
+    const card = document.createElement('article');
+    card.className = 'structure-card';
+    card.draggable = true;
+    card.dataset.instanceId = item.id;
+    card.addEventListener('dragstart', (event) => {
+      dragging = { kind: 'canvas', instanceId: item.id };
+      card.classList.add('is-dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', item.id);
     });
-    row.append(thumbnail, meta, remove);
-    container.append(row);
+    card.addEventListener('dragend', () => { dragging = null; card.classList.remove('is-dragging'); clearDropMarks(); });
+
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.setAttribute('aria-hidden', 'true');
+    const name = document.createElement('span');
+    name.className = 'structure-name';
+    name.append(document.createTextNode(info.name));
+    const subtitle = document.createElement('small');
+    subtitle.className = 'structure-subtitle';
+    subtitle.textContent = info.note;
+    name.append(subtitle);
+    const controls = document.createElement('div');
+    controls.className = 'structure-controls';
+    controls.append(
+      makeControl('เลื่อนขึ้น', '↑', '', () => moveBlock(index, -1), index === 0),
+      makeControl('เลื่อนลง', '↓', '', () => moveBlock(index, 1), index === structure.length - 1),
+      makeControl('ลบส่วนนี้', '×', 'remove', () => { structure.splice(index, 1); renderStructure(); })
+    );
+    card.append(handle, name, makeVisual(item.type), controls);
+    canvas.append(card);
   });
+  $('#structureCount').textContent = `${structure.length} ส่วน`;
+  $('#canvasStatus').textContent = structure.length ? `มี ${structure.length} ส่วน · ลากเพื่อเรียงลำดับ หรือใช้ปุ่มลูกศร` : 'ยังไม่มีส่วนประกอบ';
+  $('#clearBtn').disabled = structure.length === 0;
+  $('#exportBtn').disabled = structure.length === 0;
+  if (codeIsVisible) updateCode();
 }
 
-function setupFigmaReferenceUpload() {
-  const zone = $('#figmaDropzone');
-  const input = $('#figmaImageInput');
-  $('#browseFigmaImages').addEventListener('click', (event) => { event.stopPropagation(); input.click(); });
-  zone.addEventListener('click', () => input.click());
-  input.addEventListener('change', (event) => {
-    const incoming = [...event.target.files].filter((file) => file.type.startsWith('image/'));
-    if (incoming.length) activateWorkspace();
-    appendUnique(figmaReferences, incoming);
-    renderFigmaReferences();
-    input.value = '';
-  });
-  zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', (event) => {
-    event.preventDefault();
-    zone.classList.remove('dragover');
-    const incoming = [...event.dataTransfer.files].filter((file) => file.type.startsWith('image/'));
-    if (incoming.length) activateWorkspace();
-    appendUnique(figmaReferences, incoming);
-    renderFigmaReferences();
-  });
+function moveBlock(index, direction) {
+  const destination = index + direction;
+  if (destination < 0 || destination >= structure.length) return;
+  [structure[index], structure[destination]] = [structure[destination], structure[index]];
+  renderStructure();
 }
 
-setupFigmaReferenceUpload();
-
-function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+function clearDropMarks() {
+  document.querySelectorAll('.drop-before,.drop-after').forEach((card) => card.classList.remove('drop-before', 'drop-after'));
+  $('#canvas').classList.remove('is-over');
 }
 
-async function readDocument(file) {
-  if (/\.docx$/i.test(file.name)) {
-    if (!window.mammoth) throw new Error('ไฟล์ Word reader โหลดไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้า');
-    return (await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() })).value;
+function dropIndex(event) {
+  const card = event.target.closest('.structure-card');
+  if (!card) return structure.length;
+  const rect = card.getBoundingClientRect();
+  const idx = structure.findIndex((item) => item.id === card.dataset.instanceId);
+  return idx + (event.clientY > rect.top + rect.height / 2 ? 1 : 0);
+}
+
+$('#canvas').addEventListener('dragover', (event) => {
+  if (!dragging) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = dragging.kind === 'library' ? 'copy' : 'move';
+  $('#canvas').classList.add('is-over');
+  clearDropMarks();
+  $('#canvas').classList.add('is-over');
+  const card = event.target.closest('.structure-card');
+  if (card) {
+    const rect = card.getBoundingClientRect();
+    card.classList.add(event.clientY > rect.top + rect.height / 2 ? 'drop-after' : 'drop-before');
   }
-  if (/\.(txt|rtf)$/i.test(file.name)) {
-    const text = await file.text();
-    return text.split(/\r?\n\s*\r?\n/).filter((paragraph) => paragraph.trim()).map((paragraph) => `<p>${escapeHtml(paragraph.trim()).replace(/\r?\n/g, '<br>')}</p>`).join('\n');
-  }
-  if (/\.doc$/i.test(file.name)) throw new Error('ไฟล์ .doc รุ่นเก่าอ่านไม่ได้ กรุณาบันทึกเป็น .docx');
-  return '';
-}
-
-function imagePath(index) {
-  const name = index === 0 ? 'highlight.webp' : `quote-${index}.webp`;
-  return `/storage/newsroom/refaction/###/###/###/${name}`;
-}
-
-function imageMarkup(index) {
-  const src = imagePath(index);
-  if (index === 0) return `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${src}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
-  return `<!-- quote-${index} -->\n<figure class="text-center my-5"><img class="img-fluid" src="${src}"></figure>`;
-}
-
-function normalizeSpacing(html) {
-  let output = html.replace(/<figure\b([^>]*)class=(['"])([^'"]*\btext-center\b[^'"]*)\2([^>]*)>/gi, (tag, before, quote, classNames, after) => {
-    const classes = classNames.split(/\s+/).filter(Boolean);
-    if (!classes.includes('my-5')) classes.push('my-5');
-    return `<figure${before}class=${quote}${classes.join(' ')}${quote}${after}>`;
-  });
-  output = output.replace(/(<p\b[^>]*class=(['"])([^'"]*\bmy-5\b[^'"]*)\2[^>]*>[\s\S]*?<\/p\s*>\s*)(<figure\b[^>]*class=(['"])[^'"]*\btext-center\b[^'"]*\5[^>]*>)/gi, (match, paragraph, quote, classNames, figureTag) => {
-    const classes = classNames.split(/\s+/).filter(Boolean);
-    if (!classes.includes('mb-0')) classes.push('mb-0');
-    return `${paragraph.replace(`${quote}${classNames}${quote}`, `${quote}${classes.join(' ')}${quote}`)}${figureTag}`;
-  });
-  return output;
-}
-
-function weaveQuotes(articleHtml) {
-  const parsed = new DOMParser().parseFromString(articleHtml, 'text/html');
-  const sourceBlocks = [...parsed.body.childNodes]
-    .filter((node) => node.nodeType === Node.ELEMENT_NODE || node.textContent.trim())
-    .map((node) => node.nodeType === Node.ELEMENT_NODE ? node.outerHTML : `<p>${escapeHtml(node.textContent.trim())}</p>`)
-    .filter(Boolean);
-  // Word sometimes stores an entire article as one paragraph with double <br> breaks.
-  // Turn those visual paragraph breaks into real blocks so quote images can be interleaved.
-  const blocks = sourceBlocks.flatMap((block) => {
-    const match = block.match(/^<p\b([^>]*)>([\s\S]*)<\/p\s*>$/i);
-    if (!match || !/(?:<br\s*\/?\s*>\s*){2,}/i.test(match[2])) return [block];
-    const paragraphs = match[2].split(/(?:<br\s*\/?\s*>\s*){2,}/i).map((part) => part.trim()).filter(Boolean);
-    return paragraphs.length > 1 ? paragraphs.map((part) => `<p${match[1]}>${part}</p>`) : [block];
-  });
-  if (!images.length) return blocks.join('\n');
-  const result = [];
-  const quoteCount = images.length - 1;
-  let quote = 1;
-  blocks.forEach((block, index) => {
-    result.push(block);
-    if (quote <= quoteCount) {
-      const target = Math.ceil((quote * blocks.length) / (quoteCount + 1));
-      if (index + 1 >= target) result.push(imageMarkup(quote++));
-    }
-  });
-  while (quote <= quoteCount) result.push(imageMarkup(quote++));
-  return result.join('\n');
-}
-
-async function generateHtml() {
-  const button = $('#generateBtn');
-  activateWorkspace();
-  const docx = documents.filter((file) => /\.(docx|doc|txt|rtf)$/i.test(file.name));
-  if (!docx.length) {
-    alert('เพิ่มไฟล์ Word (.docx) ก่อนครับ ช่อง Figma ใช้เก็บลิงก์อ้างอิง แต่ยังดึงข้อความอัตโนมัติไม่ได้');
-    return;
-  }
-  button.disabled = true;
-  button.textContent = 'กำลังอ่านเอกสาร…';
-  try {
-    const parts = [];
-    for (const file of docx) parts.push(await readDocument(file));
-    const article = parts.filter(Boolean).join('\n');
-    if (!article.trim()) throw new Error('ไม่พบข้อความในเอกสาร Word ที่เลือก');
-    const media = documents.filter((file) => /\.(mp3|mp4|m4a|wav)$/i.test(file.name));
-    const video = media.some((file) => /\.mp4$/i.test(file.name)) ? '<video controls="controls" src="###"></video>' : '';
-    const audio = media.some((file) => /\.(mp3|m4a|wav)$/i.test(file.name)) ? '<audio controls="controls" src="###"></audio>' : '';
-    const imagesHtml = images.length ? `${imageMarkup(0)}\n` : '';
-    const body = weaveQuotes(article);
-    const topMedia = [audio, video].filter(Boolean).join('\n');
-    const output = `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n            ${topMedia}\n        </div>\n    </div>\n</div>\n\n${imagesHtml}<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n${body.split(/\r?\n/).map((line) => `            ${line}`).join('\n')}\n        </div>\n    </div>\n</div>`;
-    $('#htmlOutput').value = normalizeSpacing(output);
-    $('#resultSummary').textContent = `${docx.length} ไฟล์ Word · ${images.length} ภาพ (highlight${images.length > 1 ? `, quote-1 ถึง quote-${images.length - 1}` : ''}) · ${media.length} ไฟล์เสียง/วิดีโอ`;
-    $('#outputEmpty').hidden = true;
-    $('#outputReady').hidden = false;
-    $('#previewFrame').srcdoc = `<!doctype html><meta charset="utf-8"><style>body{font:16px/1.8 Arial,sans-serif;color:#25362b;margin:0}p{margin:0 0 1.4em}.container{max-width:900px;margin:auto;padding:24px}.row{display:flex;justify-content:center}.col-md-10{width:78%}.w-100{width:100%}.text-center{text-align:center}figure{margin:2em auto}.img-fluid{max-width:100%}.bg-split-news-big-image{background:#f4f8f3;padding:30px 0;margin:25px 0}</style>${$('#htmlOutput').value}`;
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    button.disabled = false;
-    button.innerHTML = 'สร้าง HTML <span>↗</span>';
-  }
-}
-
-$('#generateBtn').addEventListener('click', generateHtml);
-$('#copyBtn').addEventListener('click', async () => {
-  await navigator.clipboard.writeText($('#htmlOutput').value);
-  $('#copyBtn').textContent = 'คัดลอกแล้ว ✓';
-  setTimeout(() => { $('#copyBtn').textContent = 'คัดลอก HTML'; }, 1700);
 });
+
+$('#canvas').addEventListener('dragleave', (event) => {
+  if (!$('#canvas').contains(event.relatedTarget)) clearDropMarks();
+});
+
+$('#canvas').addEventListener('drop', (event) => {
+  if (!dragging) return;
+  event.preventDefault();
+  const targetIndex = dropIndex(event);
+  if (dragging.kind === 'library') {
+    insertBlock(dragging.blockId, targetIndex);
+  } else {
+    const from = structure.findIndex((item) => item.id === dragging.instanceId);
+    if (from >= 0) {
+      const [item] = structure.splice(from, 1);
+      const adjustedIndex = targetIndex > from ? targetIndex - 1 : targetIndex;
+      structure.splice(Math.max(0, Math.min(adjustedIndex, structure.length)), 0, item);
+      renderStructure();
+    }
+  }
+  dragging = null;
+  clearDropMarks();
+});
+
+function updateCode() {
+  $('#htmlOutput').value = structure.map((item) => blockInfo(item.type).make()).join('\n\n');
+}
+
+$('#exportBtn').addEventListener('click', () => {
+  codeIsVisible = true;
+  updateCode();
+  $('#outputPanel').hidden = false;
+  $('#outputPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+$('#clearBtn').addEventListener('click', () => {
+  structure = [];
+  codeIsVisible = false;
+  $('#outputPanel').hidden = true;
+  renderStructure();
+});
+
+$('#copyBtn').addEventListener('click', async () => {
+  const button = $('#copyBtn');
+  try {
+    await navigator.clipboard.writeText($('#htmlOutput').value);
+    button.textContent = 'คัดลอกแล้ว ✓';
+  } catch {
+    $('#htmlOutput').select();
+    document.execCommand('copy');
+    button.textContent = 'คัดลอกแล้ว ✓';
+  }
+  window.setTimeout(() => { button.textContent = 'คัดลอก HTML'; }, 1600);
+});
+
 $('#downloadBtn').addEventListener('click', () => {
   const blob = new Blob([$('#htmlOutput').value], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'reflection-content.html';
+  link.href = url;
+  link.download = 'reflection-structure.html';
   link.click();
-  URL.revokeObjectURL(link.href);
+  URL.revokeObjectURL(url);
 });
-$('#downloadImagesBtn').addEventListener('click', async () => {
-  if (!window.JSZip) {
-    alert('ตัวสร้าง ZIP โหลดไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วรีเฟรชหน้า');
-    return;
-  }
-  if (!images.length) {
-    alert('ยังไม่มีรูปภาพให้ดาวน์โหลด');
-    return;
-  }
-  const button = $('#downloadImagesBtn');
-  button.disabled = true;
-  button.textContent = 'กำลังจัดชื่อรูปภาพ…';
-  try {
-    const zip = new window.JSZip();
-    for (let index = 0; index < images.length; index++) {
-      const bitmap = await createImageBitmap(images[index]);
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext('2d').drawImage(bitmap, 0, 0);
-      const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error('แปลงรูปภาพไม่สำเร็จ')), 'image/webp', 0.92));
-      zip.file(index === 0 ? 'highlight.webp' : `quote-${index}.webp`, blob);
-      bitmap.close();
-    }
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'reflection-images.zip';
-    link.click();
-    URL.revokeObjectURL(link.href);
-  } catch (error) {
-    alert(error.message || 'จัดไฟล์ภาพไม่สำเร็จ');
-  } finally {
-    button.disabled = false;
-    button.textContent = 'ดาวน์โหลดรูปตามชื่อมาตรฐาน (.zip)';
-  }
-});
-document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach((item) => item.classList.remove('selected'));
-  tab.classList.add('selected');
-  $('#codePane').hidden = tab.dataset.pane !== 'codePane';
-  $('#previewPane').hidden = tab.dataset.pane !== 'previewPane';
-}));
+
+renderLibrary();
+renderStructure();

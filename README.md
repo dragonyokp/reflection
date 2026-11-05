@@ -1,20 +1,27 @@
-# Reflection Studio
+# Reflection Structure Builder
 
-Static browser app intended for GitHub Pages. It accepts a Word document, images, audio/video, and a Figma URL or screenshot; it prepares editable CMS HTML and a preview in the browser.
+Static browser tool for assembling Bangchak Reflection CMS HTML structures. Choose blocks from the left library, drag them into the canvas, reorder or remove them, then copy or download the combined HTML.
+
+## Included structure blocks
+
+- Reflection article title
+- Audio and video player slots
+- Center-column paragraphs and section heading groups
+- Centered image figures
+- Wide image banner using `bg-split-news-big-image`
+- Green gradient text band using `bg-green-gradient-vertical`
+- Text-left and image-right split section
+- Two-column `.media` heading and icon layout
+- Two images in a two-column row
+- Blockquote
+
+The exported HTML contains empty text elements and `###` media/image source placeholders. Fill in article text and real CMS asset paths after export. The tool does not analyze Figma or place content automatically; it is an explicit structure builder.
 
 ## Publish with GitHub Pages
 
-1. Create a GitHub repository named `reflection-studio` (or use your team's existing repository).
-2. Upload `index.html`, `style.css`, and `app.js` to the repository root.
-3. In the repository, open **Settings → Pages**.
-4. Choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
-5. GitHub will show the published `https://<account>.github.io/reflection-studio/` URL in the Pages settings.
+1. Upload `index.html`, `style.css`, and `app.js` to the repository root.
+2. In the repository, open **Settings → Pages**.
+3. Choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
+4. Open the Pages URL when GitHub reports the deployment is ready.
 
-This app is client-side only. The Word file is read in the browser; the Figma URL is currently retained as a reference input and is not fetched or inspected automatically. A screenshot can be uploaded as reference. The generated HTML uses placeholder CMS paths (`YYYY/MM/article-slug`) that must be replaced with the final Reflection asset directory before publishing.
-
-## Current prototype limits
-
-- DOCX text/paragraphs are read with Mammoth.js from jsDelivr.
-- Media are sorted by `highlight`, then `quote-N`; unnamed photos follow their selected order.
-- This prototype does not call an AI service, parse Figma files, or upload assets to Bangchak CMS.
-- Review layout and asset paths before publishing the HTML.
+The builder has no account connection, API token, or external AI requirement. It runs in the user's browser.
