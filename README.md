@@ -50,4 +50,4 @@ The final standalone image in a vertical content section uses `mt-5 mb-0`; inter
 
 ## Palette navigation
 
-Group 3 (content) is a native details/summary accordion, initially open and keyboard accessible. On desktop widths above 720px, the left palette is sticky below the top bar and its library scrolls internally. On narrower screens the palette stays in normal document flow. Article export is unchanged.
+All library groups, including group 3 (content), are displayed as ordinary expanded sections without accordion controls. On desktop widths above 720px, the left palette is sticky below the top bar and its library scrolls internally. On narrower screens the palette stays in normal document flow. Article export is unchanged.
