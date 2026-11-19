@@ -8,16 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=7">
+  <link rel="stylesheet" href="studio.css?v=8">
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="studio.js?v=6" defer></script>
+  <script src="studio.js?v=7" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="studio-topbar">
       <a class="studio-brand" href="index.html" aria-label="Reflection Studio home"><span class="brand-icon">R<span>.</span></span><span><b>reflection<span>studio</span></b><small>DESIGN YOUR STORY</small></span></a>
-      <nav id="studioModes" class="studio-modes" aria-label="เมนูเครื่องมือ"><button type="button" data-view="gallery" class="active">Templates</button><button type="button" data-view="new">New</button><button type="button" data-view="patterns">สร้าง HTML</button><button type="button" data-view="audio">แปลงไฟล์เสียง</button></nav>
-      <div class="topbar-actions"><span class="local-badge"><span class="live-dot"></span> ทำงานในเบราว์เซอร์</span><button id="topExport" class="top-export" type="button" hidden>ส่งออก HTML <span>↗</span></button></div>
+      <nav id="studioModes" class="studio-modes" aria-label="เมนูเครื่องมือ"><button type="button" data-view="gallery" class="active">Templates</button><button type="button" data-view="create">สร้างงาน</button><button type="button" data-view="audio">แปลงไฟล์เสียง</button></nav>
+      <div class="topbar-actions"><span class="local-badge"><span class="live-dot"></span> ทำงานในเบราว์เซอร์</span></div>
     </header>
 
     <main>
@@ -43,15 +43,10 @@
             <div><p class="eyebrow"><span>02</span> FULL PAGE REFLECTION TEMPLATES</p><h2>เลือกต้นแบบบทความ <span>ทั้งหน้า</span></h2><p>ดูโครงเรื่องเต็มตั้งแต่หัวเรื่องจนถึงส่วนท้าย แล้วนำไปแก้ไขต่อได้</p></div>
             <div class="template-count"><b id="templateCount">07</b><span>FULL PAGE<br>LAYOUTS</span></div>
           </div>
-          <div class="gallery-toolbar"><div id="categoryFilters" class="category-filters"></div><label class="search-box"><span>⌕</span><input id="templateSearch" type="search" placeholder="ค้นหาเทมเพลต" aria-label="ค้นหาเทมเพลต"></label></div>
+          <div class="gallery-toolbar"><label class="search-box"><span>⌕</span><input id="templateSearch" type="search" placeholder="ค้นหาจากชื่อบทความ" aria-label="ค้นหาจากชื่อบทความ"></label></div>
           <div id="templateGrid" class="template-grid"></div>
           <div class="custom-start"><span class="custom-plus">＋</span><div><b>เริ่มจากหน้าว่าง</b><small>สร้างเลย์เอาต์ของคุณทีละส่วน</small></div><button id="blankStart" type="button" aria-label="เริ่มจากหน้าว่าง">เริ่มออกแบบ <span>→</span></button></div>
         </section>
-      </section>
-
-      <section id="patternsView" class="patterns-view" hidden>
-        <div class="mode-page-head"><p class="eyebrow"><span>03</span> REFLECTION CMS PATTERNS</p><h1>รูปแบบที่ใช้อยู่จริง <em>19 แบบ</em></h1><p>พรีวิวตามตัวอย่างเดิม ลากรูปแบบมาประกอบและส่งออกโครงสร้าง HTML ได้</p></div>
-        <iframe id="structureFrame" title="ตัวสร้างโครงสร้าง Reflection CMS" src="structure-builder.html?embedded=1"></iframe>
       </section>
 
       <section id="audioView" class="audio-view" hidden>
@@ -105,7 +100,7 @@
           <aside class="right-rail">
             <div class="rail-head property-head"><p class="eyebrow">DESIGN DETAILS</p><h2>ปรับแต่ง</h2></div>
             <div id="inspector" class="inspector"><div class="inspector-empty"><span>✳</span><b>เลือกองค์ประกอบ</b><p>คลิกข้อความหรือรูปบนแคนวาส เพื่อปรับแต่งรายละเอียด</p></div></div>
-            <div class="export-note"><span>HTML READY</span><p>ส่งออกเป็นโครงสร้าง HTML เพื่อนำไปจัดทำหน้า Reflection ต่อ</p></div>
+            <div class="export-note"><span>HTML พร้อมใช้งาน</span><p>ออกแบบและจัดการเนื้อหาบนพื้นที่นี้ แล้วส่งออกจากเครื่องมือเดียวกันได้ทันที</p></div>
           </aside>
         </div>
       </section>

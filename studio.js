@@ -35,8 +35,6 @@
       {type:'heading',text:'Strength, Confidence, Development'}, {type:'text',text:'สามเสาหลักทางการเงินเพื่อการเติบโตที่มั่นคง'}, {type:'image',alt:'ภาพผู้ให้สัมภาษณ์',width:100}, {type:'text',text:'แนะนำผู้บริหารและมุมมองต่อการเปลี่ยนแปลงขององค์กร'}, {type:'quote',text:'“รากฐานทางการเงินที่แข็งแรงช่วยสนับสนุนการเติบโต”'}, {type:'heading',text:'Protecting the Balance Sheet'}, {type:'text',text:'เสาหลักที่หนึ่ง: ดูแลความแข็งแรงของงบดุลและใช้เงินลงทุนอย่างมีประสิทธิภาพ'}, {type:'image',alt:'ภาพประกอบเสาหลักที่หนึ่ง',width:78}, {type:'heading',text:'Communicating Value'}, {type:'text',text:'เสาหลักที่สอง: สื่อสารคุณค่าของธุรกิจและสร้างความเชื่อมั่น'}, {type:'split',imageSide:'left',alt:'ภาพธุรกิจและการเติบโต',title:'Transform People & Process',text:'เสาหลักที่สาม: พัฒนาคนและกระบวนการให้พร้อมต่อการเปลี่ยนแปลง'}, {type:'quote',text:'“พร้อมปรับตัวและพัฒนาต่อไป เพื่อสร้างคุณค่าให้ทุกฝ่าย”'}, {type:'text',text:'ปิดท้ายด้วยเป้าหมายและสิ่งที่อยากให้ผู้มีส่วนเกี่ยวข้องจดจำ'}
     ]}
   ];
-  const categories = ['ทั้งหมด','พลังงาน','สัมภาษณ์','ชุมชน','แคมเปญ','คนทำงาน','สังคม','การเงิน'];
-  let activeCategory = 'ทั้งหมด';
   let elements = [];
   let selectedId = null;
   let nextId = 1;
@@ -78,9 +76,7 @@
   function showMode(mode) {
     galleryView.hidden = mode !== 'gallery';
     editorView.hidden = mode !== 'editor';
-    $('#patternsView').hidden = mode !== 'patterns';
     $('#audioView').hidden = mode !== 'audio';
-    $('#topExport').hidden = mode !== 'editor';
     if (mode !== 'editor') setActiveMode(mode);
     window.scrollTo(0,0);
   }
@@ -95,10 +91,6 @@
       divider:{}
     };
     return {id:uid(),type,...clone(defaults[type] || {}),...overrides};
-  }
-
-  function renderCategories() {
-    $('#categoryFilters').innerHTML = categories.map(category => `<button class="filter-chip${activeCategory===category?' active':''}" type="button" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join('');
   }
 
   function renderThumb(template) {
@@ -118,16 +110,15 @@
       pillars: `<div class="page-leader-hero">${photo('portrait-photo')}<div>${heading('82%')}${lines(4)}</div></div>${lines(4,'lead-lines')}${quote()}<div class="page-pillars"><i><b>01</b><span></span></i><i><b>02</b><span></span></i><i><b>03</b><span></span></i></div>${heading('66%')}${lines(5)}${photo('wide-photo')}${quote()}`
     };
     const title = template.blocks.find(block => block.type === 'heading')?.text.split('\n')[0] || template.title;
-    return `<div class="template-thumb template-page-${template.layout}" aria-hidden="true"><span class="thumb-tag">${escapeHtml(template.tag)} · FULL PAGE</span><article class="page-mini"><div class="page-site-nav"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS　 CONTACT</span></div><div class="page-breadcrumb">⌂　/　NEWS　/　BANGCHAK REFLECTIONS</div><div class="page-article-body"><div class="page-brand-reflection"><b>บางจาก</b><span>REFLECTIONS</span></div><div class="page-date">${escapeHtml(template.date || '')}</div><h3>${escapeHtml(title)}</h3><div class="page-audio"><i>▶</i><span>0:00</span><b></b><span>◖))</span></div><div class="page-body-layout">${patterns[template.layout] || patterns.energy}</div><div class="page-share">SHARE　 ●　 ●　 ●　 ↗</div><div class="page-related">ALL BANGCHAK REFLECTIONS <b>→</b></div></div><footer><b>CAN WE HELP?</b><span>CONTACT　 ·　 QUICK LINKS　 ·　 CAREER</span></footer></article></div>`;
+    return `<div class="template-thumb template-page-${template.layout}" aria-hidden="true"><article class="page-mini"><div class="page-site-nav"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS　 CONTACT</span></div><div class="page-breadcrumb">⌂　/　NEWS　/　BANGCHAK REFLECTIONS</div><div class="page-article-body"><div class="page-brand-reflection"><b>บางจาก</b><span>REFLECTIONS</span></div><div class="page-date">${escapeHtml(template.date || '')}</div><h3>${escapeHtml(title)}</h3><div class="page-audio"><i>▶</i><span>0:00</span><b></b><span>◖))</span></div><div class="page-body-layout">${patterns[template.layout] || patterns.energy}</div><div class="page-share">SHARE　 ●　 ●　 ●　 ↗</div><div class="page-related">ALL BANGCHAK REFLECTIONS <b>→</b></div></div><footer><b>CAN WE HELP?</b><span>CONTACT　 ·　 QUICK LINKS　 ·　 CAREER</span></footer></article></div>`;
   }
 
   function renderGallery() {
-    renderCategories();
     $('#resumeDraft').hidden = !localStorage.getItem(DRAFT_KEY);
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
-    const filtered = templates.filter(template => (activeCategory === 'ทั้งหมด' || template.category === activeCategory) && (!query || `${template.title} ${template.category} ${template.description}`.toLocaleLowerCase('th').includes(query)));
+    const filtered = templates.filter(template => !query || `${template.title} ${template.description} ${template.source || ''}`.toLocaleLowerCase('th').includes(query));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
-    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${template.id}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><div class="template-meta"><span class="template-category">${escapeHtml(template.category.toUpperCase())}</span><span class="template-time">${template.blocks.length} ส่วนประกอบ</span></div><h3>${escapeHtml(template.title)}</h3><p>${escapeHtml(template.description)}</p>${template.source?`<small class="template-source">อ้างอิงโครงเรื่อง: ${escapeHtml(template.source)}</small>`:''}<div class="card-use">ใช้เทมเพลตนี้ <span>→</span></div></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
+    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${template.id}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><h3>${escapeHtml(template.title)}</h3></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
   }
 
   function enterEditor(title, blocks) {
@@ -139,7 +130,7 @@
     $('#documentTitle').textContent = title;
     $('#saveStatus').textContent = 'ยังไม่บันทึก';
     showMode('editor');
-    if (title === 'งาน Reflection ใหม่') setActiveMode('new');
+    setActiveMode('create');
     renderAll();
     fitCanvasToView();
     window.scrollTo(0,0);
@@ -481,25 +472,17 @@
     }
   }
 
-  $('#categoryFilters').addEventListener('click', event => {
-    const button = event.target.closest('[data-category]');
-    if (!button) return;
-    activeCategory = button.dataset.category;
-    renderGallery();
-  });
   $('#templateSearch').addEventListener('input',renderGallery);
   $('#studioModes').addEventListener('click',event => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
     const mode = button.dataset.view;
-    if (mode === 'new') {
+    if (mode === 'create') {
       enterEditor('งาน Reflection ใหม่',[]);
-      setActiveMode('new');
       return;
     }
     showMode(mode);
   });
-  $$('[data-open-view]').forEach(button => button.addEventListener('click',() => showMode(button.dataset.openView)));
   templateGrid.addEventListener('click',event => {
     const card = event.target.closest('[data-template]');
     if (!card) return;
@@ -526,7 +509,6 @@
   $('#backToGallery').addEventListener('click',() => {
     showMode('gallery');
   });
-  $('#topExport').addEventListener('click',openExport);
   $('#editorExport').addEventListener('click',openExport);
   $('#closeExport').addEventListener('click',() => exportDialog.close());
   $('#copyHtml').addEventListener('click',async () => {
