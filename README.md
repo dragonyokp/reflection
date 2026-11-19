@@ -1,4 +1,10 @@
-# Reflection Structure Builder
+# Reflection Structure Builder + Reflection Studio
+
+## Reflection Studio
+
+Open `studio.html` for the new template-led design workspace. It includes seven starter layouts, category filters, editable canvas text, local image placement and scaling, reorderable layers, add/remove controls, undo/redo, browser draft saving, and HTML export. The existing Structure Builder remains available from `index.html`.
+
+To publish both experiences on GitHub Pages, upload `index.html`, `style.css`, `app.js`, `studio.html`, `studio.css`, and `studio.js` to the repository root. The Studio draft stays in the browser's local storage; no uploaded image is sent to a server.
 
 Static browser tool for assembling Bangchak Reflection CMS HTML structures. The left library is divided into article headings, highlight image patterns, and content patterns. Drag patterns into the right canvas, reorder or remove them, then copy or download the resulting HTML.
 
