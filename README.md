@@ -1,10 +1,14 @@
-# Reflection Structure Builder + Reflection Studio
+# Reflection Studio + Reflection CMS Tools
 
 ## Reflection Studio
 
-Open `studio.html` for the new template-led design workspace. It includes seven starter layouts, category filters, editable canvas text, local image placement and scaling, reorderable layers, add/remove controls, undo/redo, browser draft saving, and HTML export. The existing Structure Builder remains available from `index.html`.
+`index.html` is the unified application entry. It has four modes: Templates, New blank canvas, the existing Reflection CMS Structure Builder with its 19 proven patterns, and MP3-to-MP4 audio conversion. `studio.html` is an alternate direct entry to the same Studio interface.
 
-To publish both experiences on GitHub Pages, upload `index.html`, `style.css`, `app.js`, `studio.html`, `studio.css`, and `studio.js` to the repository root. The Studio draft stays in the browser's local storage; no uploaded image is sent to a server.
+The visual editor has seven starter layouts, editable canvas text, local image placement and scaling, reorderable layers, add/remove controls, undo/redo, browser draft saving, and HTML export. The gallery also includes all 19 original Reflection CMS patterns. Selecting one opens the original builder with that pattern ready to edit and export.
+
+Audio conversion runs locally in the browser. The FFmpeg core is downloaded from jsDelivr the first time the user starts the converter (about 31 MB); selected audio files are not uploaded.
+
+To publish the unified tool on GitHub Pages, upload these files while keeping the `vendor/ffmpeg` folder structure: `index.html`, `studio.html`, `studio.css`, `studio.js`, `structure-builder.html`, `style.css`, `app.js`, `vendor/ffmpeg/ffmpeg.js`, and `vendor/ffmpeg/814.ffmpeg.js`. Studio drafts stay in local browser storage.
 
 Static browser tool for assembling Bangchak Reflection CMS HTML structures. The left library is divided into article headings, highlight image patterns, and content patterns. Drag patterns into the right canvas, reorder or remove them, then copy or download the resulting HTML.
 
@@ -35,7 +39,7 @@ Additional highlight and content patterns will be added as their source structur
 
 ## Publish with GitHub Pages
 
-1. Upload `index.html`, `style.css`, and `app.js` to the repository root.
+1. Upload every file listed in the unified-tool deployment section above to the repository root, keeping `vendor/ffmpeg/` in place.
 2. In the repository, open **Settings → Pages**.
 3. Choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
 4. Open the Pages URL when GitHub reports the deployment is ready.

@@ -3,20 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101310">
+  <meta name="theme-color" content="#202820">
   <title>Reflection Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=1">
-  <script src="studio.js?v=1" defer></script>
+  <link rel="stylesheet" href="studio.css?v=3">
+  <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
+  <script src="studio.js?v=3" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="studio-topbar">
-      <a class="studio-brand" href="studio.html" aria-label="Reflection Studio home"><span class="brand-icon">R<span>.</span></span><span><b>reflection<span>studio</span></b><small>DESIGN YOUR STORY</small></span></a>
-      <div class="topbar-center"><span class="live-dot"></span> REFLECTION DESIGN WORKSPACE</div>
-      <div class="topbar-actions"><a class="old-builder-link" href="index.html">Structure Builder <span>↗</span></a><button id="topExport" class="top-export" type="button" hidden>ส่งออก HTML <span>↗</span></button></div>
+      <a class="studio-brand" href="index.html" aria-label="Reflection Studio home"><span class="brand-icon">R<span>.</span></span><span><b>reflection<span>studio</span></b><small>DESIGN YOUR STORY</small></span></a>
+      <nav id="studioModes" class="studio-modes" aria-label="เมนูเครื่องมือ"><button type="button" data-view="gallery" class="active">Templates</button><button type="button" data-view="new">New</button><button type="button" data-view="patterns">รูปแบบ HTML</button><button type="button" data-view="audio">แปลงไฟล์เสียง</button></nav>
+      <div class="topbar-actions"><span class="local-badge"><span class="live-dot"></span> ทำงานในเบราว์เซอร์</span><button id="topExport" class="top-export" type="button" hidden>ส่งออก HTML <span>↗</span></button></div>
     </header>
 
     <main>
@@ -40,12 +41,42 @@
         <section id="templates" class="template-section">
           <div class="section-heading">
             <div><p class="eyebrow"><span>02</span> START WITH A TEMPLATE</p><h2>เลือกแบบที่ใช่ <span>แล้วไปต่อ</span></h2><p>ทุกแบบปรับแก้ เพิ่ม หรือลบส่วนประกอบได้</p></div>
-            <div class="template-count"><b id="templateCount">05</b><span>STARTING<br>POINTS</span></div>
+            <div class="template-count"><b id="templateCount">07</b><span>STARTING<br>POINTS</span></div>
           </div>
           <div class="gallery-toolbar"><div id="categoryFilters" class="category-filters"></div><label class="search-box"><span>⌕</span><input id="templateSearch" type="search" placeholder="ค้นหาเทมเพลต" aria-label="ค้นหาเทมเพลต"></label></div>
           <div id="templateGrid" class="template-grid"></div>
+          <div class="cms-library-heading"><div><p class="eyebrow"><span>03</span> ORIGINAL REFLECTION PATTERNS</p><h2>ตัวอย่างเดิมจากระบบ <span>ครบ 19 แบบ</span></h2><p>กดแบบที่ต้องการ แล้วไปปรับเนื้อหาและส่งออก HTML ต่อได้ทันที</p></div><label class="search-box"><span>⌕</span><input id="cmsPatternSearch" type="search" placeholder="ค้นหารูปแบบเดิม" aria-label="ค้นหารูปแบบเดิม"></label></div>
+          <div id="cmsPatternGrid" class="cms-pattern-grid"><div class="cms-pattern-loading">กำลังโหลดตัวอย่างเดิม…</div></div>
           <div class="custom-start"><span class="custom-plus">＋</span><div><b>เริ่มจากหน้าว่าง</b><small>สร้างเลย์เอาต์ของคุณทีละส่วน</small></div><button id="blankStart" type="button" aria-label="เริ่มจากหน้าว่าง">เริ่มออกแบบ <span>→</span></button></div>
+          <div class="custom-start cms-pattern-start"><span class="custom-plus pattern-plus">▧</span><div><b>รูปแบบที่ใช้ใน Reflection</b><small>รวมตัวอย่าง CMS เดิม 19 รูปแบบ พร้อมพรีวิวและโค้ดจริง</small></div><button type="button" data-open-view="patterns">ดูรูปแบบทั้งหมด <span>→</span></button></div>
         </section>
+      </section>
+
+      <section id="patternsView" class="patterns-view" hidden>
+        <div class="mode-page-head"><p class="eyebrow"><span>03</span> REFLECTION CMS PATTERNS</p><h1>รูปแบบที่ใช้อยู่จริง <em>19 แบบ</em></h1><p>พรีวิวตามตัวอย่างเดิม ลากรูปแบบมาประกอบและส่งออกโครงสร้าง HTML ได้</p></div>
+        <iframe id="structureFrame" title="ตัวสร้างโครงสร้าง Reflection CMS" src="structure-builder.html?embedded=1"></iframe>
+      </section>
+
+      <section id="audioView" class="audio-view" hidden>
+        <div class="mode-page-head"><p class="eyebrow"><span>04</span> AUDIO CONVERTER</p><h1>แปลงไฟล์เสียง <em>MP3 → MP4</em></h1><p>เลือกไฟล์เสียง ตั้งคุณภาพ และแปลงเป็น MP4 แบบเสียงอย่างเดียวได้ในเบราว์เซอร์</p></div>
+        <div class="audio-layout">
+          <section class="audio-card audio-input-card">
+            <div class="audio-card-head"><span class="audio-step">01</span><div><h2>เลือกไฟล์เสียง</h2><p>ไฟล์จะถูกประมวลผลในเครื่อง ไม่ได้อัปโหลดไปที่เซิร์ฟเวอร์</p></div></div>
+            <label id="audioDrop" class="audio-drop"><input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"><span class="audio-upload-icon">↑</span><b>ลากไฟล์มาวางที่นี่</b><small>หรือเลือกไฟล์จากอุปกรณ์ · MP3, WAV, M4A, AAC</small><span class="audio-choose">เลือกไฟล์เสียง</span></label>
+            <div id="audioFileInfo" class="audio-file-info" hidden><span class="file-audio-icon">♫</span><div><b id="audioFileName"></b><small id="audioFileSize"></small></div><button id="removeAudio" type="button" aria-label="นำไฟล์ออก">×</button></div>
+            <div id="sourceAudioPreview" class="audio-preview" hidden><label>ไฟล์ต้นฉบับ</label><audio id="sourceAudio" controls></audio></div>
+          </section>
+          <section class="audio-card audio-settings-card">
+            <div class="audio-card-head"><span class="audio-step">02</span><div><h2>ตั้งค่าผลลัพธ์</h2><p>เลือกชื่อและคุณภาพไฟล์ MP4</p></div></div>
+            <label class="audio-field"><span>ชื่อไฟล์</span><div class="filename-field"><input id="audioOutputName" type="text" value="reflection-audio"><b>.mp4</b></div></label>
+            <label class="audio-field"><span>คุณภาพเสียง</span><select id="audioBitrate"><option value="128k">มาตรฐาน · 128 kbps</option><option value="192k" selected>คุณภาพสูง · 192 kbps</option><option value="256k">สูงมาก · 256 kbps</option></select></label>
+            <div class="engine-card"><span class="engine-icon">✳</span><div><b id="engineStatus">ตัวแปลงพร้อมโหลด</b><small>ดาวน์โหลดตัวแปลงครั้งแรกประมาณ 31 MB</small></div><button id="loadEngine" type="button">โหลดตัวแปลง</button></div>
+            <button id="convertAudio" class="convert-button" type="button" disabled>แปลงเป็น MP4 <span>→</span></button>
+            <div id="audioProgressWrap" class="audio-progress-wrap" hidden><div class="audio-progress-label"><span id="audioProgressLabel">กำลังเตรียมไฟล์</span><b id="audioProgressPercent">0%</b></div><div class="audio-progress"><span id="audioProgressBar"></span></div></div>
+            <div id="audioResult" class="audio-result" hidden><div class="result-head"><span>✓</span><div><b>แปลงไฟล์เสร็จแล้ว</b><small id="resultDetails"></small></div></div><audio id="resultAudio" controls></audio><a id="downloadMp4" class="download-audio" download>ดาวน์โหลดไฟล์ MP4 <span>↓</span></a></div>
+          </section>
+        </div>
+        <p class="audio-privacy"><span>◉</span> ไฟล์เสียงของคุณอยู่บนอุปกรณ์นี้ตลอดการแปลง</p>
       </section>
 
       <section id="editorView" class="editor-view" hidden>

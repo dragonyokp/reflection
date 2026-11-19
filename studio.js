@@ -4,6 +4,8 @@
   const galleryView = $('#galleryView');
   const editorView = $('#editorView');
   const templateGrid = $('#templateGrid');
+  const cmsPatternGrid = $('#cmsPatternGrid');
+  const structureFrame = $('#structureFrame');
   const artboard = $('#artboard');
   const layerList = $('#layerList');
   const inspector = $('#inspector');
@@ -81,6 +83,14 @@
   let draggedType = null;
   let toastTimer = 0;
   let editBaseline = null;
+  let audioFileObject = null;
+  let audioFileUrl = null;
+  let audioResultUrl = null;
+  let audioEngine = null;
+  let audioEngineBusy = false;
+  let audioBusy = false;
+  let audioCoreObjectUrl = null;
+  let audioWasmObjectUrl = null;
 
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => `element-${nextId++}`;
@@ -95,6 +105,20 @@
     toast.classList.add('visible');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('visible'), 2400);
+  }
+
+  function setActiveMode(mode) {
+    $$('#studioModes [data-view]').forEach(button => button.classList.toggle('active',button.dataset.view===mode));
+  }
+
+  function showMode(mode) {
+    galleryView.hidden = mode !== 'gallery';
+    editorView.hidden = mode !== 'editor';
+    $('#patternsView').hidden = mode !== 'patterns';
+    $('#audioView').hidden = mode !== 'audio';
+    $('#topExport').hidden = mode !== 'editor';
+    if (mode !== 'editor') setActiveMode(mode);
+    window.scrollTo(0,0);
   }
 
   function makeElement(type, overrides = {}) {
@@ -128,6 +152,15 @@
     const filtered = templates.filter(template => (activeCategory === 'ทั้งหมด' || template.category === activeCategory) && (!query || `${template.title} ${template.category} ${template.description}`.toLocaleLowerCase('th').includes(query)));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
     templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${template.id}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><div class="template-meta"><span class="template-category">${escapeHtml(template.category.toUpperCase())}</span><span class="template-time">${template.blocks.length} ส่วนประกอบ</span></div><h3>${escapeHtml(template.title)}</h3><p>${escapeHtml(template.description)}</p><div class="card-use">ใช้เทมเพลตนี้ <span>→</span></div></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
+    renderCmsPatterns();
+  }
+
+  function renderCmsPatterns() {
+    const api = structureFrame?.contentWindow?.ReflectionBuilderAPI;
+    if (!api) return;
+    const query = ($('#cmsPatternSearch')?.value || '').trim().toLocaleLowerCase('th');
+    const blocks = api.getBlocks().filter(block => `${block.name} ${block.note} ${block.group}`.toLocaleLowerCase('th').includes(query));
+    cmsPatternGrid.innerHTML = blocks.map((block, index) => `<button class="cms-pattern-card" type="button" data-cms-pattern="${escapeHtml(block.id)}"><span class="cms-pattern-preview">${api.getMiniHtml(block.id)}</span><span class="cms-pattern-card-copy"><small>${String(index + 1).padStart(2, '0')} · ${escapeHtml(block.group.toUpperCase())}</small><b>${escapeHtml(block.name)}</b><span>${escapeHtml(block.note)}</span></span><span class="cms-pattern-arrow" aria-hidden="true">↗</span></button>`).join('') || '<div class="no-results">ไม่พบรูปแบบที่ตรงกับคำค้น</div>';
   }
 
   function enterEditor(title, blocks) {
@@ -138,9 +171,8 @@
     redoStack = [];
     $('#documentTitle').textContent = title;
     $('#saveStatus').textContent = 'ยังไม่บันทึก';
-    galleryView.hidden = true;
-    editorView.hidden = false;
-    $('#topExport').hidden = false;
+    showMode('editor');
+    if (title === 'งาน Reflection ใหม่') setActiveMode('new');
     renderAll();
     fitCanvasToView();
     window.scrollTo(0,0);
@@ -369,6 +401,119 @@
     reader.readAsDataURL(file);
   }
 
+  function setAudioFile(file) {
+    if (!file) return;
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name)) {
+      showToast('เลือกไฟล์เสียง MP3, WAV, M4A, AAC, OGG หรือ FLAC');
+      return;
+    }
+    audioFileObject = file;
+    if (audioFileUrl) URL.revokeObjectURL(audioFileUrl);
+    audioFileUrl = URL.createObjectURL(file);
+    $('#audioFileName').textContent = file.name;
+    $('#audioFileSize').textContent = `${(file.size/1024/1024).toFixed(2)} MB`;
+    $('#audioFileInfo').hidden = false;
+    $('#sourceAudioPreview').hidden = false;
+    $('#sourceAudio').src = audioFileUrl;
+    $('#audioOutputName').value = file.name.replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]/g,'-');
+    $('#audioResult').hidden = true;
+    if (audioResultUrl) {URL.revokeObjectURL(audioResultUrl);audioResultUrl=null;}
+    $('#convertAudio').disabled = !audioEngine?.loaded || audioBusy;
+  }
+
+  async function loadAudioEngine() {
+    if (audioEngine?.loaded || audioEngineBusy) return;
+    if (!window.FFmpegWASM?.FFmpeg) {
+      showToast('โหลดตัวแปลงหลักไม่สำเร็จ ลองรีเฟรชหน้าแล้วเปิดอีกครั้ง');
+      return;
+    }
+    audioEngineBusy = true;
+    $('#loadEngine').disabled = true;
+    $('#loadEngine').textContent = 'กำลังโหลด…';
+    $('#engineStatus').textContent = 'กำลังดาวน์โหลดตัวแปลง';
+    try {
+      const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+      const [coreResponse,wasmResponse] = await Promise.all([fetch(`${base}/ffmpeg-core.js`),fetch(`${base}/ffmpeg-core.wasm`)]);
+      if (!coreResponse.ok || !wasmResponse.ok) throw new Error('โหลดไฟล์ตัวแปลงจาก CDN ไม่สำเร็จ');
+      const coreBlob = new Blob([await coreResponse.arrayBuffer()],{type:'text/javascript'});
+      const wasmBlob = new Blob([await wasmResponse.arrayBuffer()],{type:'application/wasm'});
+      audioCoreObjectUrl = URL.createObjectURL(coreBlob);
+      audioWasmObjectUrl = URL.createObjectURL(wasmBlob);
+      audioEngine = new window.FFmpegWASM.FFmpeg();
+      audioEngine.on('log',({message}) => {
+        if (/error|failed/i.test(message)) $('#audioProgressLabel').textContent = message.slice(0,100);
+      });
+      await audioEngine.load({coreURL:audioCoreObjectUrl,wasmURL:audioWasmObjectUrl});
+      URL.revokeObjectURL(audioCoreObjectUrl);
+      URL.revokeObjectURL(audioWasmObjectUrl);
+      audioCoreObjectUrl = null;
+      audioWasmObjectUrl = null;
+      $('#engineStatus').textContent = 'ตัวแปลงพร้อมใช้งาน';
+      $('#loadEngine').textContent = 'พร้อมแล้ว ✓';
+      $('#loadEngine').classList.add('engine-ready');
+      $('#convertAudio').disabled = !audioFileObject;
+      showToast('ตัวแปลงเสียงพร้อมใช้งาน');
+    } catch (error) {
+      if (audioCoreObjectUrl) URL.revokeObjectURL(audioCoreObjectUrl);
+      if (audioWasmObjectUrl) URL.revokeObjectURL(audioWasmObjectUrl);
+      audioCoreObjectUrl = null;
+      audioWasmObjectUrl = null;
+      audioEngine = null;
+      $('#engineStatus').textContent = 'โหลดไม่สำเร็จ';
+      $('#loadEngine').disabled = false;
+      $('#loadEngine').textContent = 'ลองอีกครั้ง';
+      showToast(error?.message || 'โหลดตัวแปลงไม่สำเร็จ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+    } finally {
+      audioEngineBusy = false;
+    }
+  }
+
+  async function convertAudioFile() {
+    if (!audioEngine?.loaded || !audioFileObject || audioBusy) return;
+    audioBusy = true;
+    $('#convertAudio').disabled = true;
+    $('#loadEngine').disabled = true;
+    $('#audioProgressWrap').hidden = false;
+    $('#audioResult').hidden = true;
+    $('#audioProgressLabel').textContent = 'กำลังเตรียมไฟล์';
+    $('#audioProgressPercent').textContent = '8%';
+    $('#audioProgressBar').style.width = '8%';
+    try {
+      const originalExtension = (audioFileObject.name.match(/\.([^.]+)$/)?.[1] || 'mp3').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const inputName = `reflection-input.${originalExtension}`;
+      const outputName = 'reflection-output.mp4';
+      $('#audioProgressLabel').textContent = 'กำลังแปลงเสียงเป็น MP4';
+      $('#audioProgressPercent').textContent = '25%';
+      $('#audioProgressBar').style.width = '25%';
+      await audioEngine.writeFile(inputName,new Uint8Array(await audioFileObject.arrayBuffer()));
+      await audioEngine.exec(['-i',inputName,'-vn','-c:a','aac','-b:a',$('#audioBitrate').value,'-movflags','+faststart',outputName]);
+      $('#audioProgressPercent').textContent = '88%';
+      $('#audioProgressBar').style.width = '88%';
+      const data = await audioEngine.readFile(outputName);
+      const blob = new Blob([data],{type:'video/mp4'});
+      if (audioResultUrl) URL.revokeObjectURL(audioResultUrl);
+      audioResultUrl = URL.createObjectURL(blob);
+      const baseName = ($('#audioOutputName').value.trim() || 'reflection-audio').replace(/[\\/:*?"<>|]/g,'-');
+      $('#downloadMp4').href = audioResultUrl;
+      $('#downloadMp4').download = `${baseName}.mp4`;
+      $('#resultAudio').src = audioResultUrl;
+      $('#resultDetails').textContent = `${(blob.size/1024/1024).toFixed(2)} MB · AAC ${$('#audioBitrate').value}`;
+      $('#audioProgressPercent').textContent = '100%';
+      $('#audioProgressBar').style.width = '100%';
+      $('#audioProgressLabel').textContent = 'แปลงไฟล์เรียบร้อย';
+      $('#audioResult').hidden = false;
+      showToast('แปลงไฟล์เสียงเสร็จแล้ว');
+      try {await audioEngine.deleteFile(inputName);await audioEngine.deleteFile(outputName);} catch {}
+    } catch (error) {
+      $('#audioProgressLabel').textContent = 'แปลงไฟล์ไม่สำเร็จ';
+      showToast(error?.message || 'แปลงไฟล์ไม่สำเร็จ ลองใช้ไฟล์เสียงอื่น');
+    } finally {
+      audioBusy = false;
+      $('#convertAudio').disabled = !audioFileObject || !audioEngine?.loaded;
+      $('#loadEngine').disabled = false;
+    }
+  }
+
   $('#categoryFilters').addEventListener('click', event => {
     const button = event.target.closest('[data-category]');
     if (!button) return;
@@ -376,6 +521,27 @@
     renderGallery();
   });
   $('#templateSearch').addEventListener('input',renderGallery);
+  $('#cmsPatternSearch').addEventListener('input',renderCmsPatterns);
+  structureFrame.addEventListener('load',renderCmsPatterns);
+  cmsPatternGrid.addEventListener('click',event => {
+    const card = event.target.closest('[data-cms-pattern]');
+    if (!card) return;
+    const api = structureFrame.contentWindow?.ReflectionBuilderAPI;
+    if (!api?.startWith(card.dataset.cmsPattern)) return;
+    showMode('patterns');
+  });
+  $('#studioModes').addEventListener('click',event => {
+    const button = event.target.closest('[data-view]');
+    if (!button) return;
+    const mode = button.dataset.view;
+    if (mode === 'new') {
+      enterEditor('งาน Reflection ใหม่',[]);
+      setActiveMode('new');
+      return;
+    }
+    showMode(mode);
+  });
+  $$('[data-open-view]').forEach(button => button.addEventListener('click',() => showMode(button.dataset.openView)));
   templateGrid.addEventListener('click',event => {
     const card = event.target.closest('[data-template]');
     if (!card) return;
@@ -400,10 +566,7 @@
     } catch { showToast('เปิดร่างที่บันทึกไว้ไม่สำเร็จ'); }
   });
   $('#backToGallery').addEventListener('click',() => {
-    editorView.hidden = true;
-    galleryView.hidden = false;
-    $('#topExport').hidden = true;
-    window.scrollTo(0,0);
+    showMode('gallery');
   });
   $('#topExport').addEventListener('click',openExport);
   $('#editorExport').addEventListener('click',openExport);
@@ -525,6 +688,26 @@
     }
   });
   imageFile.addEventListener('change',() => applyFile(imageFile.files?.[0]));
+  $('#audioFile').addEventListener('change',() => setAudioFile($('#audioFile').files?.[0]));
+  $('#removeAudio').addEventListener('click',() => {
+    audioFileObject = null;
+    if (audioFileUrl) URL.revokeObjectURL(audioFileUrl);
+    audioFileUrl = null;
+    $('#audioFile').value = '';
+    $('#audioFileInfo').hidden = true;
+    $('#sourceAudioPreview').hidden = true;
+    $('#convertAudio').disabled = true;
+  });
+  $('#loadEngine').addEventListener('click',loadAudioEngine);
+  $('#convertAudio').addEventListener('click',convertAudioFile);
+  const audioDrop = $('#audioDrop');
+  audioDrop.addEventListener('dragover',event => {event.preventDefault();audioDrop.classList.add('drag-over')});
+  audioDrop.addEventListener('dragleave',() => audioDrop.classList.remove('drag-over'));
+  audioDrop.addEventListener('drop',event => {
+    event.preventDefault();
+    audioDrop.classList.remove('drag-over');
+    setAudioFile(event.dataTransfer.files?.[0]);
+  });
 
   document.addEventListener('keydown',event => {
     if (editorView.hidden || exportDialog.open) return;
