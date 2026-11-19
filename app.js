@@ -209,27 +209,6 @@ function makeMini(type) {
   return mini;
 }
 
-// Shared with the unified Studio so the original CMS patterns can also be
-// browsed from the template gallery without duplicating their definitions.
-window.ReflectionBuilderAPI = {
-  getBlocks: () => BLOCKS.map(({ id, group, name, note, mini }) => ({ id, group, name, note, mini })),
-  getMiniHtml: (id) => {
-    const block = blockInfo(id);
-    return block ? makeMini(block.mini).outerHTML : '';
-  },
-  startWith: (id) => {
-    if (!blockInfo(id)) return false;
-    structure = [];
-    nextId = 1;
-    quoteImageCounter = 0;
-    codeIsVisible = false;
-    $('#outputPanel').hidden = true;
-    renderStructure();
-    insertBlock(id);
-    return true;
-  }
-};
-
 function renderLibrary() {
   const library = $('#blockLibrary');
   library.replaceChildren();

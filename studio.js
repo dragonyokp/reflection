@@ -4,8 +4,6 @@
   const galleryView = $('#galleryView');
   const editorView = $('#editorView');
   const templateGrid = $('#templateGrid');
-  const cmsPatternGrid = $('#cmsPatternGrid');
-  const structureFrame = $('#structureFrame');
   const artboard = $('#artboard');
   const layerList = $('#layerList');
   const inspector = $('#inspector');
@@ -15,63 +13,29 @@
   const DRAFT_KEY = 'reflectionStudioDraftV1';
 
   const templates = [
-    { id:'editorial', title:'เล่าเรื่องแบบ Editorial', category:'บทความ', tag:'EDITORIAL', description:'เปิดด้วยหัวข้อเด่น ตามด้วยภาพและเนื้อหาเป็นจังหวะ', tone:'', blocks:[
-      {type:'heading',text:'ทุกเรื่องราว\nเริ่มต้นจากการลงมือทำ'},
-      {type:'text',text:'บางครั้งการเปลี่ยนแปลงที่ยิ่งใหญ่ เริ่มจากความตั้งใจเล็ก ๆ ของใครบางคน เรื่องราวนี้จะพาคุณไปรู้จักผู้คนที่กำลังสร้างความหมายให้กับวันพรุ่งนี้'},
-      {type:'image',alt:'ภาพเปิดเรื่อง',width:100},
-      {type:'heading',text:'แรงบันดาลใจที่ส่งต่อได้'},
-      {type:'text',text:'เบื้องหลังทุกความสำเร็จ คือการเรียนรู้ ความร่วมมือ และความมุ่งมั่นที่ไม่หยุดนิ่ง มาทำความรู้จักอีกมุมหนึ่งของเรื่องราวนี้ไปด้วยกัน'}
+    { id:'saf-journey', title:'From Biodiesel to SAF', category:'พลังงาน', tag:'LONGFORM / ENERGY', layout:'energy', date:'10 JUL 2026', source:'From Biodiesel to SAF', description:'บทความยาวแบบเส้นทางพลังงาน: เกริ่นเรื่อง ภาพเปิด ลำดับเหตุการณ์ ประเด็นสำคัญ และบทสรุป', blocks:[
+      {type:'heading',text:'From Biodiesel to SAF'}, {type:'text',text:'จากจุดเริ่มต้นของพลังงานหมุนเวียน สู่ระบบนิเวศพลังงานคาร์บอนต่ำ'}, {type:'image',alt:'ภาพเปิดเรื่องพลังงาน',width:100}, {type:'text',text:'เปิดเรื่องด้วยบริบทและความสำคัญของการเปลี่ยนผ่านพลังงาน'}, {type:'heading',text:'จุดเริ่มต้นของการเดินทาง'}, {type:'text',text:'เล่าความเป็นมา เหตุการณ์สำคัญ และสิ่งที่ทำให้เกิดการเปลี่ยนแปลง'}, {type:'image',alt:'ภาพประวัติศาสตร์และการเริ่มต้น',width:82}, {type:'text',text:'เชื่อมโยงประสบการณ์ในอดีตกับโอกาสใหม่ในปัจจุบัน'}, {type:'quote',text:'“การเปลี่ยนผ่านที่ยั่งยืน เกิดจากการพัฒนาต่อเนื่องและความร่วมมือ”'}, {type:'split',imageSide:'left',alt:'ภาพระบบนิเวศพลังงาน',title:'สร้างระบบนิเวศใหม่',text:'อธิบายผู้คน เทคโนโลยี และพันธมิตรที่ร่วมขับเคลื่อน'}, {type:'heading',text:'คุณค่าที่ส่งต่อไปข้างหน้า'}, {type:'text',text:'สรุปผลลัพธ์และทิศทางในอนาคต พร้อมปิดเรื่องด้วยข้อความชวนติดตาม'}
     ]},
-    { id:'visual', title:'เล่าเรื่องด้วยภาพ', category:'ภาพถ่าย', tag:'VISUAL STORY', description:'ให้ภาพนำสายตา สลับกับข้อความสั้นที่อ่านสบาย', tone:'thumb-orange', blocks:[
-      {type:'heading',text:'หนึ่งวัน\nที่มีความหมาย'},
-      {type:'text',text:'บันทึกช่วงเวลาเล็ก ๆ ที่บอกเล่าเรื่องราวได้มากกว่าคำพูด'},
-      {type:'image',alt:'ภาพบรรยากาศ',width:100},
-      {type:'text',text:'จากภาพหนึ่งภาพ สู่ความทรงจำที่เราอยากส่งต่อ'},
-      {type:'image',alt:'ภาพช่วงเวลาสำคัญ',width:78},
-      {type:'quote',text:'“ความเปลี่ยนแปลงเริ่มได้จากสิ่งที่เราทำในทุกวัน”'}
+    { id:'game-changer', title:'Game Changer', category:'สัมภาษณ์', tag:'LEADERSHIP / INTERVIEW', layout:'interview', date:'24 JUL 2026', source:'Game Changer', description:'บทสัมภาษณ์ผู้บริหารแบบเล่าเป็นเรื่อง มีภาพบุคคล ประโยคเด่น และช่วงคำถามสลับเนื้อหา', blocks:[
+      {type:'heading',text:'Game Changer'}, {type:'text',text:'เส้นทางผู้นำและการเปลี่ยนแปลงขององค์กร'}, {type:'split',imageSide:'right',alt:'ภาพผู้ให้สัมภาษณ์',title:'บทสนทนากับผู้นำ',text:'แนะนำผู้ให้สัมภาษณ์ ตำแหน่ง และบริบทของบทสนทนา'}, {type:'text',text:'ปูพื้นหลังของเรื่องด้วยเหตุการณ์สำคัญและความท้าทายในช่วงเริ่มต้น'}, {type:'quote',text:'“การเปลี่ยนแปลงคือการเดินทางที่ต้องเรียนรู้และตัดสินใจต่อเนื่อง”'}, {type:'heading',text:'จากจุดเปลี่ยนสู่การเติบโต'}, {type:'text',text:'คำถาม: อะไรคือสิ่งสำคัญที่สุดในการพาองค์กรก้าวต่อไป?\nคำตอบ: เล่ามุมมองและประสบการณ์ของผู้ให้สัมภาษณ์'}, {type:'image',alt:'ภาพระหว่างบทสัมภาษณ์',width:86}, {type:'heading',text:'บทเรียนจากการตัดสินใจ'}, {type:'text',text:'คำถาม: บทเรียนใดที่ยังใช้ได้ในวันนี้?\nคำตอบ: เติมคำตอบพร้อมรายละเอียดและตัวอย่างจริง'}, {type:'quote',text:'“ทุกคนเรียนรู้จากสิ่งที่ทำ และนำบทเรียนนั้นไปสู่ก้าวต่อไป”'}, {type:'text',text:'ปิดบทสนทนาด้วยความคิดที่อยากฝากถึงผู้อ่าน'}
     ]},
-    { id:'quote', title:'เรื่องเล่าจากคำพูด', category:'สัมภาษณ์', tag:'QUOTE FIRST', description:'ดึงประโยคสำคัญขึ้นมาเป็นจุดเด่น แล้วเล่าที่มา', tone:'thumb-dark', blocks:[
-      {type:'heading',text:'เสียงของคนทำงาน'},
-      {type:'quote',text:'“เราอยากให้สิ่งที่ทำในวันนี้ ส่งผลดีไปถึงคนรุ่นต่อไป”'},
-      {type:'text',text:'ประโยคสั้น ๆ ที่สะท้อนความตั้งใจของทีมงาน ผู้ขับเคลื่อนการเปลี่ยนแปลงจากภายในทุกวัน'},
-      {type:'image',alt:'ภาพผู้ให้สัมภาษณ์',width:86},
-      {type:'heading',text:'จากความคิด สู่การลงมือทำ'},
-      {type:'text',text:'ทุกไอเดียจะมีความหมาย เมื่อเราได้ร่วมกันทำให้เกิดขึ้นจริง'}
+    { id:'together-strong', title:'Together, We Stand Strong', category:'ชุมชน', tag:'COMMUNITY / MANY VOICES', layout:'voices', date:'23 AUG 2024', source:'Together, We Stand Strong', description:'เรื่องราวชุมชนหลายเสียง: ภาพนำ บทสัมภาษณ์คนหลายคน และแกลเลอรีปิดท้าย', blocks:[
+      {type:'heading',text:'Together, We Stand Strong'}, {type:'text',text:'เรื่องราวของความร่วมมือที่เดินทางมาด้วยกัน'}, {type:'image',alt:'ภาพเปิดเรื่องชุมชน',width:100}, {type:'text',text:'แนะนำชุมชน จุดเริ่มต้น และความสัมพันธ์ที่เติบโตต่อเนื่อง'}, {type:'quote',text:'“เมื่อเราเดินไปด้วยกัน ทุกคนก็ไปได้ไกลขึ้น”'}, {type:'heading',text:'เติบโตและสร้างโอกาสร่วมกัน'}, {type:'split',imageSide:'left',alt:'ภาพกิจกรรมร่วมกัน',title:'พัฒนาศักยภาพ',text:'เล่ากิจกรรมและโอกาสที่เกิดจากการสนับสนุน'}, {type:'image',alt:'ภาพกิจกรรมชุมชน',width:74}, {type:'heading',text:'เสียงจากผู้คนในเรื่องราว'}, {type:'quote',text:'“ขอบคุณที่อยู่เคียงข้างกันมาตลอดเส้นทาง”'}, {type:'text',text:'เสียงที่หนึ่ง: เล่าประสบการณ์จากผู้ร่วมโครงการคนแรก'}, {type:'quote',text:'“ความสำเร็จเกิดจากการลงมือทำร่วมกัน”'}, {type:'text',text:'เสียงที่สอง: เติมมุมมองจากผู้ร่วมโครงการอีกคน'}, {type:'image',alt:'ภาพรวมผู้คนและบรรยากาศ',width:100}, {type:'text',text:'สรุปความหมายของการเติบโตไปด้วยกัน'}
     ]},
-    { id:'interview', title:'บทสัมภาษณ์', category:'สัมภาษณ์', tag:'CONVERSATION', description:'จัดบทสัมภาษณ์ให้อ่านง่าย พร้อมภาพและช่วง Quote', tone:'', blocks:[
-      {type:'heading',text:'ชวนคุยเรื่อง\nการเติบโตไปด้วยกัน'},
-      {type:'image',alt:'ภาพผู้ให้สัมภาษณ์',width:90},
-      {type:'text',text:'พบกับเรื่องราวและมุมมองจากผู้คนที่อยู่เบื้องหลังการเดินทางครั้งนี้'},
-      {type:'quote',text:'“ทีมที่แข็งแรง คือทีมที่เติบโตไปด้วยกัน”'},
-      {type:'heading',text:'จุดเริ่มต้นของเรื่องราว'},
-      {type:'text',text:'เล่าคำถามและคำตอบได้ที่นี่ เพิ่มรายละเอียดตามบทสัมภาษณ์จริง และจัดลำดับช่วงสนทนาได้ตามต้องการ'}
+    { id:'fry-to-fly', title:'Fry to Fly × No Refry', category:'แคมเปญ', tag:'CAMPAIGN / EXPLAINER', layout:'campaign', date:'12 APR 2024', source:'Call to Action: Fry to Fly and No Refry', description:'หน้าแคมเปญแบบอธิบายสองโครงการ เชื่อมที่มา ประโยชน์ วิธีเข้าร่วม และคำชวนลงมือทำ', blocks:[
+      {type:'heading',text:'Fry to Fly × No Refry'}, {type:'text',text:'สองแนวคิดที่เชื่อมสุขภาพ สิ่งแวดล้อม และพลังงานสะอาด'}, {type:'image',alt:'ภาพหลักของแคมเปญ',width:100}, {type:'text',text:'เกริ่นปัญหาและที่มาของแคมเปญ เพื่อพาผู้อ่านเข้าสู่แนวทางแก้ไข'}, {type:'heading',text:'สองแคมเปญ หนึ่งเป้าหมาย'}, {type:'split',imageSide:'left',alt:'ภาพการรวบรวมน้ำมันใช้แล้ว',title:'Fry to Fly',text:'อธิบายการรวบรวมน้ำมันใช้แล้วและการนำไปสร้างคุณค่าใหม่'}, {type:'split',imageSide:'right',alt:'ภาพการเลือกอาหารปลอดภัย',title:'No Refry',text:'อธิบายแนวทางบริโภคอย่างปลอดภัยและการรับรองร้านค้า'}, {type:'quote',text:'“การเปลี่ยนแปลงเริ่มได้จากการตัดสินใจในทุกวัน”'}, {type:'heading',text:'เข้าร่วมได้อย่างไร'}, {type:'text',text:'ขั้นตอนที่ 1: เตรียมน้ำมันใช้แล้วอย่างถูกวิธี\nขั้นตอนที่ 2: เลือกจุดรับหรือช่องทางที่ร่วมรายการ\nขั้นตอนที่ 3: ส่งต่อวัตถุดิบเพื่อสร้างประโยชน์'}, {type:'image',alt:'ภาพขั้นตอนหรือจุดบริการ',width:90}, {type:'heading',text:'ร่วมสร้างโลกที่ยั่งยืน'}, {type:'text',text:'ปิดท้ายด้วยช่องทางติดต่อ จุดรับ หรือคำเชิญชวนให้เริ่มลงมือทำ'}
     ]},
-    { id:'split', title:'ภาพคู่กับเนื้อหา', category:'ภาพถ่าย', tag:'IMAGE + STORY', description:'วางภาพและข้อความเคียงกัน เหมาะกับเล่าเรื่องเป็นช่วง', tone:'thumb-dark', blocks:[
-      {type:'heading',text:'คน สถานที่\nและความทรงจำ'},
-      {type:'text',text:'จัดวางภาพคู่กับเนื้อหา เพื่อพาผู้อ่านไปสัมผัสบรรยากาศและความหมายของแต่ละช่วง'},
-      {type:'split',imageSide:'left',alt:'ภาพประกอบเรื่อง',title:'จุดเริ่มต้น',text:'เล่าที่มาและความสำคัญของช่วงเวลานี้ได้อย่างกระชับ'},
-      {type:'split',imageSide:'right',alt:'ภาพอีกมุมหนึ่ง',title:'ก้าวต่อไป',text:'ปิดท้ายด้วยสิ่งที่กำลังทำ และความหวังที่อยากส่งต่อ'}
+    { id:'best-employer', title:'A Committed Space for Happiness', category:'คนทำงาน', tag:'PEOPLE / CULTURE', layout:'people', date:'05 JUL 2024', source:'Bangchak - A Committed Space for Employee’s Happiness', description:'เรื่องราววัฒนธรรมองค์กร: เปิดภาพใหญ่ เล่าคนและค่านิยม คั่นด้วยภาพกิจกรรม และปิดด้วยเสียงจากผู้นำ', blocks:[
+      {type:'heading',text:'A Committed Space for Happiness'}, {type:'text',text:'พื้นที่ที่ผู้คนเติบโตและทำงานร่วมกันอย่างมีความหมาย'}, {type:'image',alt:'ภาพทีมงานหรือองค์กร',width:100}, {type:'text',text:'เล่าบริบทขององค์กรและความตั้งใจที่มีต่อผู้คน'}, {type:'heading',text:'ดูแลความสุขและศักยภาพ'}, {type:'text',text:'อธิบายแนวคิดหรือโครงการที่ช่วยให้สมาชิกเติบโตในหลายมิติ'}, {type:'image',alt:'ภาพกิจกรรมพนักงาน',width:72}, {type:'image',alt:'ภาพบรรยากาศการทำงาน',width:72}, {type:'heading',text:'ค่านิยมที่ขับเคลื่อนวัฒนธรรม'}, {type:'split',imageSide:'right',alt:'ภาพทีมทำงานร่วมกัน',title:'เติบโตไปด้วยกัน',text:'เชื่อมค่านิยม การทำงาน และเป้าหมายขององค์กร'}, {type:'heading',text:'ความสำเร็จที่เกิดจากทุกคน'}, {type:'text',text:'เล่าการยอมรับหรือผลลัพธ์ที่สะท้อนการดูแลบุคลากร'}, {type:'quote',text:'“องค์กรที่แข็งแรงเริ่มจากคนที่มีความสุขและได้เติบโต”'}, {type:'text',text:'ปิดท้ายด้วยทิศทางและคำขอบคุณถึงผู้คนในองค์กร'}
     ]},
-    { id:'highlight', title:'เปิดเรื่องด้วย Highlight', category:'ไฮไลต์', tag:'HIGHLIGHT', description:'เริ่มด้วยภาพเด่น แล้วพาผู้อ่านเข้าสู่เนื้อหา', tone:'thumb-orange', blocks:[
-      {type:'image',alt:'ภาพ Highlight เปิดเรื่อง',width:100},
-      {type:'heading',text:'เบื้องหลังความตั้งใจ\nที่อยากส่งต่อ'},
-      {type:'text',text:'เริ่มต้นเรื่องด้วยประโยคที่ชวนติดตาม แล้วเติมรายละเอียดเกี่ยวกับผู้คนและแนวคิดที่อยู่เบื้องหลัง'},
-      {type:'quote',text:'“ทุกก้าวเล็ก ๆ พาเราเข้าใกล้เป้าหมายร่วมกัน”'},
-      {type:'split',imageSide:'right',alt:'ภาพประกอบเนื้อหา',title:'สิ่งที่เราเรียนรู้',text:'สรุปประเด็นสำคัญด้วยภาพและข้อความที่อ่านง่าย'}
+    { id:'grow-together', title:'เติบโตไปด้วยกัน', category:'สังคม', tag:'SOCIAL IMPACT / TESTIMONIAL', layout:'impact', date:'13 FEB 2026', source:'เพราะการเติบโตที่แท้จริงคือการเติบโตไปด้วยกัน', description:'บทความผลลัพธ์ทางสังคมที่ให้คนในชุมชนเล่าเอง มีภาพหลัก คำบอกเล่า และสรุปผลกระทบ', blocks:[
+      {type:'heading',text:'เติบโตไปด้วยกัน'}, {type:'text',text:'เรื่องเล่าของโอกาสที่ส่งต่อจากรุ่นหนึ่งไปสู่อีกรุ่นหนึ่ง'}, {type:'image',alt:'ภาพคนหรือชุมชนในเรื่อง',width:100}, {type:'text',text:'เกริ่นถึงความต้องการของชุมชนและจุดเริ่มต้นของการสนับสนุน'}, {type:'quote',text:'“โอกาสที่ได้รับ เปลี่ยนเส้นทางชีวิตของคนคนหนึ่งได้”'}, {type:'heading',text:'เมื่อโอกาสกลายเป็นความเปลี่ยนแปลง'}, {type:'text',text:'เล่าผลลัพธ์ผ่านเหตุการณ์จริงและช่วงเวลาสำคัญ'}, {type:'split',imageSide:'right',alt:'ภาพผู้เล่าเรื่อง',title:'เสียงจากคนในชุมชน',text:'พื้นที่สำหรับคำบอกเล่าจากผู้ได้รับโอกาสหรือครอบครัว'}, {type:'image',alt:'ภาพบรรยากาศชุมชน',width:82}, {type:'heading',text:'ความหมายของการส่งต่อ'}, {type:'text',text:'สรุปผลต่อผู้คน ชุมชน และการทำงานร่วมกันในระยะยาว'}, {type:'quote',text:'“ความสำเร็จมีความหมาย เมื่อเราแบ่งปันให้คนอื่นเติบโตด้วย”'}
     ]},
-    { id:'journey', title:'เส้นทางและความเปลี่ยนแปลง', category:'บทความ', tag:'JOURNEY', description:'เล่าเป็นลำดับช่วง จากจุดเริ่มต้นสู่ก้าวถัดไป', tone:'thumb-dark', blocks:[
-      {type:'heading',text:'เส้นทางของเรา\nตลอดการเดินทาง'},
-      {type:'text',text:'ทุกการเดินทางมีจุดเริ่มต้น นี่คือช่วงเวลาที่ทำให้เราเห็นว่าอะไรสำคัญ และอะไรที่อยากเปลี่ยนแปลง'},
-      {type:'image',alt:'ภาพช่วงเริ่มต้น',width:100},
-      {type:'heading',text:'ก้าวแรก'},
-      {type:'text',text:'บอกเล่าจุดเริ่มต้นและความตั้งใจที่ทำให้เรื่องราวนี้เกิดขึ้น'},
-      {type:'divider'},
-      {type:'image',alt:'ภาพการเปลี่ยนแปลง',width:84},
-      {type:'heading',text:'ก้าวต่อไป'},
-      {type:'text',text:'ปิดท้ายด้วยเป้าหมายหรือสิ่งที่อยากชวนผู้อ่านร่วมเดินไปด้วยกัน'}
+    { id:'financial-pillars', title:'Strength, Confidence, Development', category:'การเงิน', tag:'BUSINESS / THREE PILLARS', layout:'pillars', date:'16 AUG 2024', source:'Strength, Confidence, Development: Three Pillars of Financial Management', description:'บทสัมภาษณ์เชิงธุรกิจที่แบ่งเป็นสามเสาหลัก พร้อมคำพูดผู้บริหารและบทสรุป', blocks:[
+      {type:'heading',text:'Strength, Confidence, Development'}, {type:'text',text:'สามเสาหลักทางการเงินเพื่อการเติบโตที่มั่นคง'}, {type:'image',alt:'ภาพผู้ให้สัมภาษณ์',width:100}, {type:'text',text:'แนะนำผู้บริหารและมุมมองต่อการเปลี่ยนแปลงขององค์กร'}, {type:'quote',text:'“รากฐานทางการเงินที่แข็งแรงช่วยสนับสนุนการเติบโต”'}, {type:'heading',text:'Protecting the Balance Sheet'}, {type:'text',text:'เสาหลักที่หนึ่ง: ดูแลความแข็งแรงของงบดุลและใช้เงินลงทุนอย่างมีประสิทธิภาพ'}, {type:'image',alt:'ภาพประกอบเสาหลักที่หนึ่ง',width:78}, {type:'heading',text:'Communicating Value'}, {type:'text',text:'เสาหลักที่สอง: สื่อสารคุณค่าของธุรกิจและสร้างความเชื่อมั่น'}, {type:'split',imageSide:'left',alt:'ภาพธุรกิจและการเติบโต',title:'Transform People & Process',text:'เสาหลักที่สาม: พัฒนาคนและกระบวนการให้พร้อมต่อการเปลี่ยนแปลง'}, {type:'quote',text:'“พร้อมปรับตัวและพัฒนาต่อไป เพื่อสร้างคุณค่าให้ทุกฝ่าย”'}, {type:'text',text:'ปิดท้ายด้วยเป้าหมายและสิ่งที่อยากให้ผู้มีส่วนเกี่ยวข้องจดจำ'}
     ]}
   ];
-  const categories = ['ทั้งหมด','บทความ','ภาพถ่าย','สัมภาษณ์','ไฮไลต์'];
+  const categories = ['ทั้งหมด','พลังงาน','สัมภาษณ์','ชุมชน','แคมเปญ','คนทำงาน','สังคม','การเงิน'];
   let activeCategory = 'ทั้งหมด';
   let elements = [];
   let selectedId = null;
@@ -138,11 +102,23 @@
   }
 
   function renderThumb(template) {
-    const isQuote = template.id === 'quote';
-    const isSplit = template.id === 'split';
-    const hasImage = template.blocks.some(block => block.type === 'image' || block.type === 'split');
-    const mainTitle = template.blocks.find(block => block.type === 'heading')?.text.split('\n')[0] || template.title;
-    return `<div class="template-thumb ${template.tone}" aria-hidden="true"><span class="thumb-tag">${template.tag}</span><div class="thumb-visual">${isQuote?'<div class="thumb-quote">“</div>':''}<div class="thumb-title">${escapeHtml(mainTitle)}</div>${isSplit?'<div class="thumb-split"><div class="thumb-photo"></div><div class="thumb-copy"></div></div>':hasImage?'<div class="thumb-photo"></div>':'<div class="thumb-copy"></div>'}${!isQuote?'<div class="thumb-copy"></div>':''}</div><span class="thumb-label">REFLECTION / 0${templates.indexOf(template)+1}</span></div>`;
+    const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
+    const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
+    const heading = (width = '70%') => `<i class="page-section-heading" style="--line-width:${width}"></i>`;
+    const quote = () => '<div class="page-quote"><i>“</i><span></span><span></span></div>';
+    const split = (side = 'left') => `<div class="page-split ${side}">${photo('split-photo')}<div>${heading('85%')}${lines(4)}</div></div>`;
+    const patterns = {
+      energy: `${photo('hero-photo')}${lines(5,'lead-lines')}${heading('56%')}${lines(5)}<div class="page-timeline"><i></i><i></i><i></i></div>${photo('wide-photo')}${quote()}${split('left')}${heading('64%')}${lines(5)}`,
+      interview: `<div class="page-profile">${photo('portrait-photo')}<div>${heading('82%')}${lines(4)}</div></div>${lines(5,'lead-lines')}${quote()}${heading('54%')}${lines(4)}${split('right')}${heading('72%')}${lines(5)}${quote()}${lines(3)}`,
+      voices: `${photo('hero-photo')}${lines(4,'lead-lines')}${quote()}${heading('60%')}${lines(4)}${split('left')}<div class="page-voices"><i></i><i></i><i></i></div>${heading('70%')}${quote()}${lines(4)}${photo('wide-photo')}`,
+      campaign: `<div class="page-campaign-banner"><b>REFLECTION / CAMPAIGN</b><i></i><i></i><i></i></div>${lines(4,'lead-lines')}<div class="page-campaign-pair"><i></i><i></i></div>${heading('60%')}${split('left')}${split('right')}${quote()}<div class="page-steps"><i>01</i><i>02</i><i>03</i></div>${photo('wide-photo')}${lines(3)}`,
+      people: `<div class="page-people-hero">${heading('78%')}${lines(4)}${photo('hero-photo')}</div><div class="page-metrics"><i></i><i></i><i></i></div>${heading('60%')}${lines(5)}<div class="page-gallery"><i></i><i></i></div>${split('right')}${heading('68%')}${lines(4)}${quote()}`,
+      impact: `${photo('hero-photo')}${lines(5,'lead-lines')}${quote()}<div class="page-impact-stats"><i></i><i></i><i></i></div>${heading('58%')}${lines(4)}${split('right')}${photo('wide-photo')}${heading('68%')}${lines(4)}${quote()}`,
+      leadership: `<div class="page-leader-hero">${photo('portrait-photo')}<div>${heading('88%')}${lines(4)}</div></div>${lines(5,'lead-lines')}${quote()}${heading('58%')}<div class="page-principles"><i><b>01</b></i><i><b>02</b></i><i><b>03</b></i><i><b>04</b></i><i><b>05</b></i></div>${lines(4)}${photo('wide-photo')}${heading('68%')}${lines(4)}`,
+      pillars: `<div class="page-leader-hero">${photo('portrait-photo')}<div>${heading('82%')}${lines(4)}</div></div>${lines(4,'lead-lines')}${quote()}<div class="page-pillars"><i><b>01</b><span></span></i><i><b>02</b><span></span></i><i><b>03</b><span></span></i></div>${heading('66%')}${lines(5)}${photo('wide-photo')}${quote()}`
+    };
+    const title = template.blocks.find(block => block.type === 'heading')?.text.split('\n')[0] || template.title;
+    return `<div class="template-thumb template-page-${template.layout}" aria-hidden="true"><span class="thumb-tag">${escapeHtml(template.tag)} · FULL PAGE</span><article class="page-mini"><div class="page-site-nav"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS　 CONTACT</span></div><div class="page-breadcrumb">⌂　/　NEWS　/　BANGCHAK REFLECTIONS</div><div class="page-article-body"><div class="page-brand-reflection"><b>บางจาก</b><span>REFLECTIONS</span></div><div class="page-date">${escapeHtml(template.date || '')}</div><h3>${escapeHtml(title)}</h3><div class="page-audio"><i>▶</i><span>0:00</span><b></b><span>◖))</span></div><div class="page-body-layout">${patterns[template.layout] || patterns.energy}</div><div class="page-share">SHARE　 ●　 ●　 ●　 ↗</div><div class="page-related">ALL BANGCHAK REFLECTIONS <b>→</b></div></div><footer><b>CAN WE HELP?</b><span>CONTACT　 ·　 QUICK LINKS　 ·　 CAREER</span></footer></article></div>`;
   }
 
   function renderGallery() {
@@ -151,16 +127,7 @@
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
     const filtered = templates.filter(template => (activeCategory === 'ทั้งหมด' || template.category === activeCategory) && (!query || `${template.title} ${template.category} ${template.description}`.toLocaleLowerCase('th').includes(query)));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
-    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${template.id}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><div class="template-meta"><span class="template-category">${escapeHtml(template.category.toUpperCase())}</span><span class="template-time">${template.blocks.length} ส่วนประกอบ</span></div><h3>${escapeHtml(template.title)}</h3><p>${escapeHtml(template.description)}</p><div class="card-use">ใช้เทมเพลตนี้ <span>→</span></div></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
-    renderCmsPatterns();
-  }
-
-  function renderCmsPatterns() {
-    const api = structureFrame?.contentWindow?.ReflectionBuilderAPI;
-    if (!api) return;
-    const query = ($('#cmsPatternSearch')?.value || '').trim().toLocaleLowerCase('th');
-    const blocks = api.getBlocks().filter(block => `${block.name} ${block.note} ${block.group}`.toLocaleLowerCase('th').includes(query));
-    cmsPatternGrid.innerHTML = blocks.map((block, index) => `<button class="cms-pattern-card" type="button" data-cms-pattern="${escapeHtml(block.id)}"><span class="cms-pattern-preview">${api.getMiniHtml(block.id)}</span><span class="cms-pattern-card-copy"><small>${String(index + 1).padStart(2, '0')} · ${escapeHtml(block.group.toUpperCase())}</small><b>${escapeHtml(block.name)}</b><span>${escapeHtml(block.note)}</span></span><span class="cms-pattern-arrow" aria-hidden="true">↗</span></button>`).join('') || '<div class="no-results">ไม่พบรูปแบบที่ตรงกับคำค้น</div>';
+    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${template.id}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><div class="template-meta"><span class="template-category">${escapeHtml(template.category.toUpperCase())}</span><span class="template-time">${template.blocks.length} ส่วนประกอบ</span></div><h3>${escapeHtml(template.title)}</h3><p>${escapeHtml(template.description)}</p>${template.source?`<small class="template-source">อ้างอิงโครงเรื่อง: ${escapeHtml(template.source)}</small>`:''}<div class="card-use">ใช้เทมเพลตนี้ <span>→</span></div></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
   }
 
   function enterEditor(title, blocks) {
@@ -521,15 +488,6 @@
     renderGallery();
   });
   $('#templateSearch').addEventListener('input',renderGallery);
-  $('#cmsPatternSearch').addEventListener('input',renderCmsPatterns);
-  structureFrame.addEventListener('load',renderCmsPatterns);
-  cmsPatternGrid.addEventListener('click',event => {
-    const card = event.target.closest('[data-cms-pattern]');
-    if (!card) return;
-    const api = structureFrame.contentWindow?.ReflectionBuilderAPI;
-    if (!api?.startWith(card.dataset.cmsPattern)) return;
-    showMode('patterns');
-  });
   $('#studioModes').addEventListener('click',event => {
     const button = event.target.closest('[data-view]');
     if (!button) return;

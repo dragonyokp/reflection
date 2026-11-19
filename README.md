@@ -2,9 +2,9 @@
 
 ## Reflection Studio
 
-`index.html` is the unified application entry. It has four modes: Templates, New blank canvas, the existing Reflection CMS Structure Builder with its 19 proven patterns, and MP3-to-MP4 audio conversion. `studio.html` is an alternate direct entry to the same Studio interface.
+`index.html` is the unified application entry. It has four modes: full-page Templates, New blank canvas, the Reflection CMS HTML builder with its 19 original blocks, and MP3-to-MP4 audio conversion. `studio.html` is an alternate direct entry to the same Studio interface.
 
-The visual editor has seven starter layouts, editable canvas text, local image placement and scaling, reorderable layers, add/remove controls, undo/redo, browser draft saving, and HTML export. The gallery also includes all 19 original Reflection CMS patterns. Selecting one opens the original builder with that pattern ready to edit and export.
+The visual editor has seven distinct, full-page article layouts based on Bangchak Reflections articles: energy feature, leadership interview, community story, campaign explainer, employee culture, social impact, and financial pillars. Each starts with an editable article-length sequence, supports local image placement and scaling, reorderable layers, add/remove controls, undo/redo, browser draft saving, and HTML export. The `สร้าง HTML` mode keeps the original builder's 19 CMS blocks for assembling export markup; these blocks are not shown as article templates.
 
 Audio conversion runs locally in the browser. The FFmpeg core is downloaded from jsDelivr the first time the user starts the converter (about 31 MB); selected audio files are not uploaded.
 

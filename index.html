@@ -8,15 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=3">
+  <link rel="stylesheet" href="studio.css?v=7">
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="studio.js?v=3" defer></script>
+  <script src="studio.js?v=6" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="studio-topbar">
       <a class="studio-brand" href="index.html" aria-label="Reflection Studio home"><span class="brand-icon">R<span>.</span></span><span><b>reflection<span>studio</span></b><small>DESIGN YOUR STORY</small></span></a>
-      <nav id="studioModes" class="studio-modes" aria-label="เมนูเครื่องมือ"><button type="button" data-view="gallery" class="active">Templates</button><button type="button" data-view="new">New</button><button type="button" data-view="patterns">รูปแบบ HTML</button><button type="button" data-view="audio">แปลงไฟล์เสียง</button></nav>
+      <nav id="studioModes" class="studio-modes" aria-label="เมนูเครื่องมือ"><button type="button" data-view="gallery" class="active">Templates</button><button type="button" data-view="new">New</button><button type="button" data-view="patterns">สร้าง HTML</button><button type="button" data-view="audio">แปลงไฟล์เสียง</button></nav>
       <div class="topbar-actions"><span class="local-badge"><span class="live-dot"></span> ทำงานในเบราว์เซอร์</span><button id="topExport" class="top-export" type="button" hidden>ส่งออก HTML <span>↗</span></button></div>
     </header>
 
@@ -40,15 +40,12 @@
 
         <section id="templates" class="template-section">
           <div class="section-heading">
-            <div><p class="eyebrow"><span>02</span> START WITH A TEMPLATE</p><h2>เลือกแบบที่ใช่ <span>แล้วไปต่อ</span></h2><p>ทุกแบบปรับแก้ เพิ่ม หรือลบส่วนประกอบได้</p></div>
-            <div class="template-count"><b id="templateCount">07</b><span>STARTING<br>POINTS</span></div>
+            <div><p class="eyebrow"><span>02</span> FULL PAGE REFLECTION TEMPLATES</p><h2>เลือกต้นแบบบทความ <span>ทั้งหน้า</span></h2><p>ดูโครงเรื่องเต็มตั้งแต่หัวเรื่องจนถึงส่วนท้าย แล้วนำไปแก้ไขต่อได้</p></div>
+            <div class="template-count"><b id="templateCount">07</b><span>FULL PAGE<br>LAYOUTS</span></div>
           </div>
           <div class="gallery-toolbar"><div id="categoryFilters" class="category-filters"></div><label class="search-box"><span>⌕</span><input id="templateSearch" type="search" placeholder="ค้นหาเทมเพลต" aria-label="ค้นหาเทมเพลต"></label></div>
           <div id="templateGrid" class="template-grid"></div>
-          <div class="cms-library-heading"><div><p class="eyebrow"><span>03</span> ORIGINAL REFLECTION PATTERNS</p><h2>ตัวอย่างเดิมจากระบบ <span>ครบ 19 แบบ</span></h2><p>กดแบบที่ต้องการ แล้วไปปรับเนื้อหาและส่งออก HTML ต่อได้ทันที</p></div><label class="search-box"><span>⌕</span><input id="cmsPatternSearch" type="search" placeholder="ค้นหารูปแบบเดิม" aria-label="ค้นหารูปแบบเดิม"></label></div>
-          <div id="cmsPatternGrid" class="cms-pattern-grid"><div class="cms-pattern-loading">กำลังโหลดตัวอย่างเดิม…</div></div>
           <div class="custom-start"><span class="custom-plus">＋</span><div><b>เริ่มจากหน้าว่าง</b><small>สร้างเลย์เอาต์ของคุณทีละส่วน</small></div><button id="blankStart" type="button" aria-label="เริ่มจากหน้าว่าง">เริ่มออกแบบ <span>→</span></button></div>
-          <div class="custom-start cms-pattern-start"><span class="custom-plus pattern-plus">▧</span><div><b>รูปแบบที่ใช้ใน Reflection</b><small>รวมตัวอย่าง CMS เดิม 19 รูปแบบ พร้อมพรีวิวและโค้ดจริง</small></div><button type="button" data-open-view="patterns">ดูรูปแบบทั้งหมด <span>→</span></button></div>
         </section>
       </section>
 
