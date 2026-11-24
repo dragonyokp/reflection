@@ -120,6 +120,14 @@
     return `<span class="resize-handle handle-nw" data-resize-handle="nw" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-n" data-resize-handle="n" aria-hidden="true"></span><span class="resize-handle handle-ne" data-resize-handle="ne" aria-hidden="true"></span><span class="resize-handle handle-e" data-resize-handle="e" aria-hidden="true"></span><span class="resize-handle handle-se" data-resize-handle="se" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-s" data-resize-handle="s" aria-hidden="true"></span><span class="resize-handle handle-sw" data-resize-handle="sw" aria-hidden="true"></span><span class="resize-handle handle-w" data-resize-handle="w" aria-hidden="true"></span>`;
   }
 
+  function renderImagePlaceholder(element) {
+    const hasImage = Boolean(element.src);
+    const image = hasImage ? `<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}" style="object-fit:${element.fit==='contain'?'contain':'cover'};border-radius:${Math.max(0,Math.min(48,Number(element.radius)||0))}px">` : '';
+    const uploadButton = `<button class="image-upload-trigger" type="button" data-image-upload aria-label="เลือกภาพ ${escapeHtml(element.alt || '')}"><span>▧</span><b>เพิ่มรูปภาพ</b><small>คลิกเพื่อเลือกไฟล์</small></button>`;
+    const replaceButton = hasImage ? `<button class="image-replace-trigger" type="button" data-image-upload>เปลี่ยนรูป</button>` : '';
+    return `${image || uploadButton}${replaceButton}${renderResizeHandles(element)}`;
+  }
+
   function renderThumb(template) {
     const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
     const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
@@ -171,8 +179,8 @@
     if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h2 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
-    if (element.type === 'image') return `<div class="canvas-block image-block${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);aspect-ratio:${1/imageAspectRatio(element)}">${element.src?`<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}" style="object-fit:${element.fit==='contain'?'contain':'cover'};border-radius:${Math.max(0,Math.min(48,Number(element.radius)||0))}px">`:`<span>▧ &nbsp; ${escapeHtml(element.alt || 'เพิ่มรูปภาพจากแถบปรับแต่ง')}</span>`}${renderResizeHandles(element)}</div></div>`;
-    if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${element.src?`<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}" style="object-fit:${element.fit==='contain'?'contain':'cover'}">`:`<span>▧ &nbsp; ${escapeHtml(element.alt || 'เพิ่มรูปภาพ')}</span>`}${renderResizeHandles(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
+    if (element.type === 'image') return `<div class="canvas-block image-block${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div></div>`;
+    if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
     if (element.type === 'banner') return `<section class="canvas-block banner-block${selected}" data-id="${element.id}" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"${draggable}><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
     if (element.type === 'button') return `<div class="canvas-block button-block${selected}" data-id="${element.id}" style="text-align:${element.align||'left'}"${draggable}><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none" contenteditable="true" data-part="text">${textHtml(element.text)}</a></div>`;
     if (element.type === 'columns') return `<div class="canvas-block columns-block${selected}" data-id="${element.id}" style="background:${background};padding:${padding||24}px;--column-text-size:${Math.max(18,Number(element.fontSize)||18)}px;color:${safeColor(element.color)}"${draggable}><div><h3 contenteditable="true" data-part="leftTitle">${textHtml(element.leftTitle)}</h3><p contenteditable="true" data-part="leftText">${textHtml(element.leftText)}</p></div><div><h3 contenteditable="true" data-part="rightTitle">${textHtml(element.rightTitle)}</h3><p contenteditable="true" data-part="rightText">${textHtml(element.rightText)}</p></div></div>`;
@@ -186,7 +194,6 @@
     artboard.style.minHeight = '1400px';
     artboard.style.transform = `scale(${zoom})`;
     $('#zoomLabel').textContent = `${Math.round(zoom*100)}%`;
-    $('#canvasDimensions').textContent = `ส่งออกกว้างอย่างน้อย ${ARTBOARD_WIDTH} px`;
   }
 
   function renderLayers() {
@@ -531,6 +538,251 @@
     return `<!-- Reflection Studio · 1000px design width -->\n<div class="reflection-content" style="box-sizing:border-box;width:1000px;min-width:1000px;max-width:none;margin:0 auto;padding:90px 96px;background:#f5f5f1;color:#252b25">\n${content}\n</div>`;
   }
 
+  async function exportDesignPng() {
+    const button = $('#exportPng');
+    if (!elements.length) {showToast('เพิ่มองค์ประกอบก่อนส่งออกภาพ');return;}
+    button.disabled = true;
+    button.textContent = 'กำลังสร้าง PNG…';
+    try {
+      await optimizeLegacyEmbeddedImages();
+      await document.fonts?.ready;
+      await Promise.all([...artboard.querySelectorAll('img')].map(img => img.decode?.().catch(() => {})));
+      const measurementCanvas = document.createElement('canvas');
+      const measure = measurementCanvas.getContext('2d');
+      if (!measure) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก PNG');
+      const commands = [];
+      const contentX = 96;
+      const contentWidth = ARTBOARD_WIDTH - 192;
+      let cursorY = 90;
+      const segmenter = window.Intl?.Segmenter ? new Intl.Segmenter('th',{granularity:'word'}) : null;
+      const textLayout = (value,width,size,weight='400',lineRatio=1.8) => {
+        const font = `${weight} ${size}px "IBM Plex Sans Thai",Tahoma,sans-serif`;
+        measure.font = font;
+        const lines = [];
+        for (const paragraph of String(value ?? '').split('\n')) {
+          const parts = segmenter ? [...segmenter.segment(paragraph)].map(item => item.segment) : [...paragraph];
+          let line = '';
+          for (const part of parts) {
+            const candidate = line + part;
+            if (line && measure.measureText(candidate).width > width) {
+              lines.push(line.trimEnd());
+              line = part.trimStart();
+            } else line = candidate;
+            if (measure.measureText(line).width > width) {
+              const chars = [...line];
+              line = '';
+              for (const char of chars) {
+                if (line && measure.measureText(line + char).width > width) {
+                  lines.push(line);
+                  line = char;
+                } else line += char;
+              }
+            }
+          }
+          lines.push(line);
+        }
+        const lineHeight = Math.ceil(size * lineRatio);
+        return {font,size,lines,lineHeight,height:Math.max(1,lines.length)*lineHeight};
+      };
+      const addText = (layout,x,y,width,color,align='left') => commands.push({type:'text',layout,x,y,width,color,align});
+      const addRect = (x,y,width,height,color,radius=0) => commands.push({type:'rect',x,y,width,height,color,radius});
+      const addLine = (x1,y1,x2,y2,color) => commands.push({type:'line',x1,y1,x2,y2,color});
+      const addImage = (element,x,y,width,height) => {
+        const block = [...artboard.querySelectorAll('[data-id]')].find(node => node.dataset.id === element.id);
+        const image = block?.querySelector('img');
+        commands.push({type:'image',image,x,y,width,height,fit:element.fit,radius:Math.max(0,Math.min(48,Number(element.radius)||0)),placeholder:!image || !image.complete || !image.naturalWidth});
+      };
+
+      for (const element of elements) {
+        const background = safeColor(element.background || '#f5f5f1');
+        const align = ['left','center','right'].includes(element.align) ? element.align : 'left';
+        const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
+        if (element.type === 'heading') {
+          cursorY += 5;
+          const size = Math.max(18,Math.min(72,Number(element.fontSize)||36));
+          const layout = textLayout(element.text,contentWidth,size,'600',1.28);
+          const boxHeight = layout.height + padding*2;
+          addRect(contentX,cursorY,contentWidth,boxHeight,background);
+          addText(layout,contentX,cursorY+padding,contentWidth,safeColor(element.color||'#20271e'),align);
+          cursorY += boxHeight + 16;
+        } else if (element.type === 'text') {
+          const size = Math.max(18,Math.min(72,Number(element.fontSize)||18));
+          const layout = textLayout(element.text,contentWidth,size,'400',1.8);
+          const boxHeight = layout.height + padding*2;
+          addRect(contentX,cursorY,contentWidth,boxHeight,background);
+          addText(layout,contentX,cursorY+padding,contentWidth,safeColor(element.color||'#41483f'),align);
+          cursorY += boxHeight + 16;
+        } else if (element.type === 'quote') {
+          cursorY += 14;
+          const inset = Math.max(14,padding);
+          const layout = textLayout(element.text,contentWidth-inset*2-6,Math.max(18,Math.min(72,Number(element.fontSize)||24)),'500',1.65);
+          const boxHeight = layout.height + inset*2;
+          addRect(contentX,cursorY,contentWidth,boxHeight,background);
+          addRect(contentX,cursorY,4,boxHeight,'#84be3d');
+          addText(layout,contentX+inset+4,cursorY+inset,contentWidth-inset*2-6,safeColor(element.color||'#384532'),align);
+          cursorY += boxHeight + 18;
+        } else if (element.type === 'image') {
+          cursorY += 20;
+          const width = Math.min(contentWidth,imageWidthPx(element));
+          const height = Math.max(1,Math.round(width*imageAspectRatio(element)));
+          const x = align === 'right' ? contentX+contentWidth-width : align === 'center' ? contentX+(contentWidth-width)/2 : contentX;
+          addImage(element,x,cursorY,width,height);
+          cursorY += height + 20;
+        } else if (element.type === 'split') {
+          cursorY += 24;
+          const inset = Math.max(18,padding || 24);
+          const gap = 15;
+          const columnWidth = (contentWidth-inset*2-gap)/2;
+          const imageWidth = Math.min(columnWidth,imageWidthPx(element));
+          const imageHeight = Math.max(1,Math.round(imageWidth*imageAspectRatio(element)));
+          const title = textLayout(element.title,columnWidth,Math.max(22,Number(element.fontSize)||24),'600',1.4);
+          const body = textLayout(element.text,columnWidth,Math.max(18,Math.min(72,Number(element.fontSize)||18)),'400',1.8);
+          const copyHeight = title.height + 12 + body.height;
+          const rowHeight = Math.max(imageHeight,copyHeight);
+          addRect(contentX,cursorY,contentWidth,rowHeight+inset*2,background);
+          const imageX = contentX+inset+(element.imageSide==='right'?columnWidth+gap:0);
+          addImage(element,imageX,cursorY+inset+(rowHeight-imageHeight)/2,imageWidth,imageHeight);
+          const copyX = contentX+inset+(element.imageSide==='right'?0:columnWidth+gap);
+          const copyY = cursorY+inset+(rowHeight-copyHeight)/2;
+          addText(title,copyX,copyY,columnWidth,safeColor(element.color||'#20271e'),'left');
+          addText(body,copyX,copyY+title.height+12,columnWidth,safeColor(element.color||'#41483f'),'left');
+          cursorY += rowHeight + inset*2 + 24;
+        } else if (element.type === 'banner') {
+          cursorY += 24;
+          const inset = padding || 36;
+          const title = textLayout(element.title,contentWidth-inset*2,Math.max(22,Number(element.fontSize)||24),'600',1.4);
+          const body = textLayout(element.text,contentWidth-inset*2,Math.max(18,Math.min(72,Number(element.fontSize)||18)),'400',1.8);
+          const boxHeight = inset*2 + title.height + 12 + body.height;
+          addRect(contentX,cursorY,contentWidth,boxHeight,background,4);
+          addText(title,contentX+inset,cursorY+inset,contentWidth-inset*2,safeColor(element.color||'#ffffff'),align);
+          addText(body,contentX+inset,cursorY+inset+title.height+12,contentWidth-inset*2,safeColor(element.color||'#ffffff'),align);
+          cursorY += boxHeight + 24;
+        } else if (element.type === 'button') {
+          cursorY += 20;
+          const insetY = padding || 14;
+          const layout = textLayout(element.text,contentWidth-48,Math.max(18,Number(element.fontSize)||18),'700',1.35);
+          measure.font = layout.font;
+          const labelWidth = Math.min(contentWidth,Math.max(80,...layout.lines.map(line => measure.measureText(line).width))+48);
+          const buttonWidth = Math.max(80,labelWidth);
+          const buttonHeight = layout.height + insetY*2;
+          const x = align==='right' ? contentX+contentWidth-buttonWidth : align==='center' ? contentX+(contentWidth-buttonWidth)/2 : contentX;
+          addRect(x,cursorY,buttonWidth,buttonHeight,background,6);
+          addText(layout,x+24,cursorY+insetY,buttonWidth-48,safeColor(element.color||'#ffffff'),'center');
+          cursorY += buttonHeight + 20;
+        } else if (element.type === 'columns') {
+          cursorY += 24;
+          const inset = padding || 24;
+          const gap = 24;
+          const columnWidth = (contentWidth-inset*2-gap)/2;
+          const bodySize = Math.max(18,Number(element.fontSize)||18);
+          const leftTitle = textLayout(element.leftTitle,columnWidth,22,'600',1.4);
+          const rightTitle = textLayout(element.rightTitle,columnWidth,22,'600',1.4);
+          const leftBody = textLayout(element.leftText,columnWidth,bodySize,'400',1.8);
+          const rightBody = textLayout(element.rightText,columnWidth,bodySize,'400',1.8);
+          const leftHeight = leftTitle.height + 10 + leftBody.height;
+          const rightHeight = rightTitle.height + 10 + rightBody.height;
+          const boxHeight = Math.max(leftHeight,rightHeight)+inset*2;
+          addRect(contentX,cursorY,contentWidth,boxHeight,background,4);
+          addText(leftTitle,contentX+inset,cursorY+inset,columnWidth,safeColor(element.color||'#20271e'),'left');
+          addText(leftBody,contentX+inset,cursorY+inset+leftTitle.height+10,columnWidth,safeColor(element.color||'#41483f'),'left');
+          addText(rightTitle,contentX+inset+columnWidth+gap,cursorY+inset,columnWidth,safeColor(element.color||'#20271e'),'left');
+          addText(rightBody,contentX+inset+columnWidth+gap,cursorY+inset+rightTitle.height+10,columnWidth,safeColor(element.color||'#41483f'),'left');
+          cursorY += boxHeight + 24;
+        } else if (element.type === 'spacer') cursorY += Math.max(18,Math.min(320,Number(element.height)||48));
+        else if (element.type === 'divider') {
+          cursorY += 24;
+          addLine(contentX,cursorY,contentX+contentWidth,cursorY,'#cbd1c5');
+          cursorY += 25;
+        }
+      }
+
+      const height = Math.max(1400,Math.ceil(cursorY+90));
+      if (height > 16000) throw new Error('งานยาวเกินขนาดภาพที่เบราว์เซอร์สร้างได้');
+      const canvas = document.createElement('canvas');
+      canvas.width = ARTBOARD_WIDTH;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก PNG');
+      context.fillStyle = '#f5f5f1';
+      context.fillRect(0,0,canvas.width,canvas.height);
+      const roundedPath = (x,y,width,height,radius=0) => {
+        const r = Math.min(radius,width/2,height/2);
+        context.beginPath();
+        context.moveTo(x+r,y);
+        context.lineTo(x+width-r,y);
+        context.quadraticCurveTo(x+width,y,x+width,y+r);
+        context.lineTo(x+width,y+height-r);
+        context.quadraticCurveTo(x+width,y+height,x+width-r,y+height);
+        context.lineTo(x+r,y+height);
+        context.quadraticCurveTo(x,y+height,x,y+height-r);
+        context.lineTo(x,y+r);
+        context.quadraticCurveTo(x,y,x+r,y);
+        context.closePath();
+      };
+      for (const command of commands) {
+        if (command.type === 'rect') {
+          roundedPath(command.x,command.y,command.width,command.height,command.radius);
+          context.fillStyle = command.color;
+          context.fill();
+        } else if (command.type === 'line') {
+          context.beginPath();
+          context.moveTo(command.x1,command.y1);
+          context.lineTo(command.x2,command.y2);
+          context.strokeStyle = command.color;
+          context.lineWidth = 1;
+          context.stroke();
+        } else if (command.type === 'text') {
+          context.font = command.layout.font;
+          context.fillStyle = command.color;
+          context.textAlign = command.align;
+          context.textBaseline = 'top';
+          const anchor = command.align === 'center' ? command.x+command.width/2 : command.align === 'right' ? command.x+command.width : command.x;
+          command.layout.lines.forEach((line,index) => context.fillText(line,anchor,command.y+index*command.layout.lineHeight));
+        } else if (command.type === 'image') {
+          roundedPath(command.x,command.y,command.width,command.height,command.radius);
+          context.save();
+          context.clip();
+          const image = command.image;
+          if (image && !command.placeholder && (image.currentSrc.startsWith('data:') || new URL(image.currentSrc,location.href).origin === location.origin)) {
+            const scale = command.fit === 'contain' ? Math.min(command.width/image.naturalWidth,command.height/image.naturalHeight) : Math.max(command.width/image.naturalWidth,command.height/image.naturalHeight);
+            const drawWidth = image.naturalWidth*scale;
+            const drawHeight = image.naturalHeight*scale;
+            context.drawImage(image,command.x+(command.width-drawWidth)/2,command.y+(command.height-drawHeight)/2,drawWidth,drawHeight);
+          } else {
+            const gradient = context.createLinearGradient(command.x,command.y,command.x+command.width,command.y+command.height);
+            gradient.addColorStop(0,'#dbe5cd');
+            gradient.addColorStop(.52,'#a9c578');
+            gradient.addColorStop(.53,'#708d50');
+            gradient.addColorStop(1,'#4e653c');
+            context.fillStyle = gradient;
+            context.fillRect(command.x,command.y,command.width,command.height);
+            context.fillStyle = '#eef5e8';
+            context.font = '700 22px "IBM Plex Sans Thai",Tahoma,sans-serif';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText('เพิ่มรูปภาพ',command.x+command.width/2,command.y+command.height/2);
+          }
+          context.restore();
+        }
+      }
+      const blob = await canvasToBlob(canvas,'image/png');
+      if (!blob) throw new Error('บันทึกภาพ PNG ไม่สำเร็จ');
+      const fileTitle = ($('#documentTitle').textContent.trim() || 'reflection-design').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,'-');
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = `${fileTitle}.png`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl),1500);
+      showToast(`ส่งออกภาพ PNG แล้ว · ${ARTBOARD_WIDTH} × ${height} px`);
+    } catch (error) {
+      showToast(error?.message || 'ส่งออก PNG ไม่สำเร็จ ลองส่งออก HTML แทน');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'ส่งออก PNG';
+    }
+  }
+
   async function optimizeLegacyEmbeddedImages() {
     const next = clone(elements);
     let updated = false;
@@ -675,6 +927,14 @@
     }
   }
 
+  function updateAudioOutputUI() {
+    const format = $('#audioOutputFormat').value === 'mp3' ? 'mp3' : 'mp4';
+    const label = format.toUpperCase();
+    $('#outputExtension').textContent = `.${format}`;
+    $('#convertAudioLabel').textContent = `แปลงเป็น ${label}`;
+    $('#downloadAudioLabel').textContent = `ดาวน์โหลดไฟล์ ${label}`;
+  }
+
   function setAudioFile(file) {
     if (!file) return;
     if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name)) {
@@ -752,36 +1012,43 @@
     $('#audioProgressLabel').textContent = 'กำลังเตรียมไฟล์';
     $('#audioProgressPercent').textContent = '8%';
     $('#audioProgressBar').style.width = '8%';
+    let inputName = '';
+    let outputName = '';
     try {
       const originalExtension = (audioFileObject.name.match(/\.([^.]+)$/)?.[1] || 'mp3').toLowerCase().replace(/[^a-z0-9]/g,'');
-      const inputName = `reflection-input.${originalExtension}`;
-      const outputName = 'reflection-output.mp4';
-      $('#audioProgressLabel').textContent = 'กำลังแปลงเสียงเป็น MP4';
+      const format = $('#audioOutputFormat').value === 'mp3' ? 'mp3' : 'mp4';
+      const codec = format === 'mp3' ? 'libmp3lame' : 'aac';
+      inputName = `reflection-input.${originalExtension}`;
+      outputName = `reflection-output.${format}`;
+      $('#audioProgressLabel').textContent = `กำลังแปลงเสียงเป็น ${format.toUpperCase()} · Stereo`;
       $('#audioProgressPercent').textContent = '25%';
       $('#audioProgressBar').style.width = '25%';
       await audioEngine.writeFile(inputName,new Uint8Array(await audioFileObject.arrayBuffer()));
-      await audioEngine.exec(['-i',inputName,'-vn','-c:a','aac','-b:a',$('#audioBitrate').value,'-movflags','+faststart',outputName]);
+      const encodeArgs = ['-i',inputName,'-vn','-ac','2','-c:a',codec,'-b:a',$('#audioBitrate').value];
+      if (format === 'mp4') encodeArgs.push('-movflags','+faststart');
+      encodeArgs.push(outputName);
+      await audioEngine.exec(encodeArgs);
       $('#audioProgressPercent').textContent = '88%';
       $('#audioProgressBar').style.width = '88%';
       const data = await audioEngine.readFile(outputName);
-      const blob = new Blob([data],{type:'video/mp4'});
+      const blob = new Blob([data],{type:format === 'mp3' ? 'audio/mpeg' : 'audio/mp4'});
       if (audioResultUrl) URL.revokeObjectURL(audioResultUrl);
       audioResultUrl = URL.createObjectURL(blob);
       const baseName = ($('#audioOutputName').value.trim() || 'reflection-audio').replace(/[\\/:*?"<>|]/g,'-');
-      $('#downloadMp4').href = audioResultUrl;
-      $('#downloadMp4').download = `${baseName}.mp4`;
+      $('#downloadAudio').href = audioResultUrl;
+      $('#downloadAudio').download = `${baseName}.${format}`;
       $('#resultAudio').src = audioResultUrl;
-      $('#resultDetails').textContent = `${(blob.size/1024/1024).toFixed(2)} MB · AAC ${$('#audioBitrate').value}`;
+      $('#resultDetails').textContent = `${(blob.size/1024/1024).toFixed(2)} MB · ${format === 'mp3' ? 'MP3' : 'AAC'} · Stereo · ${$('#audioBitrate').value}`;
       $('#audioProgressPercent').textContent = '100%';
       $('#audioProgressBar').style.width = '100%';
       $('#audioProgressLabel').textContent = 'แปลงไฟล์เรียบร้อย';
       $('#audioResult').hidden = false;
       showToast('แปลงไฟล์เสียงเสร็จแล้ว');
-      try {await audioEngine.deleteFile(inputName);await audioEngine.deleteFile(outputName);} catch {}
     } catch (error) {
       $('#audioProgressLabel').textContent = 'แปลงไฟล์ไม่สำเร็จ';
       showToast(error?.message || 'แปลงไฟล์ไม่สำเร็จ ลองใช้ไฟล์เสียงอื่น');
     } finally {
+      try {if (inputName) await audioEngine.deleteFile(inputName);if (outputName) await audioEngine.deleteFile(outputName);} catch {}
       audioBusy = false;
       $('#convertAudio').disabled = !audioFileObject || !audioEngine?.loaded;
       $('#loadEngine').disabled = false;
@@ -864,8 +1131,24 @@
 
   artboard.addEventListener('click',event => {
     if (event.target.closest('.button-block a')) event.preventDefault();
+    const imageUploadButton = event.target.closest('[data-image-upload]');
+    if (imageUploadButton) {
+      event.preventDefault();
+      const imageBlock = imageUploadButton.closest('[data-id]');
+      if (imageBlock) selectElement(imageBlock.dataset.id);
+      imageFile.value = '';
+      imageFile.click();
+      return;
+    }
     const block = event.target.closest('[data-id]');
     if (block) selectElement(block.dataset.id);
+  });
+  artboard.addEventListener('dblclick',event => {
+    if (!event.target.closest('.image-placeholder img')) return;
+    const block = event.target.closest('[data-id]');
+    if (block) selectElement(block.dataset.id);
+    imageFile.value = '';
+    imageFile.click();
   });
   artboard.addEventListener('pointerdown',startImageResize);
   artboard.addEventListener('mousedown',startImageResize);
@@ -902,10 +1185,31 @@
     block.classList.add('dragging');
   });
   artboard.addEventListener('dragend',event => event.target.closest('[data-id]')?.classList.remove('dragging'));
-  artboard.addEventListener('dragover',event => {if (draggedId || draggedType) {event.preventDefault();event.dataTransfer.dropEffect=draggedType?'copy':'move'}});
-  artboard.addEventListener('drop',event => {
+  artboard.addEventListener('dragover',event => {
+    if (event.dataTransfer?.types?.includes('Files')) {
+      const imageBox = event.target.closest('.image-placeholder');
+      event.preventDefault();
+      imageBox?.classList.add('drop-target');
+      event.dataTransfer.dropEffect='copy';
+      return;
+    }
+    if (draggedId || draggedType) {event.preventDefault();event.dataTransfer.dropEffect=draggedType?'copy':'move'}
+  });
+  artboard.addEventListener('dragleave',event => {
+    const imageBox = event.target.closest('.image-placeholder');
+    if (imageBox && !imageBox.contains(event.relatedTarget)) imageBox.classList.remove('drop-target');
+  });
+  artboard.addEventListener('drop',async event => {
     event.preventDefault();
+    artboard.querySelectorAll('.image-placeholder.drop-target').forEach(node => node.classList.remove('drop-target'));
     const target = event.target.closest('[data-id]');
+    const droppedFile = event.dataTransfer.files?.[0];
+    if (droppedFile?.type.startsWith('image/')) {
+      if (target) selectElement(target.dataset.id);
+      else selectedId = null;
+      await applyFile(droppedFile);
+      return;
+    }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
     const insertMatch = source?.match(/^insert:(heading|text|image|quote|split|divider|banner|button|columns|spacer)$/);
     if (insertMatch) {
@@ -981,7 +1285,13 @@
     }
   });
   imageFile.addEventListener('change',() => applyFile(imageFile.files?.[0]));
+  $('#exportPng').addEventListener('click',exportDesignPng);
   $('#audioFile').addEventListener('change',() => setAudioFile($('#audioFile').files?.[0]));
+  $('#audioOutputFormat').addEventListener('change',() => {
+    updateAudioOutputUI();
+    $('#audioResult').hidden = true;
+    if (audioResultUrl) {URL.revokeObjectURL(audioResultUrl);audioResultUrl=null;}
+  });
   $('#removeAudio').addEventListener('click',() => {
     audioFileObject = null;
     if (audioFileUrl) URL.revokeObjectURL(audioFileUrl);
@@ -993,6 +1303,7 @@
   });
   $('#loadEngine').addEventListener('click',loadAudioEngine);
   $('#convertAudio').addEventListener('click',convertAudioFile);
+  updateAudioOutputUI();
   const audioDrop = $('#audioDrop');
   audioDrop.addEventListener('dragover',event => {event.preventDefault();audioDrop.classList.add('drag-over')});
   audioDrop.addEventListener('dragleave',() => audioDrop.classList.remove('drag-over'));

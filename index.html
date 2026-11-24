@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=15">
+  <link rel="stylesheet" href="studio.css?v=19">
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="studio.js?v=12" defer></script>
+  <script src="studio.js?v=13" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -50,7 +50,7 @@
       </section>
 
       <section id="audioView" class="audio-view" hidden>
-        <div class="mode-page-head"><p class="eyebrow"><span>04</span> AUDIO CONVERTER</p><h1>แปลงไฟล์เสียง <em>MP3 → MP4</em></h1><p>เลือกไฟล์เสียง ตั้งคุณภาพ และแปลงเป็น MP4 แบบเสียงอย่างเดียวได้ในเบราว์เซอร์</p></div>
+        <div class="mode-page-head"><p class="eyebrow"><span>04</span> AUDIO CONVERTER</p><h1>แปลงไฟล์เสียง <em>MP3 / MP4</em></h1><p>แปลงเป็น MP3 หรือ MP4 พร้อมปรับเสียงเป็น 2 แชนเนลเสมอ</p></div>
         <div class="audio-layout">
           <section class="audio-card audio-input-card">
             <div class="audio-card-head"><span class="audio-step">01</span><div><h2>เลือกไฟล์เสียง</h2><p>ไฟล์จะถูกประมวลผลในเครื่อง ไม่ได้อัปโหลดไปที่เซิร์ฟเวอร์</p></div></div>
@@ -59,13 +59,15 @@
             <div id="sourceAudioPreview" class="audio-preview" hidden><label>ไฟล์ต้นฉบับ</label><audio id="sourceAudio" controls></audio></div>
           </section>
           <section class="audio-card audio-settings-card">
-            <div class="audio-card-head"><span class="audio-step">02</span><div><h2>ตั้งค่าผลลัพธ์</h2><p>เลือกชื่อและคุณภาพไฟล์ MP4</p></div></div>
-            <label class="audio-field"><span>ชื่อไฟล์</span><div class="filename-field"><input id="audioOutputName" type="text" value="reflection-audio"><b>.mp4</b></div></label>
+            <div class="audio-card-head"><span class="audio-step">02</span><div><h2>ตั้งค่าผลลัพธ์</h2><p>เลือกชนิดไฟล์ ชื่อ และคุณภาพเสียง</p></div></div>
+            <label class="audio-field"><span>รูปแบบไฟล์</span><select id="audioOutputFormat"><option value="mp4" selected>MP4 · AAC</option><option value="mp3">MP3</option></select></label>
+            <label class="audio-field"><span>ชื่อไฟล์</span><div class="filename-field"><input id="audioOutputName" type="text" value="reflection-audio"><b id="outputExtension">.mp4</b></div></label>
             <label class="audio-field"><span>คุณภาพเสียง</span><select id="audioBitrate"><option value="128k">มาตรฐาน · 128 kbps</option><option value="192k" selected>คุณภาพสูง · 192 kbps</option><option value="256k">สูงมาก · 256 kbps</option></select></label>
+            <p class="stereo-hint"><span>◉</span> ส่งออกเสียง 2 แชนเนล (Stereo) เสมอ</p>
             <div class="engine-card"><span class="engine-icon">✳</span><div><b id="engineStatus">ตัวแปลงพร้อมโหลด</b><small>ดาวน์โหลดตัวแปลงครั้งแรกประมาณ 31 MB</small></div><button id="loadEngine" type="button">โหลดตัวแปลง</button></div>
-            <button id="convertAudio" class="convert-button" type="button" disabled>แปลงเป็น MP4 <span>→</span></button>
+            <button id="convertAudio" class="convert-button" type="button" disabled><span id="convertAudioLabel">แปลงเป็น MP4</span><span>→</span></button>
             <div id="audioProgressWrap" class="audio-progress-wrap" hidden><div class="audio-progress-label"><span id="audioProgressLabel">กำลังเตรียมไฟล์</span><b id="audioProgressPercent">0%</b></div><div class="audio-progress"><span id="audioProgressBar"></span></div></div>
-            <div id="audioResult" class="audio-result" hidden><div class="result-head"><span>✓</span><div><b>แปลงไฟล์เสร็จแล้ว</b><small id="resultDetails"></small></div></div><audio id="resultAudio" controls></audio><a id="downloadMp4" class="download-audio" download>ดาวน์โหลดไฟล์ MP4 <span>↓</span></a></div>
+            <div id="audioResult" class="audio-result" hidden><div class="result-head"><span>✓</span><div><b>แปลงไฟล์เสร็จแล้ว</b><small id="resultDetails"></small></div></div><audio id="resultAudio" controls></audio><a id="downloadAudio" class="download-audio" download><span id="downloadAudioLabel">ดาวน์โหลดไฟล์ MP4</span><span>↓</span></a></div>
           </section>
         </div>
         <p class="audio-privacy"><span>◉</span> ไฟล์เสียงของคุณอยู่บนอุปกรณ์นี้ตลอดการแปลง</p>
@@ -75,31 +77,37 @@
         <div class="editor-toolbar">
           <button id="backToGallery" class="back-button" type="button"><span>←</span> เทมเพลต</button>
           <div class="document-name"><span class="doc-status"></span><span id="documentTitle">งาน Reflection</span><small id="saveStatus">ยังไม่บันทึก</small></div>
-          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="editorExport" class="editor-export" type="button">ส่งออก HTML <span>↗</span></button></div>
+          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="exportPng" class="export-png" type="button">ส่งออก PNG</button><button id="editorExport" class="editor-export" type="button">ส่งออก HTML <span>↗</span></button></div>
         </div>
         <div class="workspace">
           <aside class="left-rail">
-            <div class="rail-head"><p class="eyebrow">ADD TO STORY</p><h2>องค์ประกอบ</h2></div>
-            <div class="insert-grid">
-              <button data-add="heading" draggable="true" type="button"><span class="insert-glyph">T<span>t</span></span><b>หัวข้อ</b></button>
-              <button data-add="text" draggable="true" type="button"><span class="insert-glyph text-glyph">¶</span><b>ข้อความ</b></button>
-              <button data-add="image" draggable="true" type="button"><span class="insert-glyph image-glyph">▧</span><b>รูปภาพ</b></button>
-              <button data-add="quote" draggable="true" type="button"><span class="insert-glyph quote-glyph">“</span><b>คำพูด</b></button>
-              <button data-add="split" draggable="true" type="button"><span class="insert-glyph split-glyph">▤</span><b>รูป + เนื้อหา</b></button>
-              <button data-add="divider" draggable="true" type="button"><span class="insert-glyph divider-glyph">—</span><b>เส้นคั่น</b></button>
-              <button data-add="banner" draggable="true" type="button"><span class="insert-glyph banner-glyph">▰</span><b>แถบเน้น</b></button>
-              <button data-add="button" draggable="true" type="button"><span class="insert-glyph button-glyph">↗</span><b>ปุ่มลิงก์</b></button>
-              <button data-add="columns" draggable="true" type="button"><span class="insert-glyph columns-glyph">▥</span><b>สองคอลัมน์</b></button>
-              <button data-add="spacer" draggable="true" type="button"><span class="insert-glyph spacer-glyph">↕</span><b>ช่องว่าง</b></button>
+            <div class="rail-head"><p class="eyebrow">DESIGN TOOLS</p><h2>องค์ประกอบ</h2></div>
+            <div class="rail-scroll">
+              <section class="tool-category" aria-labelledby="toolsTextTitle"><h3 class="tool-category-title" id="toolsTextTitle"><span>01</span> ข้อความ</h3><div class="insert-grid">
+                <button data-add="heading" draggable="true" type="button"><span class="insert-glyph">T<span>t</span></span><b>หัวข้อ</b></button>
+                <button data-add="text" draggable="true" type="button"><span class="insert-glyph text-glyph">¶</span><b>ข้อความ</b></button>
+                <button data-add="quote" draggable="true" type="button"><span class="insert-glyph quote-glyph">“</span><b>คำพูด</b></button>
+                <button data-add="banner" draggable="true" type="button"><span class="insert-glyph banner-glyph">▰</span><b>แถบเน้น</b></button>
+              </div></section>
+              <section class="tool-category" aria-labelledby="toolsMediaTitle"><h3 class="tool-category-title" id="toolsMediaTitle"><span>02</span> รูปภาพและสื่อ</h3><div class="insert-grid">
+                <button data-add="image" draggable="true" type="button"><span class="insert-glyph image-glyph">▧</span><b>รูปภาพ</b></button>
+                <button data-add="split" draggable="true" type="button"><span class="insert-glyph split-glyph">▤</span><b>รูป + เนื้อหา</b></button>
+              </div></section>
+              <section class="tool-category" aria-labelledby="toolsLayoutTitle"><h3 class="tool-category-title" id="toolsLayoutTitle"><span>03</span> โครงสร้าง</h3><div class="insert-grid">
+                <button data-add="divider" draggable="true" type="button"><span class="insert-glyph divider-glyph">—</span><b>เส้นคั่น</b></button>
+                <button data-add="button" draggable="true" type="button"><span class="insert-glyph button-glyph">↗</span><b>ปุ่มลิงก์</b></button>
+                <button data-add="columns" draggable="true" type="button"><span class="insert-glyph columns-glyph">▥</span><b>สองคอลัมน์</b></button>
+                <button data-add="spacer" draggable="true" type="button"><span class="insert-glyph spacer-glyph">↕</span><b>ช่องว่าง</b></button>
+              </div></section>
+              <div class="layer-heading"><div><p class="eyebrow">LAYERS</p><h3>ลำดับเนื้อหา</h3></div><span id="layerCount">0</span></div>
+              <div id="layerList" class="layer-list"></div>
+              <div class="rail-foot"><span class="green-spark">✳</span><span>ลากรายการเพื่อเปลี่ยนลำดับ</span></div>
             </div>
-            <div class="layer-heading"><div><p class="eyebrow">LAYERS</p><h3>ลำดับเนื้อหา</h3></div><span id="layerCount">0</span></div>
-            <div id="layerList" class="layer-list"></div>
-            <div class="rail-foot"><span class="green-spark">✳</span><span>ลากรายการเพื่อเปลี่ยนลำดับ</span></div>
           </aside>
           <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
-            <div class="canvas-controls"><span>หน้า Reflection / <b>เนื้อหาหลัก</b></span><div><span id="canvasDimensions">1000 PX · MINIMUM EXPORT WIDTH</span><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div></div>
+            <div class="canvas-controls"><span>หน้า Reflection / <b>เนื้อหาหลัก</b></span><div><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div></div>
             <div id="canvasViewport" class="canvas-viewport"><article id="artboard" class="artboard" aria-label="แคนวาส Reflection"></article></div>
-            <div class="canvas-bottom"><span><i></i> คลิกเพื่อแก้ข้อความ · คลิกรูปแล้วลากจุดมุมเพื่อปรับขนาด</span><span>1000 PX MINIMUM</span></div>
+            <div class="canvas-bottom"><span><i></i> คลิกเพื่อแก้ข้อความ · ดับเบิลคลิกรูปเพื่อเปลี่ยน · ลากจุดมุมเพื่อปรับขนาด</span></div>
           </section>
           <aside class="right-rail">
             <div class="rail-head property-head"><p class="eyebrow">DESIGN DETAILS</p><h2>ปรับแต่ง</h2></div>

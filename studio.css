@@ -142,7 +142,6 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 @media(max-width:760px){.editor-toolbar{height:auto;min-height:72px;flex-wrap:wrap;padding:10px 12px}.document-name{flex:1;min-width:150px}.editor-actions{width:100%;justify-content:flex-end}.workspace{min-height:calc(100vh - 210px)}}
 
 /* Design workspace v2: fixed 1000px artboard, real image resizing, and richer page components. */
-#canvasDimensions{white-space:nowrap;color:#d2ddcb;font:600 18px var(--font);letter-spacing:0}
 .artboard{box-sizing:border-box!important;width:1000px!important;min-height:1400px!important;padding:90px 96px!important;overflow:visible}
 .canvas-block.heading-block h2,.canvas-block.heading-block h3{font-size:36px;line-height:1.28}
 .canvas-block.text-block p,.canvas-block.quote-block blockquote,.split-copy span{font-size:18px;line-height:1.8}
@@ -173,7 +172,7 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .image-placeholder:has(img){aspect-ratio:16/9;min-height:0}
 .image-placeholder img{width:100%;height:100%;max-height:none;display:block;object-fit:cover}
 .resize-handle{width:20px;height:20px}
-@media(max-width:760px){.canvas-controls{height:auto;min-height:64px;flex-wrap:wrap;justify-content:flex-start;padding:8px 10px;gap:6px}.canvas-controls>span:first-child{display:none}.canvas-controls>div{width:100%;justify-content:space-between;gap:4px}#canvasDimensions{max-width:150px;white-space:normal;line-height:1.25}.resize-handle{width:24px;height:24px}}
+@media(max-width:760px){.canvas-controls{height:auto;min-height:64px;flex-wrap:wrap;justify-content:flex-start;padding:8px 10px;gap:6px}.canvas-controls>span:first-child{display:none}.canvas-controls>div{width:100%;justify-content:space-between;gap:4px}.resize-handle{width:24px;height:24px}}
 
 /* Mobile polish: keep the hero, controls, and canvas inside the available viewport. */
 .app-shell .studio-brand b{font-size:15px!important}.app-shell .studio-brand small{font-size:10px!important}.app-shell .hero-copy p.eyebrow{font-size:12px!important;letter-spacing:1px;line-height:1.5}.app-shell .hero-index{font-size:12px!important;letter-spacing:.8px}
@@ -221,3 +220,109 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
   .insert-grid button{min-width:0}
   .canvas-bottom{width:100%;min-width:0;padding:0 10px;font-size:18px!important;letter-spacing:.3px}
 }
+
+/* Organized design tools, accessible image placement, and export controls. */
+.workspace{grid-template-columns:270px minmax(0,1fr) 286px}
+.left-rail{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:18px 14px}
+.left-rail>.rail-head{flex:none;padding:0 2px 13px}
+.left-rail .rail-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 3px 14px 1px;scrollbar-color:#586653 #202621;scrollbar-width:thin}
+.tool-category{margin:0 0 15px;padding-top:12px;border-top:1px solid #364037}
+.tool-category:first-child{padding-top:0;border-top:0}
+.tool-category-title{display:flex;align-items:center;gap:8px;margin:0;color:#dbe4d6;font:600 18px var(--font)}
+.tool-category-title span{color:var(--orange);font:700 12px var(--display);letter-spacing:.7px}
+.tool-category .insert-grid{margin:9px 0 0;gap:8px}
+.tool-category .insert-grid button{min-height:76px;padding:9px 10px;border-color:#3e4b3d;background:linear-gradient(145deg,#29312a,#222923);box-shadow:inset 0 1px #ffffff08}
+.tool-category .insert-grid button:hover,.tool-category .insert-grid button:focus-visible{border-color:#8dc941;background:#303b2e;transform:translateY(-1px);outline:2px solid #93d64155;outline-offset:1px}
+.tool-category .insert-grid b{font:600 18px/1.35 var(--font);color:#edf2e8}
+.tool-category .insert-glyph{height:24px;font-size:20px}
+.layer-heading{margin-top:4px}
+.layer-row{min-height:44px}
+.canvas-controls{justify-content:flex-end}
+.canvas-controls>span:first-child{margin-right:auto}
+.canvas-bottom{height:auto;min-height:54px;line-height:1.5;padding:8px 14px}
+.canvas-bottom>span{font-size:18px;line-height:1.5}
+.image-placeholder{cursor:pointer;isolation:isolate}
+.image-upload-trigger{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;min-height:120px;padding:16px;border:0;background:#ffffff20;color:#23301f;cursor:pointer;transition:background .16s}
+.image-upload-trigger:hover,.image-upload-trigger:focus-visible{background:#ffffff38;outline:3px solid #83bb43;outline-offset:-5px}
+.image-upload-trigger>span{font-size:30px;line-height:1;color:#437a2d}
+.image-upload-trigger>b{font:700 20px var(--font)}
+.image-upload-trigger>small{font:500 16px var(--font);color:#41543a}
+.image-replace-trigger{position:absolute;z-index:3;top:12px;right:12px;display:none;padding:8px 12px!important;border:1px solid #ffffffad!important;border-radius:7px!important;background:#172018dc!important;color:#f5f8f2!important;font:600 16px var(--font)!important;cursor:pointer}
+.canvas-block:hover .image-replace-trigger,.canvas-block.selected .image-replace-trigger{display:block}
+.image-placeholder.drop-target{outline:3px solid var(--orange);outline-offset:3px}
+.export-png{padding:9px 13px;border:1px solid #56694c;border-radius:7px;background:#283329;color:#e9f1e3;font:600 18px var(--font);cursor:pointer}
+.export-png:hover{border-color:var(--green);background:#344331}
+.export-png:disabled{opacity:.55;cursor:progress}
+.stereo-hint{display:flex;align-items:center;gap:8px;margin:-4px 0 17px;padding:10px 12px;border:1px solid #445640;border-radius:7px;background:#263027;color:#d9e5d3;font-size:18px;line-height:1.5}
+.stereo-hint span{color:var(--green)}
+.filename-field #outputExtension{min-width:48px;text-align:center}
+.audio-field select{min-height:48px}
+@media(max-width:1050px){.workspace{grid-template-columns:238px minmax(0,1fr) 258px}}
+@media(max-width:760px){.left-rail{max-height:560px}.left-rail .rail-scroll{max-height:470px}.tool-category .insert-grid button{min-height:78px}.workspace{grid-template-columns:1fr}}
+@media(max-width:520px){
+  .left-rail{max-height:none;overflow:hidden;padding:15px 14px}
+  .left-rail .rail-scroll{max-height:min(58vh,520px);flex:none;width:100%;overflow-y:auto;overscroll-behavior:contain}
+  .tool-category .insert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+  .layer-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+  .layer-row{min-width:0}
+  .editor-actions{display:grid;grid-template-columns:40px 40px repeat(2,minmax(0,1fr));gap:7px}
+  .editor-actions .toolbar-separator{display:none}
+  .editor-actions #saveBtn{grid-column:3/5}
+  .editor-actions #exportPng{grid-column:1/3}
+  .editor-actions #editorExport{grid-column:3/5}
+  .editor-actions #saveBtn,.editor-actions #exportPng,.editor-actions #editorExport{min-width:0;padding:9px 7px;font-size:18px}
+  .canvas-bottom{min-height:74px;align-items:center;padding:9px 12px}
+  .canvas-bottom>span{font-size:18px;line-height:1.45}
+}
+
+/* Readable type and clearer panel contrast across the studio. */
+body{font-size:18px}
+.studio-topbar{background:#172019;border-bottom-color:#3d4b3d}
+.studio-modes button{font-size:18px}
+.local-badge{font-size:16px;color:#d2ddcf}
+.hero-description,.section-heading>div>p:last-child{font-size:18px;line-height:1.8}
+.template-card h3{font-size:20px}
+.template-card p,.card-use,.custom-start b,.custom-start small,.custom-start button{font-size:18px!important;line-height:1.65}
+.filter-chip,.search-box input{font-size:18px}
+.template-category{font-size:14px}
+.template-time,.template-count span{font-size:14px}
+.eyebrow,.hero-index{font-size:12px}
+.back-button,.document-name,.document-name small,.save-button,.editor-export,.export-png{font-size:18px}
+.tool-button,.canvas-controls,.canvas-controls #zoomLabel,.canvas-controls button{font-size:18px}
+.canvas-block.text-block p,.split-copy,.banner-block p,.columns-block p{font-size:18px!important;line-height:1.8}
+.canvas-bottom,.canvas-bottom>span{font-size:18px;line-height:1.6}
+.layer-row,.rail-foot,.field-label,.range-line,.selected-label b,.selected-label small,.inspector-empty b,.inspector-empty p,.field-hint,.inspector-group h3{font-size:18px;line-height:1.6}
+.inspector input[type=text],.inspector textarea,.inspector select,.file-pick,.inspector-group button{font-size:18px;min-height:48px}
+.audio-card-head p,.audio-drop b,.audio-drop small,.audio-field>span,.filename-field input,.filename-field b,.audio-field select,.engine-card b,.engine-card small,.engine-card button,.audio-preview label,.audio-file-info b,.audio-file-info small,.audio-progress-label,.download-audio,.audio-privacy,.convert-button{font-size:18px!important;line-height:1.6}
+.mode-page-head>p:last-child,.dialog-copy{font-size:18px;line-height:1.8}
+.engine-card,.audio-file-info,.stereo-hint{border-color:#566a53;background:#2b382d}
+.tool-category .insert-grid button{border-color:#526350;background:linear-gradient(145deg,#303c32,#29352d)}
+.tool-category .insert-grid button:hover,.tool-category .insert-grid button:focus-visible{background:#374633}
+.inspector,.right-rail{background:#202a22}
+.inspector-group{border-color:#435244}
+.toast{font-size:16px}
+
+/* Keep the desktop editor inside the viewport so each design rail can scroll. */
+@media(min-width:761px){
+  .editor-view{height:calc(100vh - 82px);min-height:480px;display:flex;flex-direction:column;overflow:hidden}
+  .editor-toolbar{flex:none}
+  .workspace{height:auto;min-height:0;flex:1 1 0%;grid-template-rows:minmax(0,1fr);overflow:hidden}
+  .left-rail{height:100%;min-height:0;max-height:100%;overflow:hidden}
+  .left-rail .rail-scroll{height:0;min-height:0;max-height:100%;flex:1 1 auto;overflow-y:auto}
+  .right-rail{height:100%;min-height:0;max-height:100%;overflow-y:auto}
+  .canvas-workspace{height:100%;min-height:0;overflow:hidden}
+  .canvas-viewport{min-height:0;overflow:auto}
+}
+@media(max-width:760px){
+  .editor-view{height:auto;min-height:0;display:block;overflow:visible}
+  .workspace{height:auto;min-height:0;grid-template-rows:auto;overflow:visible}
+  .left-rail{height:auto;max-height:560px}
+  .left-rail .rail-scroll{height:auto;max-height:470px;flex:none}
+  .right-rail{height:auto;max-height:none;overflow:visible}
+  .canvas-workspace{height:72vh;min-height:540px}
+}
+@media(max-width:520px){.left-rail .rail-scroll{max-height:min(58vh,520px)}}
+.left-rail .rail-scroll,.right-rail{overflow-x:hidden}
+.layer-list{grid-template-columns:minmax(0,1fr);min-width:0}
+.layer-row{width:100%;max-width:100%;min-width:0;overflow:hidden}
+.layer-row .layer-name{min-width:0}
