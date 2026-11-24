@@ -89,7 +89,26 @@
   function renderLegacyTools() {
     const root = $('#legacyToolGroups');
     if (!root || !legacyPatterns) return;
-    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}"><span class="insert-glyph legacy-tool-glyph legacy-glyph-${group.id}">${group.id==='heading'?'Tt':group.id==='highlight'?'▱':'▤'}</span><b>${escapeHtml(block.name)}</b><small>${escapeHtml(block.note)}</small></button>`).join('')}</div></section>`).join('');
+    const descriptions = {
+      subtitle:'หัวข้อหลักของบทความ', audio:'เครื่องเล่นเสียงในหน้าเรื่อง', subtitleAudio:'หัวข้อเรื่องพร้อมเครื่องเล่นเสียง',
+      highlightImage:'ภาพใหญ่เด่นเต็มแถว', highlightGreenText:'ภาพใหญ่พร้อมพื้นเขียวและข้อความ', highlightGreenEmpty:'ภาพใหญ่พร้อมพื้นเขียว ไม่มีข้อความ',
+      contentQuoteImage:'เพิ่มภาพในเนื้อหา วางรวมเป็นแถวได้', contentHeading:'หัวข้อย่อยสำหรับแบ่งเนื้อหา', contentText:'ย่อหน้าข้อความทั่วไป', contentBlockquote:'ข้อความอ้างอิงที่ต้องการเน้น',
+      contentSplitQuoteRight:'คำพูดทางซ้าย ภาพและคำบรรยายทางขวา', contentSplitQuoteLeft:'ภาพและคำบรรยายทางซ้าย คำพูดทางขวา',
+      contentSplitImageLeft:'ภาพซ้าย หัวข้อและเนื้อหาขวา', contentSplitImageRight:'หัวข้อและเนื้อหาซ้าย ภาพขวา',
+      contentMedia:'ไอคอน หัวข้อ และคำอธิบาย', contentQuoteCard:'การ์ดคำพูดพร้อมพื้นหลัง', contentPortraitQuote:'ภาพผู้พูด พร้อมคำพูดและชื่อ',
+      contentModal:'ปุ่มเปิดรายละเอียดในหน้าต่าง', contentSpeakers:'คำพูดจากผู้ให้สัมภาษณ์ 2–3 คน'
+    };
+    const glyphs = {
+      subtitle:'Tt', audio:'▶', subtitleAudio:'Tt♫', highlightImage:'▱', highlightGreenText:'▰', highlightGreenEmpty:'▰',
+      contentQuoteImage:'▧', contentHeading:'H', contentText:'¶', contentBlockquote:'“', contentSplitQuoteRight:'↗', contentSplitQuoteLeft:'↙',
+      contentSplitImageLeft:'▧↔', contentSplitImageRight:'↔▧', contentMedia:'✳', contentQuoteCard:'❝', contentPortraitQuote:'◉', contentModal:'↗', contentSpeakers:'≋'
+    };
+    const groupDescriptions = {
+      heading:'เลือกหัวข้อเรื่อง เสียง หรือเพิ่มทั้งสองอย่างในบล็อกเดียว',
+      highlight:'ใช้ภาพเปิดเรื่องขนาดใหญ่ เลือกได้ทั้งพื้นปกติและพื้นเขียว',
+      content:'เพิ่มและเรียงเนื้อหา ภาพ คำพูด และรูปแบบบทสัมภาษณ์'
+    };
+    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(groupDescriptions[group.id] || group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}"><span class="insert-glyph legacy-tool-glyph legacy-glyph-${group.id}">${escapeHtml(glyphs[block.id] || '▤')}</span><b>${escapeHtml(block.name)}</b><small>${escapeHtml(descriptions[block.id] || block.note)}</small></button>`).join('')}</div></section>`).join('');
     root.querySelectorAll('[data-legacy-add]').forEach(button => {
       button.addEventListener('click',() => addLegacyBlock(button.dataset.legacyAdd));
       button.addEventListener('dragstart',event => {
@@ -313,6 +332,10 @@
     artboard.style.minHeight = '1400px';
     artboard.style.transform = `scale(${zoom})`;
     $('#zoomLabel').textContent = `${Math.round(zoom*100)}%`;
+    const viewport=$('#canvasViewport');
+    const viewportStyle=getComputedStyle(viewport);
+    const available=viewport.clientWidth-parseFloat(viewportStyle.paddingLeft||0)-parseFloat(viewportStyle.paddingRight||0);
+    viewport.classList.toggle('canvas-fit',ARTBOARD_WIDTH*zoom<=available+1);
   }
 
   function renderLayers() {
@@ -1122,7 +1145,10 @@
   }
 
   function fitCanvasToView() {
-    const available = Math.max(320,$('#canvasViewport').clientWidth - 56);
+    const viewport=$('#canvasViewport');
+    const viewportStyle=getComputedStyle(viewport);
+    const horizontalPadding=parseFloat(viewportStyle.paddingLeft||0)+parseFloat(viewportStyle.paddingRight||0);
+    const available = Math.max(320,viewport.clientWidth-horizontalPadding-8);
     zoom = Math.max(.38,Math.min(1,available / ARTBOARD_WIDTH));
     renderArtboard();
   }

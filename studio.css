@@ -165,7 +165,7 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .source-page-block{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;overflow:visible!important}
 .source-page-block.selected{outline:2px solid #82c83a;outline-offset:0}
 .source-page-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid #e4e8e0;background:#f7f9f4;color:#52604f;font-size:15px}
-.source-page-toolbar b{font-size:16px}.source-page-toolbar span{color:#788575;font-size:14px}
+.source-page-toolbar b{font-size:18px}.source-page-toolbar span{color:#788575;font-size:18px}
 .source-page-render{box-sizing:border-box;width:1000px;max-width:none;min-height:600px;margin-left:-96px;padding:0;background:#fff;color:#292f2a;font:18px/1.75 "IBM Plex Sans Thai",Arial,sans-serif;overflow:hidden}
 .source-page-render *{box-sizing:border-box}
 .source-page-render :is(p,li,blockquote,figcaption){font-size:18px;line-height:1.8}
@@ -191,6 +191,32 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .source-image-frame img{display:block;max-width:100%;height:auto;line-height:normal}
 .source-image-frame.source-image-selected{outline:2px solid #7ab934;outline-offset:0}
 .source-image-frame .resize-handle{z-index:8}
+.source-page-block{width:calc(100% + 192px)!important;max-width:none!important;margin:-90px -96px 10px!important;padding:0!important;overflow:visible!important}
+.source-page-render{margin-left:0!important}
+.source-page-render .justify-content-center{justify-content:center}
+.source-page-render .justify-content-end{justify-content:flex-end}
+.source-page-render .justify-content-lg-start{justify-content:flex-start}
+.source-page-render .align-items-center{align-items:center}
+.source-page-render .align-self-center{align-self:center}
+.source-page-render .no-gutters{margin-left:0;margin-right:0}
+.source-page-render .col-12{width:100%}
+.source-page-render .col-md-4{width:33.3333%}
+.source-page-render .col-md-3{width:25%}
+.source-page-render .col-xl-10{width:83.3333%}
+.source-page-render .col-xl-8{width:66.6667%}
+.source-page-render .col-xl-6,.source-page-render .col-lg-6{width:50%}
+.source-page-render .col-xl-5,.source-page-render .col-lg-5{width:41.6667%}
+.source-page-render .col-lg-7{width:58.3333%}
+.source-page-render .order-lg-1{order:1}
+.source-page-render .order-lg-2{order:2}
+.editor-toolbar{gap:14px}
+.back-button{flex:none;white-space:nowrap}
+.document-name{flex:1;min-width:0;overflow:hidden;white-space:nowrap}
+.document-name #documentTitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.document-name .doc-status{flex:none}
+.document-name small{flex:none;white-space:nowrap}
+.editor-actions{flex:none}
+.editor-actions button{white-space:nowrap}
 .source-html-input{min-height:360px!important;max-height:52vh!important;font:14px/1.5 Consolas,"Courier New",monospace!important;white-space:pre;tab-size:2}
 @media(max-width:760px){.source-page-render .container{padding-left:34px;padding-right:34px}.source-page-render [class*="col-"]{width:100%}.source-page-toolbar{align-items:flex-start;flex-direction:column;gap:3px}.template-card-info .template-patterns{font-size:15px}}
 
@@ -390,7 +416,7 @@ body{font-size:18px}
 .legacy-tool-category .insert-grid{margin-top:10px}
 .legacy-tool-card{min-height:104px!important;align-content:start}
   .legacy-tool-card b{font-size:18px!important;line-height:1.35!important}
-  .legacy-tool-card small{display:none}
+  .legacy-tool-card small{display:block!important;margin-top:6px;color:#bdc9b6;font-size:18px!important;line-height:1.4;white-space:normal}
 .legacy-tool-glyph{color:#9bd349}
 .legacy-glyph-highlight{color:#ff9c52}
 .legacy-glyph-content{color:#9bd349}
@@ -411,3 +437,4 @@ body{font-size:18px}
 .highlight-green-band p{width:100%;max-width:808px;margin:0 auto;line-height:1.8;color:#fff}
 .highlight-green-band p:focus{outline:2px solid #ffffff99;outline-offset:5px}
 .highlight-green-empty{display:block;flex:none}
+.canvas-viewport.canvas-fit{overflow-x:hidden}
