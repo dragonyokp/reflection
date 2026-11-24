@@ -132,13 +132,7 @@
   function renderLegacyTools() {
     const root = $('#legacyToolGroups');
     if (!root || !legacyPatterns) return;
-    const glyphs = {
-      subtitle:'Tt', audio:'▶', subtitleAudio:'Tt♫', highlightImage:'▱', highlightGreenText:'▰', highlightGreenEmpty:'▰',
-      contentQuoteImage:'▧', contentHeading:'H', contentText:'¶', contentBlockquote:'“', contentSplitQuoteRight:'↗', contentSplitQuoteLeft:'↙',
-      contentSplitImageLeft:'▧↔', contentSplitImageRight:'↔▧', contentMedia:'✳', contentQuoteCard:'❝', contentPortraitQuote:'◉', contentModal:'↗', contentSpeakers:'≋'
-    };
-    const freeTools = [['heading','หัวข้อ','Tt'],['text','ข้อความ','¶'],['quote','คำพูด','“'],['banner','แถบเน้น','▰'],['image','รูปภาพ','▧'],['split','รูป + เนื้อหา','▤'],['divider','เส้นคั่น','—'],['button','ปุ่มลิงก์','↗'],['columns','สองคอลัมน์','▥'],['spacer','ช่องว่าง','↕']];
-    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}"><span class="insert-glyph legacy-tool-glyph legacy-glyph-${group.id}">${escapeHtml(glyphs[block.id] || '▤')}</span><b>${escapeHtml(block.name)}</b></button>`).join('')}</div></section>`).join('') + `<section class="tool-category legacy-tool-category legacy-free-tools" aria-labelledby="legacyGroup-free"><h3 class="tool-category-title" id="legacyGroup-free">4. เครื่องมืออิสระ</h3><p class="legacy-tool-help">เพิ่มองค์ประกอบแล้วจัดวางต่อได้ตามต้องการ</p><div class="insert-grid">${freeTools.map(([type,name,glyph])=>`<button class="legacy-tool-card" data-tool-add="${type}" draggable="true" type="button" aria-label="เพิ่ม ${name}"><span class="insert-glyph legacy-tool-glyph">${glyph}</span><b>${name}</b></button>`).join('')}</div></section>`;
+    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}">${legacyMiniMarkup(block.mini)}<b>${escapeHtml(block.name)}</b><span class="legacy-tool-add" aria-hidden="true">+</span></button>`).join('')}</div></section>`).join('');
     root.querySelectorAll('[data-legacy-add]').forEach(button => {
       button.addEventListener('click',() => addLegacyBlock(button.dataset.legacyAdd));
       button.addEventListener('dragstart',event => {
@@ -152,6 +146,30 @@
       button.addEventListener('click',() => addBlock(button.dataset.toolAdd));
       button.addEventListener('dragstart',event => {draggedType=button.dataset.toolAdd;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('text/plain',draggedType)});
       button.addEventListener('dragend',() => {draggedType=null});
+    });
+  }
+
+  function legacyMiniMarkup(type) {
+    const parts = {
+      subtitle:['title-line','short-line'], audio:['play-dot','control-line','control-dot'], subtitleAudio:['title-line','audio-line'],
+      highlightImage:['highlight-mini-image'], highlightGreenText:['green-highlight-image','green-highlight-band'], highlightGreenEmpty:['green-highlight-image','green-highlight-band'],
+      contentQuoteImage:['quote-image'], contentHeading:['title-line'], contentText:['text-line','text-line','short-line'], contentBlockquote:['quote-mark','quote-line'],
+      contentSplitQuoteRight:['split-quote-image','split-quote-copy'], contentSplitQuoteLeft:['split-quote-image','split-quote-copy'],
+      contentSplitImageLeft:['split-quote-image','split-quote-copy'], contentSplitImageRight:['split-quote-image','split-quote-copy'],
+      contentMedia:['pattern-mini-icon','pattern-mini-lines'], contentQuoteCard:['pattern-mini-quote','pattern-mini-lines'],
+      contentPortraitQuote:['pattern-mini-image','pattern-mini-quote'], contentModal:['pattern-mini-window','pattern-mini-button'],
+      contentSpeakers:['pattern-mini-speakers']
+    }[type] || ['text-line','short-line'];
+    return `<span class="mini mini-${escapeHtml(type)}" aria-hidden="true">${parts.map(part=>`<i class="${part}"></i>`).join('')}</span>`;
+  }
+
+  function decorateIndependentTools() {
+    const visualByTool = {heading:'subtitle',text:'contentText',quote:'contentBlockquote',banner:'highlightGreenText',split:'contentSplitImageLeft',divider:'contentHeading',button:'contentModal',columns:'contentMedia',spacer:'contentText'};
+    $$('.tool-category:not(.legacy-tool-category) .insert-grid [data-add]').forEach(button=>{
+      const icon=button.querySelector('.insert-glyph');
+      if (!icon) return;
+      const miniType=button.dataset.add==='image' ? (button.dataset.imageStyle==='greenText'?'highlightGreenText':button.dataset.imageStyle==='green'?'highlightGreenEmpty':'highlightImage') : visualByTool[button.dataset.add];
+      icon.replaceWith(document.createRange().createContextualFragment(legacyMiniMarkup(miniType)));
     });
   }
 
@@ -210,12 +228,14 @@
     const clean=cleanSourceMarkup(markup,true).replace(/<img\b[^>]*>/gi,tag=>{
       const index=imageIndex++;
       const width=Number(elements.find(item=>item.id===selectedId)?.imageWidths?.[index]);
+      const imageSource=(tag.match(/\bsrc=(['"])(.*?)\1/i)||[])[2]||'';
+      const hasUserImage=/^(?:data:image\/|blob:)/i.test(imageSource);
       const marked=tag.replace(/\s*\/?\s*>$/,' data-source-image="'+index+'">');
       const shape=(tag.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide';
       const nativeWidth=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
       const fullWidth=/\bw-100\b/.test(tag);
       const frameWidth=width?`width:${Math.max(10,Math.min(120,width))}%`:nativeWidth&&!fullWidth?`width:${nativeWidth}px;max-width:100%`:'';
-      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${visualTemplate?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
+      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${visualTemplate&&!hasUserImage?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
     });
     const editable=clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
     return (visualTemplate?templatePageHeading(): '')+editable;
@@ -294,8 +314,7 @@
       if(!page)return;
       page.style.transform='none';
       page.style.width='1000px';
-      const pageHeight=Math.max(page.scrollHeight,1);
-      const scale=Math.min((view.clientWidth-24)/1000,(view.clientHeight-12)/pageHeight);
+      const scale=Math.min((view.clientWidth-24)/1000,1);
       page.style.transform=`scale(${scale})`;
     });
   }
@@ -351,6 +370,8 @@
     redoStack = [];
     $('#documentTitle').textContent = title;
     $('#saveStatus').textContent = 'ยังไม่บันทึก';
+    const canvasViewport=$('#canvasViewport');
+    if(canvasViewport) {canvasViewport.scrollTop=0;canvasViewport.scrollLeft=0;}
     showMode('editor');
     setActiveMode('create');
     renderAll();
@@ -383,7 +404,7 @@
   }
 
   function renderArtboard() {
-    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span>✳</span><b>เริ่มสร้างเรื่องราวของคุณ</b><p>เพิ่มหัวข้อ รูปภาพ แถบเน้น หรือจัดวางสองคอลัมน์</p></div>';
+    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><small>CANVAS · 1000 PX</small><b>เริ่มออกแบบ Reflection ของคุณ</b><p>ลากองค์ประกอบจากแผงซ้าย หรือเลือกเริ่มจากตัวอย่างด้านล่าง</p><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
     if (legacyPatterns) {
       for (const element of elements.filter(item=>item.type==='legacy')) {
         const slot = artboard.querySelector(`.legacy-pattern-slot[data-for="${element.id}"]`) || [...artboard.querySelectorAll('.legacy-pattern-slot')].find(node=>node.closest('[data-id]')?.dataset.id===element.id);
@@ -1552,6 +1573,8 @@
   $('#fitCanvas').addEventListener('click',fitCanvasToView);
 
   artboard.addEventListener('click',event => {
+    const emptyAction=event.target.closest('[data-empty-add]');
+    if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
     if (event.target.closest('.button-block a')) event.preventDefault();
     const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
     const sourceImage=sourceFrame?.querySelector('[data-source-image]');
@@ -1809,5 +1832,6 @@
   });
 
   renderLegacyTools();
+  decorateIndependentTools();
   renderGallery();
 })();
