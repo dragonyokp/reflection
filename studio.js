@@ -89,26 +89,13 @@
   function renderLegacyTools() {
     const root = $('#legacyToolGroups');
     if (!root || !legacyPatterns) return;
-    const descriptions = {
-      subtitle:'หัวข้อหลักของบทความ', audio:'เครื่องเล่นเสียงในหน้าเรื่อง', subtitleAudio:'หัวข้อเรื่องพร้อมเครื่องเล่นเสียง',
-      highlightImage:'ภาพใหญ่เด่นเต็มแถว', highlightGreenText:'ภาพใหญ่พร้อมพื้นเขียวและข้อความ', highlightGreenEmpty:'ภาพใหญ่พร้อมพื้นเขียว ไม่มีข้อความ',
-      contentQuoteImage:'เพิ่มภาพในเนื้อหา วางรวมเป็นแถวได้', contentHeading:'หัวข้อย่อยสำหรับแบ่งเนื้อหา', contentText:'ย่อหน้าข้อความทั่วไป', contentBlockquote:'ข้อความอ้างอิงที่ต้องการเน้น',
-      contentSplitQuoteRight:'คำพูดทางซ้าย ภาพและคำบรรยายทางขวา', contentSplitQuoteLeft:'ภาพและคำบรรยายทางซ้าย คำพูดทางขวา',
-      contentSplitImageLeft:'ภาพซ้าย หัวข้อและเนื้อหาขวา', contentSplitImageRight:'หัวข้อและเนื้อหาซ้าย ภาพขวา',
-      contentMedia:'ไอคอน หัวข้อ และคำอธิบาย', contentQuoteCard:'การ์ดคำพูดพร้อมพื้นหลัง', contentPortraitQuote:'ภาพผู้พูด พร้อมคำพูดและชื่อ',
-      contentModal:'ปุ่มเปิดรายละเอียดในหน้าต่าง', contentSpeakers:'คำพูดจากผู้ให้สัมภาษณ์ 2–3 คน'
-    };
     const glyphs = {
       subtitle:'Tt', audio:'▶', subtitleAudio:'Tt♫', highlightImage:'▱', highlightGreenText:'▰', highlightGreenEmpty:'▰',
       contentQuoteImage:'▧', contentHeading:'H', contentText:'¶', contentBlockquote:'“', contentSplitQuoteRight:'↗', contentSplitQuoteLeft:'↙',
       contentSplitImageLeft:'▧↔', contentSplitImageRight:'↔▧', contentMedia:'✳', contentQuoteCard:'❝', contentPortraitQuote:'◉', contentModal:'↗', contentSpeakers:'≋'
     };
-    const groupDescriptions = {
-      heading:'เลือกหัวข้อเรื่อง เสียง หรือเพิ่มทั้งสองอย่างในบล็อกเดียว',
-      highlight:'ใช้ภาพเปิดเรื่องขนาดใหญ่ เลือกได้ทั้งพื้นปกติและพื้นเขียว',
-      content:'เพิ่มและเรียงเนื้อหา ภาพ คำพูด และรูปแบบบทสัมภาษณ์'
-    };
-    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(groupDescriptions[group.id] || group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}"><span class="insert-glyph legacy-tool-glyph legacy-glyph-${group.id}">${escapeHtml(glyphs[block.id] || '▤')}</span><b>${escapeHtml(block.name)}</b><small>${escapeHtml(descriptions[block.id] || block.note)}</small></button>`).join('')}</div></section>`).join('');
+    const freeTools = [['heading','หัวข้อ','Tt'],['text','ข้อความ','¶'],['quote','คำพูด','“'],['banner','แถบเน้น','▰'],['image','รูปภาพ','▧'],['split','รูป + เนื้อหา','▤'],['divider','เส้นคั่น','—'],['button','ปุ่มลิงก์','↗'],['columns','สองคอลัมน์','▥'],['spacer','ช่องว่าง','↕']];
+    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}"><span class="insert-glyph legacy-tool-glyph legacy-glyph-${group.id}">${escapeHtml(glyphs[block.id] || '▤')}</span><b>${escapeHtml(block.name)}</b></button>`).join('')}</div></section>`).join('') + `<section class="tool-category legacy-tool-category legacy-free-tools" aria-labelledby="legacyGroup-free"><h3 class="tool-category-title" id="legacyGroup-free">4. เครื่องมืออิสระ</h3><p class="legacy-tool-help">เพิ่มองค์ประกอบแล้วจัดวางต่อได้ตามต้องการ</p><div class="insert-grid">${freeTools.map(([type,name,glyph])=>`<button class="legacy-tool-card" data-tool-add="${type}" draggable="true" type="button" aria-label="เพิ่ม ${name}"><span class="insert-glyph legacy-tool-glyph">${glyph}</span><b>${name}</b></button>`).join('')}</div></section>`;
     root.querySelectorAll('[data-legacy-add]').forEach(button => {
       button.addEventListener('click',() => addLegacyBlock(button.dataset.legacyAdd));
       button.addEventListener('dragstart',event => {
@@ -116,6 +103,11 @@
         event.dataTransfer.effectAllowed = 'copy';
         event.dataTransfer.setData('text/plain',draggedType);
       });
+      button.addEventListener('dragend',() => {draggedType=null});
+    });
+    root.querySelectorAll('[data-tool-add]').forEach(button => {
+      button.addEventListener('click',() => addBlock(button.dataset.toolAdd));
+      button.addEventListener('dragstart',event => {draggedType=button.dataset.toolAdd;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('text/plain',draggedType)});
       button.addEventListener('dragend',() => {draggedType=null});
     });
   }
@@ -165,32 +157,45 @@
   const imageWidthPx = element => Math.max(1,Math.round(imageWidthBase(element) * Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100)) / 100));
   const imageAspectRatio = element => Number.isFinite(Number(element.aspectRatio)) && Number(element.aspectRatio)>0.02 && Number(element.aspectRatio)<20 ? Number(element.aspectRatio) : 9/16;
   const textStyle = element => `font-size:${Math.max(18,Math.min(72,Number(element.fontSize)||18))}px;color:${safeColor(element.color)};text-align:${['left','center','right'].includes(element.align)?element.align:'left'}`;
-  function cleanSourceMarkup(markup) {
-    return String(markup||'').replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,'').replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,'').replace(/\s+contenteditable=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-edit=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-image=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-frame=("[^"]*"|'[^']*')/gi,'').replace(/\s+draggable=("[^"]*"|'[^']*')/gi,'');
+  function cleanSourceMarkup(markup, keepTemplateHints = false) {
+    let clean=String(markup||'').replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,'').replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,'').replace(/\s+contenteditable=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-edit=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-image=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-frame=("[^"]*"|'[^']*')/gi,'').replace(/\s+draggable=("[^"]*"|'[^']*')/gi,'');
+    if(!keepTemplateHints) clean=clean.replace(/\s+data-template-placeholder=("[^"]*"|'[^']*'|[^\s>]+)/gi,'');
+    return clean;
   }
-  function sourcePreviewMarkup(markup) {
+  function sourcePreviewMarkup(markup, visualTemplate = false) {
     let imageIndex=0;
-    const clean=cleanSourceMarkup(markup).replace(/<img\b[^>]*>/gi,tag=>{
+    const clean=cleanSourceMarkup(markup,true).replace(/<img\b[^>]*>/gi,tag=>{
       const index=imageIndex++;
       const width=Number(elements.find(item=>item.id===selectedId)?.imageWidths?.[index]);
       const marked=tag.replace(/\s*\/?\s*>$/,' data-source-image="'+index+'">');
-      return `<span class="source-image-frame${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${width?`width:${Math.max(10,Math.min(120,width))}%`:''}">${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
+      const shape=(tag.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide';
+      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${width?`width:${Math.max(10,Math.min(120,width))}%`:''}">${visualTemplate?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
     });
     return clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
   }
   function sourceHtmlFromPreview(root) {
     const copy=root.cloneNode(true);
-    copy.querySelectorAll('.source-image-frame').forEach(frame=>{
+    const current=elements.find(item=>item.id===root.closest('[data-id]')?.dataset.id);
+    copy.querySelectorAll('.source-image-frame').forEach((frame,index)=>{
       const image=frame.querySelector('img');
-      if(image) frame.replaceWith(image); else frame.remove();
+      if(image) {
+        const imageIndex=Number(frame.dataset.sourceFrame);
+        const percent=Number(current?.imageWidths?.[imageIndex]);
+        if(percent) {
+          const widthPx=Math.max(1000,Math.round(ARTBOARD_WIDTH*Math.max(10,Math.min(120,percent))/100));
+          image.setAttribute('width',String(widthPx));
+          image.className=String(image.className||'').split(/\s+/).filter(name=>name&&name!=='w-100').join(' ');
+        }
+        frame.replaceWith(image);
+      } else frame.remove();
     });
     return cleanSourceMarkup(copy.innerHTML).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
   }
   function sourceThumbMarkup(markup) {
-    return cleanSourceMarkup(markup)
+    return cleanSourceMarkup(markup,true)
       .replace(/<audio\b[^>]*>[\s\S]*?<\/audio\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
       .replace(/<audio\b[^>]*\/?\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
-      .replace(/<img\b([^>]*)>/gi,(_,attrs)=>`<div class="source-thumb-image ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"></div>`);
+      .replace(/<img\b([^>]*)>/gi,(_,attrs)=>`<div class="source-thumb-image shape-${escapeHtml((attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide')} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"></div>`);
   }
   function renderResizeHandles(element) {
     if (element.id !== selectedId) return '';
@@ -208,7 +213,7 @@
   function renderThumb(template) {
     if (template.markup) {
       const preview=sourceThumbMarkup(template.markup);
-      return `<div class="template-thumb source-template-thumb" aria-hidden="true"><div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview">${preview}</div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div></div>`;
+      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${preview}</div>`:preview}</div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div></div>`;
     }
     const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
     const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
@@ -229,12 +234,24 @@
     return `<div class="template-thumb template-page-${template.layout}" aria-hidden="true"><article class="page-mini"><div class="page-site-nav"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS　 CONTACT</span></div><div class="page-breadcrumb">⌂　/　NEWS　/　BANGCHAK REFLECTIONS</div><div class="page-article-body"><div class="page-brand-reflection"><b>บางจาก</b><span>REFLECTIONS</span></div><div class="page-date">${escapeHtml(template.date || '')}</div><h3>${escapeHtml(title)}</h3><div class="page-audio"><i>▶</i><span>0:00</span><b></b><span>◖))</span></div><div class="page-body-layout">${patterns[template.layout] || patterns.energy}</div><div class="page-share">SHARE　 ●　 ●　 ●　 ↗</div><div class="page-related">ALL BANGCHAK REFLECTIONS <b>→</b></div></div><footer><b>CAN WE HELP?</b><span>CONTACT　 ·　 QUICK LINKS　 ·　 CAREER</span></footer></article></div>`;
   }
 
+  function fitFullTemplatePreviews() {
+    $$('.visual-template-thumb .source-template-preview').forEach(view=>{
+      const page=$('.source-template-page',view);
+      if(!page)return;
+      page.style.transform='none';
+      page.style.width='1000px';
+      const pageHeight=Math.max(page.scrollHeight,1);
+      const scale=Math.min((view.clientWidth-24)/1000,(view.clientHeight-12)/pageHeight);
+      page.style.transform=`scale(${scale})`;
+    });
+  }
   function renderGallery() {
     refreshResumeButton();
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
     const filtered = templates.filter(template => !query || `${template.title} ${template.description} ${template.category || ''} ${template.source || ''}`.toLocaleLowerCase('th').includes(query));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
     templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${escapeHtml(template.id)}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><span class="template-category">${escapeHtml(template.category||'Reflection')}</span><h3>${escapeHtml(template.title)}</h3><p class="template-patterns">${escapeHtml(template.description||`${template.imageCount||0} รูป · ${template.audioCount||0} ไฟล์เสียง`)}</p></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
+    fitFullTemplatePreviews();
   }
 
   function enterEditor(title, blocks) {
@@ -257,7 +274,7 @@
     const draggable = ' draggable="true"';
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
-    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>ต้นแบบหน้าเต็มจาก HTML ที่เคยส่ง</b><span>ข้อความแก้บนหน้าได้ · คลิกรูปเพื่อเปลี่ยนหรือปรับขนาด</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup)}</div></div>`;
+    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b><span>ข้อความแก้บนหน้าได้ · คลิกรูปเพื่อเลือกและปรับขนาด</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate))}</div></div>`;
     if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h2 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
@@ -370,7 +387,7 @@
       fields += `<div class="inspector-group"><h3>เนื้อหา</h3>${field(element.type==='heading'?'ข้อความหัวข้อ':element.type==='quote'?'ข้อความคำพูด':'ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text)}</textarea>`)}</div>`;
       fields += designFields(element,{background:element.type!=='heading'});
     } else if (element.type === 'sourcePage') {
-      fields += `<div class="inspector-group"><h3>ต้นแบบ HTML เต็มหน้า</h3><p class="field-hint">โครงสร้างที่เห็นคือ HTML จริงจากตัวอย่างเดิมของคุณ แก้ข้อความบนหน้าได้ และส่งออกเป็น markup เดิมโดยไม่มี CSS เพิ่ม</p>${field('แก้โค้ด HTML โดยตรง',`<textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea>`)}</div>`;
+      fields += `<div class="inspector-group"><h3>โครงสร้างหน้าเต็ม</h3><p class="field-hint">แก้ข้อความบนหน้าได้ หรือปรับ markup ได้โดยตรง แล้วส่งออกเป็น HTML สำหรับ CMS</p>${field('แก้โค้ด HTML โดยตรง',`<textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea>`)}</div>`;
       if (sourceImageSelection?.elementId===element.id) {
         const index=sourceImageSelection.index;
         fields += `<div class="inspector-group"><h3>รูปที่เลือก · ${index+1}</h3>${field('เปลี่ยนไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">เลือกรูปจากเครื่อง <span>↗</span></button>`)}${field('ความกว้างในหน้า',`<div class="range-line"><span>ลากจุดมุมภาพ หรือปรับสัดส่วน</span><b data-source-width-value>${Math.round(Number(element.imageWidths?.[index])||100)}%</b></div><input type="range" min="10" max="120" step="1" data-prop="sourceImageWidth" value="${Math.max(10,Math.min(120,Number(element.imageWidths?.[index])||100))}">`)}</div>`;
@@ -1382,13 +1399,13 @@
     const card = event.target.closest('[data-template]');
     if (!card) return;
     const template = templates.find(item => item.id === card.dataset.template);
-    enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{}}]:template.blocks);
+    enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
   });
   templateGrid.addEventListener('keydown',event => {
     if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-template]')) {
       event.preventDefault();
       const template = templates.find(item => item.id === event.target.dataset.template);
-      enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{}}]:template.blocks);
+      enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
     }
   });
   $('#blankStart').addEventListener('click',() => enterEditor('งาน Reflection ใหม่',[]));
@@ -1443,11 +1460,12 @@
 
   artboard.addEventListener('click',event => {
     if (event.target.closest('.button-block a')) event.preventDefault();
-    const sourceImage=event.target.closest('[data-source-image]');
+    const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
+    const sourceImage=sourceFrame?.querySelector('[data-source-image]');
     if(sourceImage) {
       const sourceBlock=sourceImage.closest('[data-id]');
       sourceImageSelection={elementId:sourceBlock?.dataset.id,index:Number(sourceImage.dataset.sourceImage)};
-      if(sourceBlock?.dataset.id) selectElement(sourceBlock.dataset.id);
+      if(sourceBlock?.dataset.id) {selectElement(sourceBlock.dataset.id);renderArtboard();}
       renderInspector();
       return;
     }
@@ -1464,7 +1482,8 @@
     if (block) selectElement(block.dataset.id);
   });
   artboard.addEventListener('dblclick',event => {
-    const sourceImage=event.target.closest('[data-source-image]');
+    const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
+    const sourceImage=sourceFrame?.querySelector('[data-source-image]');
     if(sourceImage) sourceImageSelection={elementId:sourceImage.closest('[data-id]')?.dataset.id,index:Number(sourceImage.dataset.sourceImage)};
     if (!sourceImage && !event.target.closest('.image-placeholder img')) return;
     const block = event.target.closest('[data-id]');
