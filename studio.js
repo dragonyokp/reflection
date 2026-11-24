@@ -10,12 +10,14 @@
   const imageFile = $('#imageFile');
   const exportDialog = $('#exportDialog');
   const exportCode = $('#exportCode');
+  const templatePreviewDialog = $('#templatePreviewDialog');
   const DRAFT_KEY = 'reflectionStudioDraftV1';
   const DRAFT_DB_NAME = 'reflectionStudioDrafts';
   const DRAFT_STORE = 'drafts';
   const ARTBOARD_WIDTH = 1000;
   const ARTBOARD_PADDING = 96;
   const CONTENT_WIDTH = ARTBOARD_WIDTH - ARTBOARD_PADDING * 2;
+  let activeTemplateCategory = 'ทั้งหมด';
 
   const starterTemplates = [
     { id:'saf-journey', title:'From Biodiesel to SAF', category:'พลังงาน', tag:'LONGFORM / ENERGY', layout:'energy', date:'10 JUL 2026', source:'From Biodiesel to SAF', description:'บทความยาวแบบเส้นทางพลังงาน: เกริ่นเรื่อง ภาพเปิด ลำดับเหตุการณ์ ประเด็นสำคัญ และบทสรุป', blocks:[
@@ -71,13 +73,28 @@
   const uid = () => `element-${nextId++}`;
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const textHtml = value => escapeHtml(value).replace(/\r?\n/g, '<br>');
-  const titleFor = type => ({heading:'หัวข้อ',text:'ข้อความ',image:'รูปปกติ',quote:'คำพูด',split:'รูป + เนื้อหา',divider:'เส้นคั่น',banner:'แถบเน้น',button:'ปุ่มลิงก์',columns:'สองคอลัมน์',spacer:'ช่องว่าง',sourcePage:'หน้าเต็มจาก HTML จริง'}[type] || 'องค์ประกอบ');
+  const titleFor = type => ({heading:'หัวข้อ',text:'ข้อความ',image:'รูปปกติ',quote:'คำพูด',split:'รูป + เนื้อหา',divider:'เส้นคั่น',banner:'แถบเน้น',button:'ปุ่มลิงก์',columns:'สองคอลัมน์',spacer:'ช่องว่าง',sourcePage:'หน้าเต็มจาก Template'}[type] || 'องค์ประกอบ');
   const imageStyleName = style => ({normal:'รูปปกติ',highlight:'รูป Highlight',green:'Highlight พื้นเขียว',greenText:'Highlight พื้นเขียว + ข้อความ'}[style] || 'รูปปกติ');
   const iconFor = type => ({heading:'T',text:'¶',image:'▧',quote:'“',split:'▤',divider:'—'}[type] || '•');
   const legacyPatterns = window.ReflectionLegacyPatterns;
   const legacyBlocks = legacyPatterns?.blocks || [];
   const legacyBlockMap = new Map(legacyBlocks.map(block => [block.id,block]));
   const legacyImageTypes = new Set(legacyPatterns?.imageTypes || []);
+  if(legacyPatterns?.generateHtml) {
+    for(const template of templates.filter(item=>item.patterns)) {
+      let imageIndex=0;
+      template.markup=legacyPatterns.generateHtml(template.patterns).replace(/<img\b[^>]*>/gi,tag=>{
+        const index=++imageIndex;
+        const width=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
+        const shape=width===450?'portrait':width>0&&width<=60?'square':'wide';
+        const src=`/storage/newsroom/refaction/#####/#####/#####/template-image-${String(index).padStart(2,'0')}.webp`;
+        const clean=tag.replace(/\s+data-template-placeholder=("[^"]*"|'[^']*')/gi,'').replace(/\s+src=("[^"]*"|'[^']*')/i,` src="${src}"`);
+        return clean.replace(/\s*\/?\s*>$/,` data-template-placeholder="${shape}">`);
+      });
+      template.imageCount=imageIndex;
+      template.audioCount=(template.markup.match(/<audio\b/gi)||[]).length;
+    }
+  }
 
   function legacyElementName(element) { return legacyBlockMap.get(element.legacyType)?.name || 'รูปแบบ Reflection'; }
   function legacyElementNote(element) { return legacyBlockMap.get(element.legacyType)?.note || ''; }
@@ -169,7 +186,10 @@
       const width=Number(elements.find(item=>item.id===selectedId)?.imageWidths?.[index]);
       const marked=tag.replace(/\s*\/?\s*>$/,' data-source-image="'+index+'">');
       const shape=(tag.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide';
-      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${width?`width:${Math.max(10,Math.min(120,width))}%`:''}">${visualTemplate?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
+      const nativeWidth=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
+      const fullWidth=/\bw-100\b/.test(tag);
+      const frameWidth=width?`width:${Math.max(10,Math.min(120,width))}%`:nativeWidth&&!fullWidth?`width:${nativeWidth}px;max-width:100%`:'';
+      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${visualTemplate?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
     });
     return clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
   }
@@ -189,13 +209,18 @@
         frame.replaceWith(image);
       } else frame.remove();
     });
-    return cleanSourceMarkup(copy.innerHTML).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
+    return cleanSourceMarkup(copy.innerHTML,Boolean(current?.visualTemplate)).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
   }
   function sourceThumbMarkup(markup) {
     return cleanSourceMarkup(markup,true)
       .replace(/<audio\b[^>]*>[\s\S]*?<\/audio\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
       .replace(/<audio\b[^>]*\/?\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
-      .replace(/<img\b([^>]*)>/gi,(_,attrs)=>`<div class="source-thumb-image shape-${escapeHtml((attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide')} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"></div>`);
+      .replace(/<img\b([^>]*)>/gi,(_,attrs)=>{
+        const width=Number((attrs.match(/\bwidth="(\d+)"/i)||[])[1]||0);
+        const fullWidth=/\bw-100\b/.test(attrs);
+        const sizing=width&&!fullWidth?` style="width:${width}px;max-width:100%"`:'';
+        return `<div class="source-thumb-image shape-${escapeHtml((attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide')} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"${sizing}></div>`;
+      });
   }
   function renderResizeHandles(element) {
     if (element.id !== selectedId) return '';
@@ -248,10 +273,45 @@
   function renderGallery() {
     refreshResumeButton();
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
-    const filtered = templates.filter(template => !query || `${template.title} ${template.description} ${template.category || ''} ${template.source || ''}`.toLocaleLowerCase('th').includes(query));
+    const filterRoot=$('#templateFilters');
+    const categories=['ทั้งหมด',...new Set(templates.map(template=>template.category).filter(Boolean))];
+    const categoryLabels={ทั้งหมด:'ทั้งหมด',Article:'บทความ',Feature:'รูปแบบพิเศษ',Interview:'สัมภาษณ์',Quote:'คำพูด','Photo story':'ภาพถ่าย',Audio:'เสียง'};
+    if(filterRoot) filterRoot.innerHTML=categories.map(category=>`<button class="filter-chip${activeTemplateCategory===category?' active':''}" data-template-category="${escapeHtml(category)}" type="button">${escapeHtml(categoryLabels[category]||category)}</button>`).join('');
+    const filtered = templates.filter(template => (activeTemplateCategory==='ทั้งหมด'||template.category===activeTemplateCategory) && (!query || `${template.title} ${template.description} ${template.category || ''} ${template.referenceTitle || ''}`.toLocaleLowerCase('th').includes(query)));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
-    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${escapeHtml(template.id)}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><span class="template-category">${escapeHtml(template.category||'Reflection')}</span><h3>${escapeHtml(template.title)}</h3><p class="template-patterns">${escapeHtml(template.description||`${template.imageCount||0} รูป · ${template.audioCount||0} ไฟล์เสียง`)}</p></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
+    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" data-template="${escapeHtml(template.id)}"><button class="template-card-preview" type="button" data-preview-template="${escapeHtml(template.id)}" aria-label="ดูตัวอย่าง ${escapeHtml(template.title)}">${renderThumb(template)}<span class="preview-hover-label">ดูหน้าเต็ม <b>↗</b></span></button><div class="template-card-info"><span class="template-category">${escapeHtml(categoryLabels[template.category]||template.category||'Reflection')}</span><h3>${escapeHtml(template.title.replace(/^\d+\s*·\s*/,''))}</h3><p class="template-patterns">${escapeHtml(template.description||`${template.imageCount||0} รูป · ${template.audioCount||0} ไฟล์เสียง`)}</p><span class="template-source-caption">อ้างอิง: ${escapeHtml(template.referenceTitle||'รูปแบบ Reflection')}</span><button class="card-use" type="button" data-preview-template="${escapeHtml(template.id)}">ดูตัวอย่างและเลือกใช้ <b>→</b></button></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
     fitFullTemplatePreviews();
+  }
+
+  function openTemplatePreview(template) {
+    if (!template || !templatePreviewDialog) return;
+    $('#templatePreviewTitle').textContent = template.title;
+    $('#templatePreviewDescription').textContent = template.description || '';
+    const reference = $('#templateReferenceLink');
+    reference.textContent = template.referenceTitle || 'เปิดหน้าอ้างอิง';
+    reference.href = template.referenceUrl || 'https://www.bangchak.co.th/en/newsroom/reflections';
+    $('#useTemplate').dataset.templateId = template.id;
+    const canvas = $('#templatePreviewCanvas');
+    canvas.classList.toggle('visual-template-thumb',Boolean(template.visualTemplate));
+    canvas.innerHTML = `<div class="source-template-preview"><div class="source-template-page">${sourcePreviewMarkup(template.markup||'',Boolean(template.visualTemplate))}</div></div>`;
+    templatePreviewDialog.showModal();
+    requestAnimationFrame(fitTemplateDetailPreview);
+  }
+
+  function fitTemplateDetailPreview() {
+    const view=$('#templatePreviewCanvas .source-template-preview');
+    const page=$('#templatePreviewCanvas .source-template-page');
+    if(!view||!page)return;
+    const scale=Math.min((view.clientWidth-32)/1000,1);
+    page.style.width='1000px';
+    page.style.transform=`scale(${scale})`;
+    view.style.height=`${Math.ceil(page.scrollHeight*scale)+12}px`;
+  }
+
+  function useTemplate(template) {
+    if(!template)return;
+    if(templatePreviewDialog?.open)templatePreviewDialog.close();
+    enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
   }
 
   function enterEditor(title, blocks) {
@@ -387,7 +447,7 @@
       fields += `<div class="inspector-group"><h3>เนื้อหา</h3>${field(element.type==='heading'?'ข้อความหัวข้อ':element.type==='quote'?'ข้อความคำพูด':'ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text)}</textarea>`)}</div>`;
       fields += designFields(element,{background:element.type!=='heading'});
     } else if (element.type === 'sourcePage') {
-      fields += `<div class="inspector-group"><h3>โครงสร้างหน้าเต็ม</h3><p class="field-hint">แก้ข้อความบนหน้าได้ หรือปรับ markup ได้โดยตรง แล้วส่งออกเป็น HTML สำหรับ CMS</p>${field('แก้โค้ด HTML โดยตรง',`<textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea>`)}</div>`;
+      fields += `<div class="inspector-group"><h3>หน้าเต็มจาก Template</h3><p class="field-hint">คลิกข้อความเพื่อแก้บนหน้า และคลิกรูปเพื่อเปลี่ยนหรือปรับขนาด โครงสร้างส่งออกเป็น HTML สำหรับ CMS</p><details class="source-code-details"><summary>ดูหรือแก้ HTML ต้นฉบับ</summary><textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea></details></div>`;
       if (sourceImageSelection?.elementId===element.id) {
         const index=sourceImageSelection.index;
         fields += `<div class="inspector-group"><h3>รูปที่เลือก · ${index+1}</h3>${field('เปลี่ยนไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">เลือกรูปจากเครื่อง <span>↗</span></button>`)}${field('ความกว้างในหน้า',`<div class="range-line"><span>ลากจุดมุมภาพ หรือปรับสัดส่วน</span><b data-source-width-value>${Math.round(Number(element.imageWidths?.[index])||100)}%</b></div><input type="range" min="10" max="120" step="1" data-prop="sourceImageWidth" value="${Math.max(10,Math.min(120,Number(element.imageWidths?.[index])||100))}">`)}</div>`;
@@ -818,8 +878,8 @@
         markup=markup.replace(/<img\b[^>]*>/gi,tag=>{
           const index=imageIndex++;
           const percent=Number(element.imageWidths?.[index]);
-          if (!percent) return tag;
-          const pixels=Math.max(1000,Math.round(ARTBOARD_WIDTH*Math.max(10,Math.min(120,percent))/100));
+          const declared=Number((tag.match(/\bwidth=("|')?(\d+)/i)||[])[2]||0);
+          const pixels=Math.max(1000,percent?Math.round(ARTBOARD_WIDTH*Math.max(10,Math.min(120,percent))/100):declared);
           let next=tag.replace(/\s+width=("[^"]*"|'[^']*')/i,'');
           next=next.replace(/\s+class=("[^"]*"|'[^']*')/i,(match,value)=>{
             const quote=value[0],classes=value.slice(1,-1).split(/\s+/).filter(name=>name && name!=='w-100');
@@ -1385,6 +1445,12 @@
   }
 
   $('#templateSearch').addEventListener('input',renderGallery);
+  $('#templateFilters')?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-template-category]');
+    if(!button)return;
+    activeTemplateCategory=button.dataset.templateCategory;
+    renderGallery();
+  });
   $('#studioModes').addEventListener('click',event => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
@@ -1396,18 +1462,16 @@
     showMode(mode);
   });
   templateGrid.addEventListener('click',event => {
+    const trigger = event.target.closest('[data-preview-template]');
     const card = event.target.closest('[data-template]');
-    if (!card) return;
-    const template = templates.find(item => item.id === card.dataset.template);
-    enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
+    const templateId=trigger?.dataset.previewTemplate||card?.dataset.template;
+    if (!templateId) return;
+    openTemplatePreview(templates.find(item => item.id === templateId));
   });
-  templateGrid.addEventListener('keydown',event => {
-    if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-template]')) {
-      event.preventDefault();
-      const template = templates.find(item => item.id === event.target.dataset.template);
-      enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
-    }
-  });
+  $('#closeTemplatePreview')?.addEventListener('click',()=>templatePreviewDialog.close());
+  $('#useTemplate')?.addEventListener('click',event=>useTemplate(templates.find(item=>item.id===event.currentTarget.dataset.templateId)));
+  templatePreviewDialog?.addEventListener('click',event=>{if(event.target===templatePreviewDialog)templatePreviewDialog.close();});
+  window.addEventListener('resize',fitTemplateDetailPreview);
   $('#blankStart').addEventListener('click',() => enterEditor('งาน Reflection ใหม่',[]));
   galleryView.addEventListener('click',async event => {
     if (!event.target.closest('#resumeDraft')) return;
