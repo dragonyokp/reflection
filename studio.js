@@ -81,19 +81,45 @@
   const legacyBlockMap = new Map(legacyBlocks.map(block => [block.id,block]));
   const legacyImageTypes = new Set(legacyPatterns?.imageTypes || []);
   if(legacyPatterns?.generateHtml) {
-    for(const template of templates.filter(item=>item.patterns)) {
+    for(const template of templates) {
       let imageIndex=0;
-      template.markup=legacyPatterns.generateHtml(template.patterns).replace(/<img\b[^>]*>/gi,tag=>{
+      if(template.patterns) template.markup=legacyPatterns.generateHtml(template.patterns);
+      if(!template.markup) continue;
+      template.markup=template.markup.replace(/<img\b[^>]*>/gi,tag=>{
         const index=++imageIndex;
         const width=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
-        const shape=width===450?'portrait':width>0&&width<=60?'square':'wide';
+        const shape=(tag.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||(width===450?'portrait':width>0&&width<=60?'square':'wide');
         const src=`/storage/newsroom/refaction/#####/#####/#####/template-image-${String(index).padStart(2,'0')}.webp`;
         const clean=tag.replace(/\s+data-template-placeholder=("[^"]*"|'[^']*')/gi,'').replace(/\s+src=("[^"]*"|'[^']*')/i,` src="${src}"`);
         return clean.replace(/\s*\/?\s*>$/,` data-template-placeholder="${shape}">`);
       });
+      template.markup=template.markup.replace(/<audio\b[^>]*>/gi,tag=>tag.replace(/\s+src=("[^"]*"|'[^']*')/i,' src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"'));
       template.imageCount=imageIndex;
       template.audioCount=(template.markup.match(/<audio\b/gi)||[]).length;
     }
+  }
+
+  function normalizeTemplateLorem(markup) {
+    if (!markup || !window.DOMParser) return markup;
+    const parsed = new DOMParser().parseFromString(`<div id="template-root">${markup}</div>`, 'text/html');
+    const root = parsed.querySelector('#template-root');
+    const walker = parsed.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    for (const node of textNodes) {
+      const value = node.nodeValue || '';
+      if (!value.trim()) continue;
+      const leading = value.match(/^\s*/)?.[0] || '';
+      const trailing = value.match(/\s*$/)?.[0] || '';
+      const targetLength = Math.max(24, value.trim().length);
+      let lorem = '';
+      while (lorem.length < targetLength) lorem += 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ';
+      node.nodeValue = (leading || ' ') + lorem.trimEnd() + (trailing || ' ');
+    }
+    return root.innerHTML;
+  }
+  for (const template of templates) {
+    if (template.markup) template.markup = normalizeTemplateLorem(template.markup);
   }
 
   function legacyElementName(element) { return legacyBlockMap.get(element.legacyType)?.name || 'รูปแบบ Reflection'; }
@@ -191,11 +217,14 @@
       const frameWidth=width?`width:${Math.max(10,Math.min(120,width))}%`:nativeWidth&&!fullWidth?`width:${nativeWidth}px;max-width:100%`:'';
       return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${visualTemplate?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
     });
-    return clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
+    const editable=clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
+    return (visualTemplate?templatePageHeading(): '')+editable;
   }
+  function templatePageHeading(){return '<header class="source-template-article-heading" data-template-preview-only="true"><span>BCP REFLECTION · Lorem ipsum</span><h1>Lorem ipsum dolor sit amet</h1><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p></header>';}
   function sourceHtmlFromPreview(root) {
     const copy=root.cloneNode(true);
     const current=elements.find(item=>item.id===root.closest('[data-id]')?.dataset.id);
+    copy.querySelectorAll('[data-template-preview-only]').forEach(node=>node.remove());
     copy.querySelectorAll('.source-image-frame').forEach((frame,index)=>{
       const image=frame.querySelector('img');
       if(image) {
@@ -238,7 +267,7 @@
   function renderThumb(template) {
     if (template.markup) {
       const preview=sourceThumbMarkup(template.markup);
-      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${preview}</div>`:preview}</div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div></div>`;
+      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${templatePageHeading()}${preview}</div>`:preview}</div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div></div>`;
     }
     const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
     const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
@@ -275,7 +304,7 @@
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
     const filterRoot=$('#templateFilters');
     const categories=['ทั้งหมด',...new Set(templates.map(template=>template.category).filter(Boolean))];
-    const categoryLabels={ทั้งหมด:'ทั้งหมด',Article:'บทความ',Feature:'รูปแบบพิเศษ',Interview:'สัมภาษณ์',Quote:'คำพูด','Photo story':'ภาพถ่าย',Audio:'เสียง'};
+    const categoryLabels={ทั้งหมด:'ทั้งหมด',Article:'บทความ',Feature:'บทความพิเศษ',Interview:'สัมภาษณ์',Quote:'คำพูด','Photo story':'เรื่องเล่าภาพ',Audio:'เสียง',Energy:'พลังงาน',Community:'สังคม'};
     if(filterRoot) filterRoot.innerHTML=categories.map(category=>`<button class="filter-chip${activeTemplateCategory===category?' active':''}" data-template-category="${escapeHtml(category)}" type="button">${escapeHtml(categoryLabels[category]||category)}</button>`).join('');
     const filtered = templates.filter(template => (activeTemplateCategory==='ทั้งหมด'||template.category===activeTemplateCategory) && (!query || `${template.title} ${template.description} ${template.category || ''} ${template.referenceTitle || ''}`.toLocaleLowerCase('th').includes(query)));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
@@ -293,7 +322,7 @@
     $('#useTemplate').dataset.templateId = template.id;
     const canvas = $('#templatePreviewCanvas');
     canvas.classList.toggle('visual-template-thumb',Boolean(template.visualTemplate));
-    canvas.innerHTML = `<div class="source-template-preview"><div class="source-template-page">${sourcePreviewMarkup(template.markup||'',Boolean(template.visualTemplate))}</div></div>`;
+    canvas.innerHTML = `<div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview"><div class="source-template-page">${sourcePreviewMarkup(template.markup||'',Boolean(template.visualTemplate))}</div></div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div>`;
     templatePreviewDialog.showModal();
     requestAnimationFrame(fitTemplateDetailPreview);
   }
