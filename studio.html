@@ -3,111 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#202820">
+  <meta http-equiv="refresh" content="0; url=index.html">
+  <link rel="canonical" href="index.html">
   <title>Reflection Studio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=8">
-  <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="studio.js?v=7" defer></script>
+  <script>window.location.replace('index.html');</script>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="studio-topbar">
-      <a class="studio-brand" href="index.html" aria-label="Reflection Studio home"><span class="brand-icon">R<span>.</span></span><span><b>reflection<span>studio</span></b><small>DESIGN YOUR STORY</small></span></a>
-      <nav id="studioModes" class="studio-modes" aria-label="เมนูเครื่องมือ"><button type="button" data-view="gallery" class="active">Templates</button><button type="button" data-view="create">สร้างงาน</button><button type="button" data-view="audio">แปลงไฟล์เสียง</button></nav>
-      <div class="topbar-actions"><span class="local-badge"><span class="live-dot"></span> ทำงานในเบราว์เซอร์</span></div>
-    </header>
-
-    <main>
-      <section id="galleryView" class="gallery-view">
-        <div class="hero-band">
-          <div class="hero-copy">
-            <p class="eyebrow"><span>01</span> REFLECTION CREATION STUDIO</p>
-            <h1>เล่าเรื่องของคุณ<br><em>ในแบบที่ใช่</em></h1>
-            <p class="hero-description">เลือกจุดเริ่มต้น แล้วปรับแต่งเรื่องราวได้ตามใจ<br>ใส่ข้อความ รูปภาพ และจัดลำดับเนื้อหาได้เอง</p>
-            <div class="hero-actions"><a class="hero-cta" href="#templates">เลือกเทมเพลต <span>↓</span></a><button id="resumeDraft" class="resume-draft" type="button" hidden>ทำงานที่บันทึกไว้ <span>↗</span></button></div>
-          </div>
-          <div class="hero-art" aria-hidden="true">
-            <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
-            <div class="art-card card-back"><span>STORY / 02</span><div class="art-lines"></div></div>
-            <div class="art-card card-front"><span>REFLECTION <b>✳</b></span><div class="art-image"></div><strong>ทุกเรื่องราว<br>มีความหมาย</strong><i>CREATE YOUR STORY</i></div>
-            <div class="art-tag">MAKE IT<br><b>YOURS</b></div>
-          </div>
-          <div class="hero-index">R / 001 <span>—</span> A BETTER WAY TO TELL YOUR STORY</div>
-        </div>
-
-        <section id="templates" class="template-section">
-          <div class="section-heading">
-            <div><p class="eyebrow"><span>02</span> FULL PAGE REFLECTION TEMPLATES</p><h2>เลือกต้นแบบบทความ <span>ทั้งหน้า</span></h2><p>ดูโครงเรื่องเต็มตั้งแต่หัวเรื่องจนถึงส่วนท้าย แล้วนำไปแก้ไขต่อได้</p></div>
-            <div class="template-count"><b id="templateCount">07</b><span>FULL PAGE<br>LAYOUTS</span></div>
-          </div>
-          <div class="gallery-toolbar"><label class="search-box"><span>⌕</span><input id="templateSearch" type="search" placeholder="ค้นหาจากชื่อบทความ" aria-label="ค้นหาจากชื่อบทความ"></label></div>
-          <div id="templateGrid" class="template-grid"></div>
-          <div class="custom-start"><span class="custom-plus">＋</span><div><b>เริ่มจากหน้าว่าง</b><small>สร้างเลย์เอาต์ของคุณทีละส่วน</small></div><button id="blankStart" type="button" aria-label="เริ่มจากหน้าว่าง">เริ่มออกแบบ <span>→</span></button></div>
-        </section>
-      </section>
-
-      <section id="audioView" class="audio-view" hidden>
-        <div class="mode-page-head"><p class="eyebrow"><span>04</span> AUDIO CONVERTER</p><h1>แปลงไฟล์เสียง <em>MP3 → MP4</em></h1><p>เลือกไฟล์เสียง ตั้งคุณภาพ และแปลงเป็น MP4 แบบเสียงอย่างเดียวได้ในเบราว์เซอร์</p></div>
-        <div class="audio-layout">
-          <section class="audio-card audio-input-card">
-            <div class="audio-card-head"><span class="audio-step">01</span><div><h2>เลือกไฟล์เสียง</h2><p>ไฟล์จะถูกประมวลผลในเครื่อง ไม่ได้อัปโหลดไปที่เซิร์ฟเวอร์</p></div></div>
-            <label id="audioDrop" class="audio-drop"><input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"><span class="audio-upload-icon">↑</span><b>ลากไฟล์มาวางที่นี่</b><small>หรือเลือกไฟล์จากอุปกรณ์ · MP3, WAV, M4A, AAC</small><span class="audio-choose">เลือกไฟล์เสียง</span></label>
-            <div id="audioFileInfo" class="audio-file-info" hidden><span class="file-audio-icon">♫</span><div><b id="audioFileName"></b><small id="audioFileSize"></small></div><button id="removeAudio" type="button" aria-label="นำไฟล์ออก">×</button></div>
-            <div id="sourceAudioPreview" class="audio-preview" hidden><label>ไฟล์ต้นฉบับ</label><audio id="sourceAudio" controls></audio></div>
-          </section>
-          <section class="audio-card audio-settings-card">
-            <div class="audio-card-head"><span class="audio-step">02</span><div><h2>ตั้งค่าผลลัพธ์</h2><p>เลือกชื่อและคุณภาพไฟล์ MP4</p></div></div>
-            <label class="audio-field"><span>ชื่อไฟล์</span><div class="filename-field"><input id="audioOutputName" type="text" value="reflection-audio"><b>.mp4</b></div></label>
-            <label class="audio-field"><span>คุณภาพเสียง</span><select id="audioBitrate"><option value="128k">มาตรฐาน · 128 kbps</option><option value="192k" selected>คุณภาพสูง · 192 kbps</option><option value="256k">สูงมาก · 256 kbps</option></select></label>
-            <div class="engine-card"><span class="engine-icon">✳</span><div><b id="engineStatus">ตัวแปลงพร้อมโหลด</b><small>ดาวน์โหลดตัวแปลงครั้งแรกประมาณ 31 MB</small></div><button id="loadEngine" type="button">โหลดตัวแปลง</button></div>
-            <button id="convertAudio" class="convert-button" type="button" disabled>แปลงเป็น MP4 <span>→</span></button>
-            <div id="audioProgressWrap" class="audio-progress-wrap" hidden><div class="audio-progress-label"><span id="audioProgressLabel">กำลังเตรียมไฟล์</span><b id="audioProgressPercent">0%</b></div><div class="audio-progress"><span id="audioProgressBar"></span></div></div>
-            <div id="audioResult" class="audio-result" hidden><div class="result-head"><span>✓</span><div><b>แปลงไฟล์เสร็จแล้ว</b><small id="resultDetails"></small></div></div><audio id="resultAudio" controls></audio><a id="downloadMp4" class="download-audio" download>ดาวน์โหลดไฟล์ MP4 <span>↓</span></a></div>
-          </section>
-        </div>
-        <p class="audio-privacy"><span>◉</span> ไฟล์เสียงของคุณอยู่บนอุปกรณ์นี้ตลอดการแปลง</p>
-      </section>
-
-      <section id="editorView" class="editor-view" hidden>
-        <div class="editor-toolbar">
-          <button id="backToGallery" class="back-button" type="button"><span>←</span> เทมเพลต</button>
-          <div class="document-name"><span class="doc-status"></span><span id="documentTitle">งาน Reflection</span><small id="saveStatus">ยังไม่บันทึก</small></div>
-          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="editorExport" class="editor-export" type="button">ส่งออก HTML <span>↗</span></button></div>
-        </div>
-        <div class="workspace">
-          <aside class="left-rail">
-            <div class="rail-head"><p class="eyebrow">ADD TO STORY</p><h2>องค์ประกอบ</h2></div>
-            <div class="insert-grid">
-              <button data-add="heading" draggable="true" type="button"><span class="insert-glyph">T<span>t</span></span><b>หัวข้อ</b></button>
-              <button data-add="text" draggable="true" type="button"><span class="insert-glyph text-glyph">¶</span><b>ข้อความ</b></button>
-              <button data-add="image" draggable="true" type="button"><span class="insert-glyph image-glyph">▧</span><b>รูปภาพ</b></button>
-              <button data-add="quote" draggable="true" type="button"><span class="insert-glyph quote-glyph">“</span><b>คำพูด</b></button>
-              <button data-add="split" draggable="true" type="button"><span class="insert-glyph split-glyph">▤</span><b>รูป + เนื้อหา</b></button>
-              <button data-add="divider" draggable="true" type="button"><span class="insert-glyph divider-glyph">—</span><b>เส้นคั่น</b></button>
-            </div>
-            <div class="layer-heading"><div><p class="eyebrow">LAYERS</p><h3>ลำดับเนื้อหา</h3></div><span id="layerCount">0</span></div>
-            <div id="layerList" class="layer-list"></div>
-            <div class="rail-foot"><span class="green-spark">✳</span><span>ลากรายการเพื่อเปลี่ยนลำดับ</span></div>
-          </aside>
-          <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
-            <div class="canvas-controls"><span>หน้า Reflection / <b>เนื้อหาหลัก</b></span><div><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div></div>
-            <div id="canvasViewport" class="canvas-viewport"><article id="artboard" class="artboard" aria-label="แคนวาส Reflection"></article></div>
-            <div class="canvas-bottom"><span><i></i> แก้ข้อความได้โดยคลิกที่ตัวอย่าง</span><span id="canvasDimensions">DESKTOP · 960 PX</span></div>
-          </section>
-          <aside class="right-rail">
-            <div class="rail-head property-head"><p class="eyebrow">DESIGN DETAILS</p><h2>ปรับแต่ง</h2></div>
-            <div id="inspector" class="inspector"><div class="inspector-empty"><span>✳</span><b>เลือกองค์ประกอบ</b><p>คลิกข้อความหรือรูปบนแคนวาส เพื่อปรับแต่งรายละเอียด</p></div></div>
-            <div class="export-note"><span>HTML พร้อมใช้งาน</span><p>ออกแบบและจัดการเนื้อหาบนพื้นที่นี้ แล้วส่งออกจากเครื่องมือเดียวกันได้ทันที</p></div>
-          </aside>
-        </div>
-      </section>
-    </main>
-    <dialog id="exportDialog" class="export-dialog"><div class="dialog-head"><div><p class="eyebrow">YOUR REFLECTION</p><h2>ส่งออก HTML</h2></div><button id="closeExport" class="close-dialog" type="button" aria-label="ปิด">×</button></div><p class="dialog-copy">คัดลอกโค้ดไปวางใน CMS ได้เลย รูปที่เพิ่มจากเครื่องจะแสดงเป็น data URI ในโค้ด</p><textarea id="exportCode" spellcheck="false" aria-label="โค้ด HTML ที่ส่งออก"></textarea><div class="dialog-actions"><button id="downloadHtml" class="dialog-secondary" type="button">ดาวน์โหลด .html</button><button id="copyHtml" class="editor-export" type="button">คัดลอกโค้ด <span>↗</span></button></div></dialog>
-    <input id="imageFile" type="file" accept="image/*" hidden>
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  </div>
+  <p>กำลังเปิดเครื่องมือ Reflection Studio… <a href="index.html">เปิดเครื่องมือ</a></p>
 </body>
 </html>

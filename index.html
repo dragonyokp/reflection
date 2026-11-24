@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=8">
+  <link rel="stylesheet" href="studio.css?v=15">
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="studio.js?v=7" defer></script>
+  <script src="studio.js?v=12" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -87,15 +87,19 @@
               <button data-add="quote" draggable="true" type="button"><span class="insert-glyph quote-glyph">“</span><b>คำพูด</b></button>
               <button data-add="split" draggable="true" type="button"><span class="insert-glyph split-glyph">▤</span><b>รูป + เนื้อหา</b></button>
               <button data-add="divider" draggable="true" type="button"><span class="insert-glyph divider-glyph">—</span><b>เส้นคั่น</b></button>
+              <button data-add="banner" draggable="true" type="button"><span class="insert-glyph banner-glyph">▰</span><b>แถบเน้น</b></button>
+              <button data-add="button" draggable="true" type="button"><span class="insert-glyph button-glyph">↗</span><b>ปุ่มลิงก์</b></button>
+              <button data-add="columns" draggable="true" type="button"><span class="insert-glyph columns-glyph">▥</span><b>สองคอลัมน์</b></button>
+              <button data-add="spacer" draggable="true" type="button"><span class="insert-glyph spacer-glyph">↕</span><b>ช่องว่าง</b></button>
             </div>
             <div class="layer-heading"><div><p class="eyebrow">LAYERS</p><h3>ลำดับเนื้อหา</h3></div><span id="layerCount">0</span></div>
             <div id="layerList" class="layer-list"></div>
             <div class="rail-foot"><span class="green-spark">✳</span><span>ลากรายการเพื่อเปลี่ยนลำดับ</span></div>
           </aside>
           <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
-            <div class="canvas-controls"><span>หน้า Reflection / <b>เนื้อหาหลัก</b></span><div><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div></div>
+            <div class="canvas-controls"><span>หน้า Reflection / <b>เนื้อหาหลัก</b></span><div><span id="canvasDimensions">1000 PX · MINIMUM EXPORT WIDTH</span><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div></div>
             <div id="canvasViewport" class="canvas-viewport"><article id="artboard" class="artboard" aria-label="แคนวาส Reflection"></article></div>
-            <div class="canvas-bottom"><span><i></i> แก้ข้อความได้โดยคลิกที่ตัวอย่าง</span><span id="canvasDimensions">DESKTOP · 960 PX</span></div>
+            <div class="canvas-bottom"><span><i></i> คลิกเพื่อแก้ข้อความ · คลิกรูปแล้วลากจุดมุมเพื่อปรับขนาด</span><span>1000 PX MINIMUM</span></div>
           </section>
           <aside class="right-rail">
             <div class="rail-head property-head"><p class="eyebrow">DESIGN DETAILS</p><h2>ปรับแต่ง</h2></div>

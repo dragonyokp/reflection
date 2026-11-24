@@ -1,23 +1,23 @@
 # Reflection Studio
 
-`index.html` is the single entry point for the Reflection tool. The editor combines blank-page creation, full-page article templates, canvas editing, and HTML export in one workspace. Add and reorder headings, text, images, quotes, split image-and-text sections, and dividers; edit the preview directly; then copy or download the generated HTML from the same editor.
+`index.html` is the single entry point for designing a complete Reflection page and exporting the real HTML from the same workspace.
 
-The Templates gallery shows seven distinct full-page Bangchak Reflections layouts. Category filters and card metadata have been removed. The editor interface uses a minimum 18px size for readable text; only the tiny article-page mockups inside template previews stay scaled down to show a full page.
+The canvas is a 1000px-wide desktop design surface. Add and reorder headings, text, photos, quote panels, image-and-copy layouts, highlight bands, links, two-column sections, and spacing. Select an image and drag its corner or side handles to resize it; the inspector shows the resulting width in pixels. Exported HTML keeps the canvas width at a minimum of 1000px and writes image widths and original aspect ratios as pixel values to preserve the selected scale. Text size, alignment, color, section background, spacing, image fit, and corner radius can be adjusted before export. Large raster images are converted to transparent-capable WebP at a resolution suited to the 1000px layout so exports stay responsive. Drafts are stored in IndexedDB to avoid the small localStorage size limit; localStorage remains as a fallback for browsers without IndexedDB.
 
-MP3-to-MP4 audio conversion runs in the browser. The FFmpeg core downloads from jsDelivr on first use (about 31 MB); selected audio files are not uploaded.
+The Templates gallery contains seven distinct full-page Bangchak Reflections layouts. MP3-to-MP4 conversion runs in the browser; its FFmpeg core downloads from jsDelivr on first use (about 31 MB), and selected audio files are not uploaded.
 
 ## Files to publish on GitHub Pages
 
 Upload these files and folders to the repository root:
 
 - `index.html` — main page
-- `studio.html` — direct entry to the same tool
+- `studio.html` — redirects older bookmarks to the main tool
 - `studio.css`
 - `studio.js`
-- `structure-builder.html` — sends old bookmarks to `index.html`
+- `structure-builder.html` — redirects older bookmarks to `index.html`
 - `vendor/ffmpeg/ffmpeg.js`
 - `vendor/ffmpeg/814.ffmpeg.js`
 
-Keep the `vendor/ffmpeg/` folder structure. The old standalone structure builder scripts (`app.js` and `style.css`) are no longer needed for the unified tool.
+Keep the `vendor/ffmpeg/` folder structure. The old standalone structure builder scripts (`app.js` and `style.css`) are not used by the unified tool.
 
 In GitHub, open **Settings → Pages**, choose **Deploy from a branch**, select `main` and `/ (root)`, then save.

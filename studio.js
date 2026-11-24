@@ -11,6 +11,11 @@
   const exportDialog = $('#exportDialog');
   const exportCode = $('#exportCode');
   const DRAFT_KEY = 'reflectionStudioDraftV1';
+  const DRAFT_DB_NAME = 'reflectionStudioDrafts';
+  const DRAFT_STORE = 'drafts';
+  const ARTBOARD_WIDTH = 1000;
+  const ARTBOARD_PADDING = 96;
+  const CONTENT_WIDTH = ARTBOARD_WIDTH - ARTBOARD_PADDING * 2;
 
   const templates = [
     { id:'saf-journey', title:'From Biodiesel to SAF', category:'พลังงาน', tag:'LONGFORM / ENERGY', layout:'energy', date:'10 JUL 2026', source:'From Biodiesel to SAF', description:'บทความยาวแบบเส้นทางพลังงาน: เกริ่นเรื่อง ภาพเปิด ลำดับเหตุการณ์ ประเด็นสำคัญ และบทสรุป', blocks:[
@@ -43,6 +48,8 @@
   let redoStack = [];
   let draggedId = null;
   let draggedType = null;
+  let resizeState = null;
+  let inspectorBaseline = null;
   let toastTimer = 0;
   let editBaseline = null;
   let audioFileObject = null;
@@ -53,12 +60,16 @@
   let audioBusy = false;
   let audioCoreObjectUrl = null;
   let audioWasmObjectUrl = null;
+  let draftDbPromise = null;
+  let draftSaveQueue = Promise.resolve();
+  let draftSaveRevision = 0;
+  let resumeCheckRevision = 0;
 
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => `element-${nextId++}`;
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const textHtml = value => escapeHtml(value).replace(/\r?\n/g, '<br>');
-  const titleFor = type => ({heading:'หัวข้อ',text:'ข้อความ',image:'รูปภาพ',quote:'คำพูด',split:'รูป + เนื้อหา',divider:'เส้นคั่น'}[type] || 'องค์ประกอบ');
+  const titleFor = type => ({heading:'หัวข้อ',text:'ข้อความ',image:'รูปภาพ',quote:'คำพูด',split:'รูป + เนื้อหา',divider:'เส้นคั่น',banner:'แถบเน้น',button:'ปุ่มลิงก์',columns:'สองคอลัมน์',spacer:'ช่องว่าง'}[type] || 'องค์ประกอบ');
   const iconFor = type => ({heading:'T',text:'¶',image:'▧',quote:'“',split:'▤',divider:'—'}[type] || '•');
 
   function showToast(message) {
@@ -83,14 +94,30 @@
 
   function makeElement(type, overrides = {}) {
     const defaults = {
-      heading:{text:'หัวข้อเรื่องราวของคุณ'},
-      text:{text:'คลิกเพื่อเพิ่มข้อความ เล่าเรื่องราวและรายละเอียดที่ต้องการสื่อสารกับผู้อ่าน'},
-      image:{src:'',alt:'คำอธิบายรูปภาพ',width:100},
-      quote:{text:'“เพิ่มประโยคสำคัญที่อยากให้ผู้อ่านจดจำ”'},
-      split:{imageSide:'left',src:'',alt:'คำอธิบายรูปภาพ',title:'หัวข้อย่อย',text:'เพิ่มข้อความประกอบรูปภาพที่นี่'},
-      divider:{}
+      heading:{text:'หัวข้อเรื่องราวของคุณ',fontSize:36,color:'#20271e',align:'left',background:'#f5f5f1',padding:0},
+      text:{text:'คลิกเพื่อเพิ่มข้อความ เล่าเรื่องราวและรายละเอียดที่ต้องการสื่อสารกับผู้อ่าน',fontSize:18,color:'#41483f',align:'left',background:'#f5f5f1',padding:0},
+      image:{src:'',alt:'คำอธิบายรูปภาพ',width:100,aspectRatio:9/16,align:'center',fit:'cover',radius:0},
+      quote:{text:'“เพิ่มประโยคสำคัญที่อยากให้ผู้อ่านจดจำ”',fontSize:24,color:'#384532',align:'left',background:'#e9eee3',padding:24},
+      split:{imageSide:'left',src:'',alt:'คำอธิบายรูปภาพ',title:'หัวข้อย่อย',text:'เพิ่มข้อความประกอบรูปภาพที่นี่',width:100,aspectRatio:9/16,fit:'cover',background:'#e8ece3'},
+      divider:{},
+      banner:{title:'ข้อความสำคัญของเรื่อง',text:'ใช้แถบสีเพื่อเน้นประเด็นหรือคำชวนให้ลงมือทำ',fontSize:24,color:'#ffffff',background:'#397e22',align:'center',padding:36},
+      button:{text:'ดูรายละเอียดเพิ่มเติม',url:'#',fontSize:18,color:'#ffffff',background:'#397e22',align:'left',padding:14},
+      columns:{leftTitle:'หัวข้อฝั่งซ้าย',leftText:'เขียนรายละเอียดหรือข้อมูลประกอบฝั่งซ้าย',rightTitle:'หัวข้อฝั่งขวา',rightText:'เขียนรายละเอียดหรือข้อมูลประกอบฝั่งขวา',fontSize:18,color:'#41483f',background:'#eef2e9',padding:24},
+      spacer:{height:48}
     };
     return {id:uid(),type,...clone(defaults[type] || {}),...overrides};
+  }
+
+  const safeColor = value => /^#[0-9a-f]{6}$/i.test(String(value||'')) ? value : '#20271e';
+  const safeHref = value => /^(https?:|mailto:|tel:|#|\/)/i.test(String(value||'')) ? String(value) : '#';
+  const imageWidthBase = element => element.type === 'split' ? Math.round((CONTENT_WIDTH - 48 - 15) / 2) : CONTENT_WIDTH;
+  const imageMaxPercent = element => element.type === 'split' ? 100 : 120;
+  const imageWidthPx = element => Math.max(1,Math.round(imageWidthBase(element) * Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100)) / 100));
+  const imageAspectRatio = element => Number.isFinite(Number(element.aspectRatio)) && Number(element.aspectRatio)>0.02 && Number(element.aspectRatio)<20 ? Number(element.aspectRatio) : 9/16;
+  const textStyle = element => `font-size:${Math.max(18,Math.min(72,Number(element.fontSize)||18))}px;color:${safeColor(element.color)};text-align:${['left','center','right'].includes(element.align)?element.align:'left'}`;
+  function renderResizeHandles(element) {
+    if (element.id !== selectedId) return '';
+    return `<span class="resize-handle handle-nw" data-resize-handle="nw" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-n" data-resize-handle="n" aria-hidden="true"></span><span class="resize-handle handle-ne" data-resize-handle="ne" aria-hidden="true"></span><span class="resize-handle handle-e" data-resize-handle="e" aria-hidden="true"></span><span class="resize-handle handle-se" data-resize-handle="se" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-s" data-resize-handle="s" aria-hidden="true"></span><span class="resize-handle handle-sw" data-resize-handle="sw" aria-hidden="true"></span><span class="resize-handle handle-w" data-resize-handle="w" aria-hidden="true"></span>`;
   }
 
   function renderThumb(template) {
@@ -114,7 +141,7 @@
   }
 
   function renderGallery() {
-    $('#resumeDraft').hidden = !localStorage.getItem(DRAFT_KEY);
+    refreshResumeButton();
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
     const filtered = templates.filter(template => !query || `${template.title} ${template.description} ${template.source || ''}`.toLocaleLowerCase('th').includes(query));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
@@ -139,19 +166,27 @@
   function renderBlock(element) {
     const selected = element.id === selectedId ? ' selected' : '';
     const draggable = ' draggable="true"';
-    if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}"${draggable}><h2 style="text-align:${element.align||'left'}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
-    if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}"${draggable}><p style="text-align:${element.align||'left'}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
-    if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}"${draggable}><blockquote style="text-align:${element.align||'left'}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
-    if (element.type === 'image') return `<div class="canvas-block image-block${selected}" data-id="${element.id}" style="width:${Number(element.width)||100}%"${draggable}><div class="image-placeholder">${element.src?`<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}">`:`<span>▧ &nbsp; ${escapeHtml(element.alt || 'เพิ่มรูปภาพจากแถบปรับแต่ง')}</span>`}</div></div>`;
-    if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder" style="width:${element.width||100}%;${element.imageSide==='right'?'margin-left:auto':''}">${element.src?`<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}">`:`<span>▧ &nbsp; ${escapeHtml(element.alt || 'เพิ่มรูปภาพ')}</span>`}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
+    const background = safeColor(element.background || '#f5f5f1');
+    const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
+    if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h2 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
+    if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
+    if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
+    if (element.type === 'image') return `<div class="canvas-block image-block${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);aspect-ratio:${1/imageAspectRatio(element)}">${element.src?`<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}" style="object-fit:${element.fit==='contain'?'contain':'cover'};border-radius:${Math.max(0,Math.min(48,Number(element.radius)||0))}px">`:`<span>▧ &nbsp; ${escapeHtml(element.alt || 'เพิ่มรูปภาพจากแถบปรับแต่ง')}</span>`}${renderResizeHandles(element)}</div></div>`;
+    if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${element.src?`<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}" style="object-fit:${element.fit==='contain'?'contain':'cover'}">`:`<span>▧ &nbsp; ${escapeHtml(element.alt || 'เพิ่มรูปภาพ')}</span>`}${renderResizeHandles(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
+    if (element.type === 'banner') return `<section class="canvas-block banner-block${selected}" data-id="${element.id}" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"${draggable}><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
+    if (element.type === 'button') return `<div class="canvas-block button-block${selected}" data-id="${element.id}" style="text-align:${element.align||'left'}"${draggable}><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none" contenteditable="true" data-part="text">${textHtml(element.text)}</a></div>`;
+    if (element.type === 'columns') return `<div class="canvas-block columns-block${selected}" data-id="${element.id}" style="background:${background};padding:${padding||24}px;--column-text-size:${Math.max(18,Number(element.fontSize)||18)}px;color:${safeColor(element.color)}"${draggable}><div><h3 contenteditable="true" data-part="leftTitle">${textHtml(element.leftTitle)}</h3><p contenteditable="true" data-part="leftText">${textHtml(element.leftText)}</p></div><div><h3 contenteditable="true" data-part="rightTitle">${textHtml(element.rightTitle)}</h3><p contenteditable="true" data-part="rightText">${textHtml(element.rightText)}</p></div></div>`;
+    if (element.type === 'spacer') return `<div class="canvas-block spacer-block${selected}" data-id="${element.id}" style="height:${Math.max(18,Math.min(320,Number(element.height)||48))}px"${draggable}><span>ช่องว่าง · ${Math.max(18,Number(element.height)||48)} px</span></div>`;
     return `<div class="canvas-block divider-block${selected}" data-id="${element.id}"${draggable}><hr></div>`;
   }
 
   function renderArtboard() {
-    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span>✳</span><b>เริ่มสร้างเรื่องราวของคุณ</b><p>เลือกองค์ประกอบจากแถบซ้าย หรือเพิ่มรูปแบบจากเทมเพลต</p></div>';
+    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span>✳</span><b>เริ่มสร้างเรื่องราวของคุณ</b><p>เพิ่มหัวข้อ รูปภาพ แถบเน้น หรือจัดวางสองคอลัมน์</p></div>';
+    artboard.style.width = `${ARTBOARD_WIDTH}px`;
+    artboard.style.minHeight = '1400px';
     artboard.style.transform = `scale(${zoom})`;
     $('#zoomLabel').textContent = `${Math.round(zoom*100)}%`;
-    $('#canvasDimensions').textContent = `DESKTOP · 960 PX`;
+    $('#canvasDimensions').textContent = `ส่งออกกว้างอย่างน้อย ${ARTBOARD_WIDTH} px`;
   }
 
   function renderLayers() {
@@ -163,6 +198,18 @@
     return `<div class="inspector-field"><label class="field-label">${label}</label>${content}${hint?`<small class="field-hint">${hint}</small>`:''}</div>`;
   }
 
+  function alignmentFields(element) {
+    return `<div class="align-group">${['left','center','right'].map((align,index)=>`<button type="button" class="${(element.align||'left')===align?'active':''}" data-align="${align}" aria-label="จัด${['ซ้าย','กลาง','ขวา'][index]}">${['≡','☰','≡'][index]}</button>`).join('')}</div>`;
+  }
+
+  function designFields(element,{background=true,align=true,padding=true}={}) {
+    let fields = `<div class="inspector-group"><h3>ตัวอักษรและสี</h3>${field('สีตัวอักษร',`<input type="color" data-prop="color" value="${safeColor(element.color||'#20271e')}">`)}${field('ขนาดตัวอักษร',`<div class="range-line"><span>ขนาด</span><b data-size-value>${Math.max(18,Number(element.fontSize)||18)} px</b></div><input type="range" min="18" max="72" step="1" data-prop="fontSize" value="${Math.max(18,Number(element.fontSize)||18)}">`)}`;
+    if (background) fields += field('สีพื้นหลัง',`<input type="color" data-prop="background" value="${safeColor(element.background||'#f5f5f1')}">`);
+    if (align) fields += field('แนววาง',alignmentFields(element));
+    if (padding) fields += field('ระยะหายใจ',`<div class="range-line"><span>รอบเนื้อหา</span><b data-padding-value>${Math.max(0,Number(element.padding)||0)} px</b></div><input type="range" min="0" max="96" step="4" data-prop="padding" value="${Math.max(0,Number(element.padding)||0)}">`);
+    return fields + '</div>';
+  }
+
   function renderInspector() {
     const element = elements.find(item => item.id === selectedId);
     if (!element) {
@@ -172,10 +219,21 @@
     let fields = '';
     if (['heading','text','quote'].includes(element.type)) {
       fields += `<div class="inspector-group"><h3>เนื้อหา</h3>${field(element.type==='heading'?'ข้อความหัวข้อ':element.type==='quote'?'ข้อความคำพูด':'ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text)}</textarea>`)}</div>`;
-      fields += `<div class="inspector-group"><h3>การจัดวาง</h3><div class="align-group">${['left','center','right'].map((align,index)=>`<button type="button" class="${(element.align||'left')===align?'active':''}" data-align="${align}" aria-label="จัด${['ซ้าย','กลาง','ขวา'][index]}">${['≡','☰','≡'][index]}</button>`).join('')}</div></div>`;
+      fields += designFields(element,{background:element.type!=='heading'});
     } else if (element.type === 'image' || element.type === 'split') {
-      fields += `<div class="inspector-group"><h3>รูปภาพ</h3>${field('ไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">${element.src?'เปลี่ยนรูปภาพ':'เลือกจากอุปกรณ์'} <span>↗</span></button>`)}${field('คำอธิบายรูปภาพ',`<input type="text" data-prop="alt" value="${escapeHtml(element.alt||'')}">`)}${field('ขนาดภาพ',`<div class="range-line"><span>ความกว้าง</span><b data-width-value>${element.width||100}%</b></div><input type="range" min="35" max="100" step="1" data-prop="width" value="${element.width||100}">`)}</div>`;
-      if (element.type === 'split') fields += `<div class="inspector-group"><h3>ข้อความคู่ภาพ</h3>${field('หัวข้อ',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('เนื้อหา',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}${field('ตำแหน่งรูปภาพ',`<select data-prop="imageSide"><option value="left" ${element.imageSide!=='right'?'selected':''}>ด้านซ้าย</option><option value="right" ${element.imageSide==='right'?'selected':''}>ด้านขวา</option></select>`)}</div>`;
+      fields += `<div class="inspector-group"><h3>รูปภาพ</h3>${field('ไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">${element.src?'เปลี่ยนรูปภาพ':'เลือกรูปจากอุปกรณ์'} <span>↗</span></button>`)}${field('คำอธิบายรูปภาพ',`<input type="text" data-prop="alt" value="${escapeHtml(element.alt||'')}">`)}${field('ขนาดรูปภาพ',`<div class="range-line"><span>ลากจุดที่มุมรูป หรือปรับความกว้าง</span><b data-width-value>${imageWidthPx(element)} px</b></div><input type="range" min="10" max="${imageMaxPercent(element)}" step="1" data-prop="width" value="${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}">`)}${field('การแสดงภาพ',`<select data-prop="fit"><option value="cover" ${element.fit!=='contain'?'selected':''}>เต็มกรอบ</option><option value="contain" ${element.fit==='contain'?'selected':''}>เห็นภาพครบ</option></select>`)}`;
+      if (element.type === 'image') fields += `${field('มุมภาพ',`<input type="range" min="0" max="48" step="2" data-prop="radius" value="${Number(element.radius)||0}">`)}${field('ตำแหน่งภาพ',alignmentFields(element))}`;
+      if (element.type === 'split') fields += `${field('หัวข้อคู่ภาพ',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('เนื้อหาคู่ภาพ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}${field('ตำแหน่งรูปภาพ',`<select data-prop="imageSide"><option value="left" ${element.imageSide!=='right'?'selected':''}>ด้านซ้าย</option><option value="right" ${element.imageSide==='right'?'selected':''}>ด้านขวา</option></select>`)}`;
+      fields += '</div>';
+      if (element.type === 'split') fields += designFields(element,{background:true,align:false,padding:false});
+    } else if (element.type === 'banner') {
+      fields += `<div class="inspector-group"><h3>เนื้อหาแถบเน้น</h3>${field('หัวข้อ',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}</div>${designFields(element)}`;
+    } else if (element.type === 'button') {
+      fields += `<div class="inspector-group"><h3>ปุ่มลิงก์</h3>${field('ข้อความบนปุ่ม',`<input type="text" data-prop="text" value="${escapeHtml(element.text||'')}">`)}${field('ลิงก์ปลายทาง',`<input type="text" data-prop="url" value="${escapeHtml(element.url||'#')}">`)}</div>${designFields(element,{background:true,align:true,padding:true})}`;
+    } else if (element.type === 'columns') {
+      fields += `<div class="inspector-group"><h3>คอลัมน์ซ้าย</h3>${field('หัวข้อ',`<input type="text" data-prop="leftTitle" value="${escapeHtml(element.leftTitle||'')}">`)}${field('เนื้อหา',`<textarea data-prop="leftText">${escapeHtml(element.leftText||'')}</textarea>`)}</div><div class="inspector-group"><h3>คอลัมน์ขวา</h3>${field('หัวข้อ',`<input type="text" data-prop="rightTitle" value="${escapeHtml(element.rightTitle||'')}">`)}${field('เนื้อหา',`<textarea data-prop="rightText">${escapeHtml(element.rightText||'')}</textarea>`)}</div>${designFields(element,{background:true,align:false,padding:true})}`;
+    } else if (element.type === 'spacer') {
+      fields = `<div class="inspector-group"><h3>ระยะห่าง</h3>${field('ความสูง',`<div class="range-line"><span>ปรับช่องว่างแนวตั้ง</span><b data-height-value>${Number(element.height)||48} px</b></div><input type="range" min="18" max="320" step="6" data-prop="height" value="${Number(element.height)||48}">`)}</div>`;
     } else {
       fields = '<div class="inspector-group"><p class="field-hint">เส้นคั่นใช้แบ่งช่วงเนื้อหา</p></div>';
     }
@@ -248,6 +306,80 @@
     scheduleSave();
   }
 
+  function commitInspectorEdit() {
+    if (inspectorBaseline && JSON.stringify(inspectorBaseline) !== JSON.stringify(elements)) {
+      undoStack.push(inspectorBaseline);
+      redoStack = [];
+    }
+    inspectorBaseline = null;
+    renderAll();
+  }
+
+  function startImageResize(event) {
+    const handle = event.target.closest('[data-resize-handle]');
+    if (!handle || resizeState) return;
+    const block = handle.closest('[data-id]');
+    const element = elements.find(item => item.id === block?.dataset.id);
+    const imageBox = handle.parentElement;
+    if (!element || !['image','split'].includes(element.type) || !imageBox) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = imageBox.getBoundingClientRect();
+    const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100));
+    const width = rect.width / zoom;
+    const height = Math.max(1,rect.height / zoom);
+    resizeState = {id:element.id,handle:handle.dataset.resizeHandle,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),aspect:width/height,before:clone(elements),block};
+    block.setAttribute('draggable','false');
+    try { handle.setPointerCapture?.(event.pointerId); } catch {}
+    document.addEventListener('pointermove',resizeImageMove);
+    document.addEventListener('pointerup',finishImageResize,{once:true});
+    document.addEventListener('pointercancel',finishImageResize,{once:true});
+    document.addEventListener('mousemove',resizeImageMove);
+    document.addEventListener('mouseup',finishImageResize,{once:true});
+  }
+
+  function resizeImageMove(event) {
+    if (!resizeState) return;
+    const el = elements.find(item => item.id === resizeState.id);
+    if (!el) return;
+    const handle = resizeState.handle;
+    const hasX = handle.includes('e') || handle.includes('w');
+    const hasY = handle.includes('n') || handle.includes('s');
+    const dx = (event.clientX-resizeState.startX) / zoom * (handle.includes('w') ? -1 : 1);
+    const dy = (event.clientY-resizeState.startY) / zoom * (handle.includes('n') ? -1 : 1) * resizeState.aspect;
+    const delta = hasX && hasY ? (Math.abs(dx)>=Math.abs(dy)?dx:dy) : hasX ? dx : dy;
+    const width = Math.max(10,Math.min(imageMaxPercent(el),resizeState.startWidth + delta / resizeState.baseWidth * 100));
+    el.width = width;
+    const block = artboard.querySelector(`[data-id="${el.id}"]`);
+    const imageBox = block?.querySelector('.image-placeholder');
+    if (el.type === 'image') {
+      block?.style.setProperty('--image-width',`${width}%`);
+      if (imageBox) imageBox.style.width = `${width}%`;
+    } else if (imageBox) imageBox.style.width = `${width}%`;
+    const slider = $('[data-prop="width"]',inspector);
+    if (slider) slider.value = String(Math.round(width));
+    const label = $('[data-width-value]',inspector);
+    if (label) label.textContent = `${imageWidthPx(el)} px`;
+    $('#saveStatus').textContent = 'มีการแก้ไข';
+    scheduleSave();
+  }
+
+  function finishImageResize() {
+    document.removeEventListener('pointermove',resizeImageMove);
+    document.removeEventListener('pointerup',finishImageResize);
+    document.removeEventListener('pointercancel',finishImageResize);
+    document.removeEventListener('mousemove',resizeImageMove);
+    document.removeEventListener('mouseup',finishImageResize);
+    if (!resizeState) return;
+    resizeState.block.setAttribute('draggable','true');
+    if (JSON.stringify(resizeState.before) !== JSON.stringify(elements)) {
+      undoStack.push(resizeState.before);
+      redoStack = [];
+    }
+    resizeState = null;
+    renderAll();
+  }
+
   function onInlineEdit(event) {
     const target = event.target.closest('[contenteditable="true"]');
     if (!target) return;
@@ -264,54 +396,179 @@
 
   let saveTimer;
   function scheduleSave() {
+    const revision = ++draftSaveRevision;
+    const payload = {title:$('#documentTitle').textContent,elements:clone(elements),nextId};
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
+    saveTimer = setTimeout(async () => {
       try {
-        localStorage.setItem(DRAFT_KEY,JSON.stringify({title:$('#documentTitle').textContent,elements,nextId}));
-        $('#saveStatus').textContent = 'บันทึกอัตโนมัติแล้ว';
+        await persistDraft(payload);
+        if (revision === draftSaveRevision) $('#saveStatus').textContent = 'บันทึกอัตโนมัติแล้ว';
       } catch {
-        $('#saveStatus').textContent = 'รูปมีขนาดใหญ่เกินบันทึก';
+        if (revision === draftSaveRevision) {
+          $('#saveStatus').textContent = 'บันทึกร่างไม่สำเร็จ';
+          showToast('บันทึกไม่สำเร็จ ตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์');
+        }
       }
     }, 600);
   }
 
-  function saveDraft() {
-    const payload = {title:$('#documentTitle').textContent,elements,nextId};
+  function openDraftDatabase() {
+    if (!('indexedDB' in window)) return Promise.reject(new Error('IndexedDB is unavailable'));
+    if (!draftDbPromise) {
+      draftDbPromise = new Promise((resolve,reject) => {
+        const request = indexedDB.open(DRAFT_DB_NAME,1);
+        request.onupgradeneeded = () => {
+          if (!request.result.objectStoreNames.contains(DRAFT_STORE)) request.result.createObjectStore(DRAFT_STORE);
+        };
+        request.onsuccess = () => {
+          request.result.onversionchange = () => request.result.close();
+          resolve(request.result);
+        };
+        request.onerror = () => reject(request.error || new Error('Could not open draft storage'));
+        request.onblocked = () => reject(new Error('Draft storage is blocked'));
+      }).catch(error => {draftDbPromise=null;throw error});
+    }
+    return draftDbPromise;
+  }
+
+  async function readDraftRecord() {
+    const db = await openDraftDatabase();
+    return new Promise((resolve,reject) => {
+      const transaction = db.transaction(DRAFT_STORE,'readonly');
+      const request = transaction.objectStore(DRAFT_STORE).get('current');
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || new Error('Could not read draft'));
+    });
+  }
+
+  async function readSavedDraft() {
     try {
-      localStorage.setItem(DRAFT_KEY,JSON.stringify(payload));
-      $('#saveStatus').textContent = 'บันทึกล่าสุดแล้ว';
+      const draft = await readDraftRecord();
+      if (draft) return draft;
+    } catch {}
+    try {
+      const stored = localStorage.getItem(DRAFT_KEY);
+      return stored && stored !== 'indexeddb' ? JSON.parse(stored) : null;
+    } catch {return null;}
+  }
+
+  async function hasSavedDraft() {
+    try {if (localStorage.getItem(DRAFT_KEY)) return true;} catch {}
+    try {return Boolean(await readDraftRecord());} catch {return false;}
+  }
+
+  async function refreshResumeButton() {
+    const revision = ++resumeCheckRevision;
+    const available = await hasSavedDraft();
+    if (revision === resumeCheckRevision) $('#resumeDraft').hidden = !available;
+  }
+
+  async function persistDraft(payload) {
+    const operation = draftSaveQueue.then(async () => {
+      try {
+        const db = await openDraftDatabase();
+        await new Promise((resolve,reject) => {
+          const transaction = db.transaction(DRAFT_STORE,'readwrite');
+          transaction.objectStore(DRAFT_STORE).put(payload,'current');
+          transaction.oncomplete = resolve;
+          transaction.onerror = () => reject(transaction.error || new Error('Could not save draft'));
+          transaction.onabort = () => reject(transaction.error || new Error('Draft save was interrupted'));
+        });
+        try {localStorage.setItem(DRAFT_KEY,'indexeddb');} catch {}
+      } catch (databaseError) {
+        try {localStorage.setItem(DRAFT_KEY,JSON.stringify(payload));}
+        catch {throw databaseError;}
+      }
+    });
+    draftSaveQueue = operation.catch(() => {});
+    return operation;
+  }
+
+  async function saveDraft() {
+    const revision = ++draftSaveRevision;
+    clearTimeout(saveTimer);
+    const payload = {title:$('#documentTitle').textContent,elements:clone(elements),nextId};
+    try {
+      await persistDraft(payload);
+      if (revision === draftSaveRevision) $('#saveStatus').textContent = 'บันทึกล่าสุดแล้ว';
       showToast('บันทึกร่างไว้ในเบราว์เซอร์แล้ว');
     } catch {
-      showToast('บันทึกไม่สำเร็จ ลองลดขนาดรูปภาพแล้วบันทึกอีกครั้ง');
+      if (revision === draftSaveRevision) $('#saveStatus').textContent = 'บันทึกร่างไม่สำเร็จ';
+      showToast('บันทึกไม่สำเร็จ ตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์');
     }
   }
 
   function elementToHtml(element) {
     const align = ['left','center','right'].includes(element.align) ? element.align : 'left';
     const imageSource = element.src || '/storage/newsroom/refaction/#####/#####/#####/image.webp';
-    const imgWidth = Math.max(35,Math.min(100,Number(element.width)||100));
-    const img = `<img class="img-fluid" src="${escapeHtml(imageSource)}" alt="${escapeHtml(element.alt || '')}" style="width:${imgWidth}%;height:auto">`;
-    if (element.type === 'heading') return `    <h2 class="news__subtitle mb-4" style="text-align:${align}">${textHtml(element.text)}</h2>`;
-    if (element.type === 'text') return `    <p class="mb-4" style="text-align:${align}">${textHtml(element.text)}</p>`;
-    if (element.type === 'quote') return `    <blockquote class="my-md-5 my-4" style="text-align:${align}">${textHtml(element.text)}</blockquote>`;
-    if (element.type === 'image') return `    <figure class="text-center my-5">${img}</figure>`;
-    if (element.type === 'split') {
-      const imageCol = `            <div class="col-md-6">\n                <figure class="text-center">${img}</figure>\n            </div>`;
-      const textCol = `            <div class="col-md-6">\n                <h4>${textHtml(element.title)}</h4>\n                <p>${textHtml(element.text)}</p>\n            </div>`;
-      return `    <div class="row align-items-center my-5">\n${element.imageSide === 'right' ? `${textCol}\n${imageCol}` : `${imageCol}\n${textCol}`}\n    </div>`;
+    const imageWidth = imageWidthPx(element);
+    const imageHeight = Math.round(imageWidth * imageAspectRatio(element));
+    const img = `<img src="${escapeHtml(imageSource)}" alt="${escapeHtml(element.alt || '')}" style="display:block;width:${imageWidth}px;max-width:none;height:${imageHeight}px;object-fit:${element.fit==='contain'?'contain':'cover'};border-radius:${Math.max(0,Math.min(48,Number(element.radius)||0))}px">`;
+    const background = safeColor(element.background||'#f5f5f1');
+    const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
+    if (element.type === 'heading') return `    <h2 class="news__subtitle mb-4" style="${textStyle(element)};background:${background};padding-block:${padding}px">${textHtml(element.text)}</h2>`;
+    if (element.type === 'text') return `    <p class="mb-4" style="${textStyle(element)};background:${background};padding-block:${padding}px">${textHtml(element.text)}</p>`;
+    if (element.type === 'quote') return `    <blockquote class="my-md-5 my-4" style="${textStyle(element)};background:${background};padding:${Math.max(14,padding)}px;border-left:4px solid #84be3d">${textHtml(element.text)}</blockquote>`;
+    if (element.type === 'image') {
+      const flexAlign = align==='right'?'flex-end':align==='center'?'center':'flex-start';
+      return `    <div style="display:flex;justify-content:${flexAlign};margin:20px 0"><figure style="width:${imageWidth}px;max-width:none;margin:0">${img}</figure></div>`;
     }
-    if (element.type === 'divider') return '    <hr class="my-5">';
+    if (element.type === 'split') {
+      const imageCol = `<div style="min-width:0"><figure style="width:${imageWidth}px;max-width:none;margin:0">${img}</figure></div>`;
+      const textCol = `<div style="min-width:0"><h3 style="font-size:24px;color:${safeColor(element.color||'#20271e')};margin:0 0 12px">${textHtml(element.title)}</h3><p style="font-size:18px;line-height:1.8;color:${safeColor(element.color||'#41483f')};margin:0">${textHtml(element.text)}</p></div>`;
+      return `    <section style="display:grid;grid-template-columns:1fr 1fr;gap:15px;align-items:center;padding:24px;background:${background};margin:24px 0">\n        ${element.imageSide === 'right' ? `${textCol}\n        ${imageCol}` : `${imageCol}\n        ${textCol}`}\n    </section>`;
+    }
+    if (element.type === 'banner') return `    <section style="padding:${padding||36}px;background:${background};text-align:${align};color:${safeColor(element.color||'#ffffff')};margin:24px 0"><h2 style="font-size:${Math.max(22,Number(element.fontSize)||24)}px;color:${safeColor(element.color||'#ffffff')};margin:0 0 12px">${textHtml(element.title)}</h2><p style="${textStyle(element)};margin:0">${textHtml(element.text)}</p></section>`;
+    if (element.type === 'button') return `    <div style="text-align:${align};margin:20px 0"><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none">${textHtml(element.text)}</a></div>`;
+    if (element.type === 'columns') return `    <section style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:${padding||24}px;background:${background};color:${safeColor(element.color||'#41483f')};margin:24px 0"><div><h3 style="font-size:22px;color:${safeColor(element.color||'#20271e')}">${textHtml(element.leftTitle)}</h3><p style="font-size:${Math.max(18,Number(element.fontSize)||18)}px;line-height:1.8">${textHtml(element.leftText)}</p></div><div><h3 style="font-size:22px;color:${safeColor(element.color||'#20271e')}">${textHtml(element.rightTitle)}</h3><p style="font-size:${Math.max(18,Number(element.fontSize)||18)}px;line-height:1.8">${textHtml(element.rightText)}</p></div></section>`;
+    if (element.type === 'spacer') return `    <div aria-hidden="true" style="height:${Math.max(18,Math.min(320,Number(element.height)||48))}px"></div>`;
+    if (element.type === 'divider') return '    <hr style="border:0;border-top:1px solid #cbd1c5;margin:24px 0">';
     return '';
   }
 
   function buildExport() {
     const content = elements.map(elementToHtml).filter(Boolean).join('\n\n');
-    return `<!-- Reflection Studio · HTML export -->\n<div class="container reflection-content">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8">\n${content}\n        </div>\n    </div>\n</div>`;
+    return `<!-- Reflection Studio · 1000px design width -->\n<div class="reflection-content" style="box-sizing:border-box;width:1000px;min-width:1000px;max-width:none;margin:0 auto;padding:90px 96px;background:#f5f5f1;color:#252b25">\n${content}\n</div>`;
   }
 
-  function openExport() {
-    exportCode.value = buildExport();
-    exportDialog.showModal();
+  async function optimizeLegacyEmbeddedImages() {
+    const next = clone(elements);
+    let updated = false;
+    for (const element of next) {
+      if (!['image','split'].includes(element.type) || !/^data:image\/(png|jpeg|webp);base64,/i.test(element.src||'') || element.src.length < 1_000_000) continue;
+      const response = await fetch(element.src);
+      if (!response.ok) continue;
+      const blob = await response.blob();
+      const file = new File([blob],`${(element.alt||'reflection-image').replace(/[^\wก-๙-]+/g,'-')}.${blob.type.split('/')[1]||'png'}`,{type:blob.type});
+      const asset = await prepareImageAsset(file);
+      if (asset.optimized && asset.bytes < blob.size) {
+        element.src = asset.src;
+        if (asset.aspectRatio) element.aspectRatio = asset.aspectRatio;
+        updated = true;
+      }
+    }
+    if (updated) {
+      elements = next;
+      renderAll();
+      scheduleSave();
+      showToast('ปรับรูปขนาดใหญ่ให้พร้อมส่งออกแล้ว');
+    }
+  }
+
+  async function openExport() {
+    const exportButton = $('#editorExport');
+    exportButton.disabled = true;
+    exportButton.textContent = 'เตรียมโค้ดส่งออก…';
+    try {
+      await optimizeLegacyEmbeddedImages();
+      exportCode.value = buildExport();
+      exportDialog.showModal();
+    } catch {
+      showToast('เตรียมรูปภาพไม่สำเร็จ ลองบันทึกงานแล้วเปิดส่งออกอีกครั้ง');
+    } finally {
+      exportButton.disabled = false;
+      exportButton.innerHTML = 'ส่งออก HTML <span>↗</span>';
+    }
   }
 
   function undo() {
@@ -334,29 +591,88 @@
 
   function fitCanvasToView() {
     const available = Math.max(320,$('#canvasViewport').clientWidth - 56);
-    zoom = Math.max(.38,Math.min(1,available / 960));
+    zoom = Math.max(.38,Math.min(1,available / ARTBOARD_WIDTH));
     renderArtboard();
   }
 
-  function applyFile(file) {
+  function blobToDataUrl(blob) {
+    return new Promise((resolve,reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('Could not read image'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function canvasToBlob(canvas,type,quality) {
+    return new Promise(resolve => canvas.toBlob(resolve,type,quality));
+  }
+
+  async function prepareImageAsset(file) {
+    if (!window.createImageBitmap) return {src:await blobToDataUrl(file),optimized:false,bytes:file.size,aspectRatio:null};
+    let bitmap;
+    let aspectRatio = null;
+    try {
+      const sourceBitmap = await createImageBitmap(file);
+      aspectRatio = sourceBitmap.height/sourceBitmap.width;
+      const keepOriginal = file.type === 'image/svg+xml' || file.type === 'image/gif';
+      const needsOptimization = !keepOriginal && (file.size > 350 * 1024 || sourceBitmap.width*sourceBitmap.height > 8_000_000 || Math.max(sourceBitmap.width,sourceBitmap.height) > 4800);
+      if (!needsOptimization) {
+        sourceBitmap.close?.();
+        return {src:await blobToDataUrl(file),optimized:false,bytes:file.size,aspectRatio};
+      }
+      const scale = Math.min(1,4800/Math.max(sourceBitmap.width,sourceBitmap.height),1800/sourceBitmap.width,Math.sqrt(8_000_000/(sourceBitmap.width*sourceBitmap.height)));
+      const width = Math.max(1,Math.round(sourceBitmap.width*scale));
+      const height = Math.max(1,Math.round(sourceBitmap.height*scale));
+      if (scale < .999) {
+        try {bitmap = await createImageBitmap(file,{resizeWidth:width,resizeHeight:height,resizeQuality:'high'});}
+        catch {bitmap = sourceBitmap;}
+      } else bitmap = sourceBitmap;
+      if (bitmap !== sourceBitmap) sourceBitmap.close?.();
+    } catch {return {src:await blobToDataUrl(file),optimized:false,bytes:file.size,aspectRatio:null};}
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const context = canvas.getContext('2d',{alpha:true});
+      if (!context) return {src:await blobToDataUrl(file),optimized:false,bytes:file.size,aspectRatio};
+      context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+      let blob = await canvasToBlob(canvas,'image/webp',.84);
+      if (!blob || blob.type !== 'image/webp') return {src:await blobToDataUrl(file),optimized:false,bytes:file.size,aspectRatio};
+      if (blob.size > 1_500_000) {
+        blob = await canvasToBlob(canvas,'image/webp',.72) || blob;
+      }
+      if (blob.size > file.size) return {src:await blobToDataUrl(file),optimized:false,bytes:file.size,aspectRatio};
+      return {src:await blobToDataUrl(blob),optimized:blob.size<file.size,bytes:blob.size,aspectRatio};
+    } finally {bitmap.close?.();}
+  }
+
+  async function applyFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const element = elements.find(item => item.id === selectedId);
-      if (!element || !['image','split'].includes(element.type)) {
-        addBlock('image');
-        const added = elements.find(item => item.id === selectedId);
-        if (added) { added.src = reader.result; added.alt = file.name.replace(/\.[^.]+$/,''); renderAll(); scheduleSave(); }
-      } else {
+    showToast('กำลังเตรียมรูปภาพ…');
+    try {
+      const asset = await prepareImageAsset(file);
+      const alt = file.name.replace(/\.[^.]+$/,'');
+      const current = elements.find(item => item.id === selectedId);
+      if (current && ['image','split'].includes(current.type)) {
         const next = clone(elements);
         const target = next.find(item => item.id === selectedId);
-        target.src = reader.result;
-        target.alt = file.name.replace(/\.[^.]+$/,'');
+        target.src = asset.src;
+        target.alt = alt;
+        if (asset.aspectRatio) target.aspectRatio = asset.aspectRatio;
         setElements(next,selectedId);
+      } else {
+        const next = clone(elements);
+        const image = makeElement('image',{src:asset.src,alt,...(asset.aspectRatio?{aspectRatio:asset.aspectRatio}:{})});
+        const selectedIndex = next.findIndex(item => item.id === selectedId);
+        next.splice(selectedIndex < 0 ? next.length : selectedIndex + 1,0,image);
+        setElements(next,image.id);
       }
-      showToast('เพิ่มรูปภาพลงในงานแล้ว');
-    };
-    reader.readAsDataURL(file);
+      const size = `${(file.size/1024/1024).toFixed(1)} → ${(asset.bytes/1024/1024).toFixed(1)} MB`;
+      showToast(asset.optimized ? `เพิ่มรูปภาพแล้ว · ปรับขนาดไฟล์ ${size}` : 'เพิ่มรูปภาพลงในงานแล้ว');
+    } catch {
+      showToast('อ่านรูปภาพไม่สำเร็จ ลองใช้ไฟล์ PNG, JPG หรือ WebP');
+    }
   }
 
   function setAudioFile(file) {
@@ -497,14 +813,17 @@
     }
   });
   $('#blankStart').addEventListener('click',() => enterEditor('งาน Reflection ใหม่',[]));
-  galleryView.addEventListener('click',event => {
+  galleryView.addEventListener('click',async event => {
     if (!event.target.closest('#resumeDraft')) return;
+    const resumeButton = $('#resumeDraft');
+    resumeButton.disabled = true;
     try {
-      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-      if (!draft) return;
+      const draft = await readSavedDraft();
+      if (!draft) {resumeButton.hidden = true;return;}
       enterEditor(draft.title || 'งาน Reflection',draft.elements || []);
       nextId = Math.max(Number(draft.nextId)||1,...elements.map(item => Number(String(item.id).split('-').pop())+1 || 1));
     } catch { showToast('เปิดร่างที่บันทึกไว้ไม่สำเร็จ'); }
+    finally {resumeButton.disabled = false;}
   });
   $('#backToGallery').addEventListener('click',() => {
     showMode('gallery');
@@ -515,12 +834,19 @@
     try { await navigator.clipboard.writeText(exportCode.value); showToast('คัดลอก HTML แล้ว'); }
     catch { exportCode.select(); document.execCommand('copy'); showToast('คัดลอก HTML แล้ว'); }
   });
-  $('#downloadHtml').addEventListener('click',() => {
-    const blob = new Blob([`<!doctype html><html lang="th"><meta charset="utf-8"><title>Reflection export</title><body>\n${buildExport()}\n</body></html>`],{type:'text/html;charset=utf-8'});
+  $('#downloadHtml').addEventListener('click',async () => {
+    const downloadButton = $('#downloadHtml');
+    downloadButton.disabled = true;
+    try {
+      await optimizeLegacyEmbeddedImages();
+      exportCode.value = buildExport();
+      const blob = new Blob([`<!doctype html><html lang="th"><meta charset="utf-8"><title>Reflection export</title><body>\n${exportCode.value}\n</body></html>`],{type:'text/html;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url; link.download = 'reflection-content.html'; link.click();
     setTimeout(() => URL.revokeObjectURL(url),1000);
+    } catch {showToast('ดาวน์โหลดไม่สำเร็จ ลองเปิดส่งออก HTML อีกครั้ง');}
+    finally {downloadButton.disabled = false;}
   });
   $('#saveBtn').addEventListener('click',saveDraft);
   $('#undoBtn').addEventListener('click',undo);
@@ -537,8 +863,22 @@
   $('#fitCanvas').addEventListener('click',fitCanvasToView);
 
   artboard.addEventListener('click',event => {
+    if (event.target.closest('.button-block a')) event.preventDefault();
     const block = event.target.closest('[data-id]');
     if (block) selectElement(block.dataset.id);
+  });
+  artboard.addEventListener('pointerdown',startImageResize);
+  artboard.addEventListener('mousedown',startImageResize);
+  artboard.addEventListener('keydown',event => {
+    const handle = event.target.closest('[data-resize-handle]');
+    if (!handle || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    const element = elements.find(item=>item.id===handle.closest('[data-id]')?.dataset.id);
+    if (!element) return;
+    const before = clone(elements);
+    const step = event.shiftKey ? 5 : 1;
+    element.width = Math.max(10,Math.min(imageMaxPercent(element),Number(element.width||100) + (['ArrowRight','ArrowDown'].includes(event.key)?step:-step)));
+    undoStack.push(before); redoStack=[]; renderAll(); scheduleSave();
   });
   artboard.addEventListener('input',onInlineEdit);
   artboard.addEventListener('focusin',event => {
@@ -553,6 +893,7 @@
     $('#undoBtn').disabled = !undoStack.length;
   });
   artboard.addEventListener('dragstart',event => {
+    if (event.target.closest('[data-resize-handle]')) {event.preventDefault();return}
     const block = event.target.closest('[data-id]');
     if (!block) return;
     draggedId = block.dataset.id;
@@ -566,7 +907,7 @@
     event.preventDefault();
     const target = event.target.closest('[data-id]');
     const source = event.dataTransfer.getData('text/plain') || draggedId;
-    const insertMatch = source?.match(/^insert:(heading|text|image|quote|split|divider)$/);
+    const insertMatch = source?.match(/^insert:(heading|text|image|quote|split|divider|banner|button|columns|spacer)$/);
     if (insertMatch) {
       const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
       const after = target && event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height/2;
@@ -601,26 +942,38 @@
     draggedId = null;
   });
 
+  inspector.addEventListener('pointerdown',event => {
+    if (event.target.matches('[data-prop]') && !inspectorBaseline) inspectorBaseline = clone(elements);
+  });
   inspector.addEventListener('input',event => {
     const prop = event.target.dataset.prop;
     if (!prop) return;
-    const value = prop === 'width' ? Number(event.target.value) : event.target.value;
+    if (!inspectorBaseline) inspectorBaseline = clone(elements);
+    const numericProps = ['width','fontSize','padding','radius','height'];
+    const value = numericProps.includes(prop) ? Number(event.target.value) : event.target.value;
     setProperty(selectedId,prop,value,false);
     renderArtboard();
     renderLayers();
     if (prop === 'width') {
       const widthValue = $('[data-width-value]',inspector);
-      if (widthValue) widthValue.textContent = `${value}%`;
+      if (widthValue) widthValue.textContent = `${imageWidthPx(elements.find(item=>item.id===selectedId)||{})} px`;
     }
+    if (prop === 'fontSize') $('[data-size-value]',inspector)?.replaceChildren(`${value} px`);
+    if (prop === 'padding') $('[data-padding-value]',inspector)?.replaceChildren(`${value} px`);
+    if (prop === 'height') $('[data-height-value]',inspector)?.replaceChildren(`${value} px`);
   });
   inspector.addEventListener('change',event => {
     const prop = event.target.dataset.prop;
-    if (prop) setProperty(selectedId,prop,event.target.value,true);
+    if (!prop) return;
+    if (!inspectorBaseline) inspectorBaseline = clone(elements);
+    const numericProps = ['width','fontSize','padding','radius','height'];
+    setProperty(selectedId,prop,numericProps.includes(prop)?Number(event.target.value):event.target.value,false);
+    commitInspectorEdit();
   });
   inspector.addEventListener('click',event => {
     if (event.target.closest('[data-pick-image]')) {imageFile.value='';imageFile.click();return}
     const align = event.target.closest('[data-align]');
-    if (align) {setProperty(selectedId,'align',align.dataset.align,true);return}
+    if (align) {inspectorBaseline=clone(elements);setProperty(selectedId,'align',align.dataset.align,false);commitInspectorEdit();return}
     const remove = event.target.closest('[data-delete]');
     if (remove) {
       setElements(elements.filter(element => element.id !== remove.dataset.delete),null);
