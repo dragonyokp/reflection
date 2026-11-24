@@ -8,9 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="studio.css?v=19">
+  <link rel="stylesheet" href="legacy-preview.css?v=2">
+  <link rel="stylesheet" href="studio.css?v=24">
+  <script src="article-templates.js?v=1" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="studio.js?v=13" defer></script>
+  <script src="app.js?v=3" defer></script>
+  <script src="studio.js?v=19" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -41,7 +44,7 @@
         <section id="templates" class="template-section">
           <div class="section-heading">
             <div><p class="eyebrow"><span>02</span> FULL PAGE REFLECTION TEMPLATES</p><h2>เลือกต้นแบบบทความ <span>ทั้งหน้า</span></h2><p>ดูโครงเรื่องเต็มตั้งแต่หัวเรื่องจนถึงส่วนท้าย แล้วนำไปแก้ไขต่อได้</p></div>
-            <div class="template-count"><b id="templateCount">07</b><span>FULL PAGE<br>LAYOUTS</span></div>
+            <div class="template-count"><b id="templateCount">70</b><span>FULL PAGE<br>LAYOUTS</span></div>
           </div>
           <div class="gallery-toolbar"><label class="search-box"><span>⌕</span><input id="templateSearch" type="search" placeholder="ค้นหาจากชื่อบทความ" aria-label="ค้นหาจากชื่อบทความ"></label></div>
           <div id="templateGrid" class="template-grid"></div>
@@ -83,17 +86,17 @@
           <aside class="left-rail">
             <div class="rail-head"><p class="eyebrow">DESIGN TOOLS</p><h2>องค์ประกอบ</h2></div>
             <div class="rail-scroll">
-              <section class="tool-category" aria-labelledby="toolsTextTitle"><h3 class="tool-category-title" id="toolsTextTitle"><span>01</span> ข้อความ</h3><div class="insert-grid">
+              <div id="legacyToolGroups"></div>
+              <section class="tool-category" aria-labelledby="toolsFreeTitle"><h3 class="tool-category-title" id="toolsFreeTitle"><span>04</span> เครื่องมืออิสระ</h3><div class="insert-grid">
                 <button data-add="heading" draggable="true" type="button"><span class="insert-glyph">T<span>t</span></span><b>หัวข้อ</b></button>
                 <button data-add="text" draggable="true" type="button"><span class="insert-glyph text-glyph">¶</span><b>ข้อความ</b></button>
                 <button data-add="quote" draggable="true" type="button"><span class="insert-glyph quote-glyph">“</span><b>คำพูด</b></button>
                 <button data-add="banner" draggable="true" type="button"><span class="insert-glyph banner-glyph">▰</span><b>แถบเน้น</b></button>
-              </div></section>
-              <section class="tool-category" aria-labelledby="toolsMediaTitle"><h3 class="tool-category-title" id="toolsMediaTitle"><span>02</span> รูปภาพและสื่อ</h3><div class="insert-grid">
-                <button data-add="image" draggable="true" type="button"><span class="insert-glyph image-glyph">▧</span><b>รูปภาพ</b></button>
+                <button data-add="image" data-image-style="normal" draggable="true" type="button"><span class="insert-glyph image-glyph">▧</span><b>รูปปกติ</b></button>
+                <button data-add="image" data-image-style="highlight" draggable="true" type="button"><span class="insert-glyph image-glyph highlight-glyph">▧</span><b>รูป Highlight</b></button>
+                <button data-add="image" data-image-style="green" draggable="true" type="button"><span class="insert-glyph image-glyph green-highlight-glyph">▧</span><b>Highlight พื้นเขียว</b></button>
+                <button data-add="image" data-image-style="greenText" draggable="true" type="button"><span class="insert-glyph image-glyph green-highlight-glyph">▧</span><b>พื้นเขียว + ข้อความ</b></button>
                 <button data-add="split" draggable="true" type="button"><span class="insert-glyph split-glyph">▤</span><b>รูป + เนื้อหา</b></button>
-              </div></section>
-              <section class="tool-category" aria-labelledby="toolsLayoutTitle"><h3 class="tool-category-title" id="toolsLayoutTitle"><span>03</span> โครงสร้าง</h3><div class="insert-grid">
                 <button data-add="divider" draggable="true" type="button"><span class="insert-glyph divider-glyph">—</span><b>เส้นคั่น</b></button>
                 <button data-add="button" draggable="true" type="button"><span class="insert-glyph button-glyph">↗</span><b>ปุ่มลิงก์</b></button>
                 <button data-add="columns" draggable="true" type="button"><span class="insert-glyph columns-glyph">▥</span><b>สองคอลัมน์</b></button>

@@ -17,7 +17,7 @@
   const ARTBOARD_PADDING = 96;
   const CONTENT_WIDTH = ARTBOARD_WIDTH - ARTBOARD_PADDING * 2;
 
-  const templates = [
+  const starterTemplates = [
     { id:'saf-journey', title:'From Biodiesel to SAF', category:'พลังงาน', tag:'LONGFORM / ENERGY', layout:'energy', date:'10 JUL 2026', source:'From Biodiesel to SAF', description:'บทความยาวแบบเส้นทางพลังงาน: เกริ่นเรื่อง ภาพเปิด ลำดับเหตุการณ์ ประเด็นสำคัญ และบทสรุป', blocks:[
       {type:'heading',text:'From Biodiesel to SAF'}, {type:'text',text:'จากจุดเริ่มต้นของพลังงานหมุนเวียน สู่ระบบนิเวศพลังงานคาร์บอนต่ำ'}, {type:'image',alt:'ภาพเปิดเรื่องพลังงาน',width:100}, {type:'text',text:'เปิดเรื่องด้วยบริบทและความสำคัญของการเปลี่ยนผ่านพลังงาน'}, {type:'heading',text:'จุดเริ่มต้นของการเดินทาง'}, {type:'text',text:'เล่าความเป็นมา เหตุการณ์สำคัญ และสิ่งที่ทำให้เกิดการเปลี่ยนแปลง'}, {type:'image',alt:'ภาพประวัติศาสตร์และการเริ่มต้น',width:82}, {type:'text',text:'เชื่อมโยงประสบการณ์ในอดีตกับโอกาสใหม่ในปัจจุบัน'}, {type:'quote',text:'“การเปลี่ยนผ่านที่ยั่งยืน เกิดจากการพัฒนาต่อเนื่องและความร่วมมือ”'}, {type:'split',imageSide:'left',alt:'ภาพระบบนิเวศพลังงาน',title:'สร้างระบบนิเวศใหม่',text:'อธิบายผู้คน เทคโนโลยี และพันธมิตรที่ร่วมขับเคลื่อน'}, {type:'heading',text:'คุณค่าที่ส่งต่อไปข้างหน้า'}, {type:'text',text:'สรุปผลลัพธ์และทิศทางในอนาคต พร้อมปิดเรื่องด้วยข้อความชวนติดตาม'}
     ]},
@@ -40,6 +40,7 @@
       {type:'heading',text:'Strength, Confidence, Development'}, {type:'text',text:'สามเสาหลักทางการเงินเพื่อการเติบโตที่มั่นคง'}, {type:'image',alt:'ภาพผู้ให้สัมภาษณ์',width:100}, {type:'text',text:'แนะนำผู้บริหารและมุมมองต่อการเปลี่ยนแปลงขององค์กร'}, {type:'quote',text:'“รากฐานทางการเงินที่แข็งแรงช่วยสนับสนุนการเติบโต”'}, {type:'heading',text:'Protecting the Balance Sheet'}, {type:'text',text:'เสาหลักที่หนึ่ง: ดูแลความแข็งแรงของงบดุลและใช้เงินลงทุนอย่างมีประสิทธิภาพ'}, {type:'image',alt:'ภาพประกอบเสาหลักที่หนึ่ง',width:78}, {type:'heading',text:'Communicating Value'}, {type:'text',text:'เสาหลักที่สอง: สื่อสารคุณค่าของธุรกิจและสร้างความเชื่อมั่น'}, {type:'split',imageSide:'left',alt:'ภาพธุรกิจและการเติบโต',title:'Transform People & Process',text:'เสาหลักที่สาม: พัฒนาคนและกระบวนการให้พร้อมต่อการเปลี่ยนแปลง'}, {type:'quote',text:'“พร้อมปรับตัวและพัฒนาต่อไป เพื่อสร้างคุณค่าให้ทุกฝ่าย”'}, {type:'text',text:'ปิดท้ายด้วยเป้าหมายและสิ่งที่อยากให้ผู้มีส่วนเกี่ยวข้องจดจำ'}
     ]}
   ];
+  const templates = window.ReflectionArticleTemplates?.length ? window.ReflectionArticleTemplates : starterTemplates;
   let elements = [];
   let selectedId = null;
   let nextId = 1;
@@ -48,6 +49,7 @@
   let redoStack = [];
   let draggedId = null;
   let draggedType = null;
+  let sourceImageSelection = null;
   let resizeState = null;
   let inspectorBaseline = null;
   let toastTimer = 0;
@@ -69,8 +71,35 @@
   const uid = () => `element-${nextId++}`;
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const textHtml = value => escapeHtml(value).replace(/\r?\n/g, '<br>');
-  const titleFor = type => ({heading:'หัวข้อ',text:'ข้อความ',image:'รูปภาพ',quote:'คำพูด',split:'รูป + เนื้อหา',divider:'เส้นคั่น',banner:'แถบเน้น',button:'ปุ่มลิงก์',columns:'สองคอลัมน์',spacer:'ช่องว่าง'}[type] || 'องค์ประกอบ');
+  const titleFor = type => ({heading:'หัวข้อ',text:'ข้อความ',image:'รูปปกติ',quote:'คำพูด',split:'รูป + เนื้อหา',divider:'เส้นคั่น',banner:'แถบเน้น',button:'ปุ่มลิงก์',columns:'สองคอลัมน์',spacer:'ช่องว่าง',sourcePage:'หน้าเต็มจาก HTML จริง'}[type] || 'องค์ประกอบ');
+  const imageStyleName = style => ({normal:'รูปปกติ',highlight:'รูป Highlight',green:'Highlight พื้นเขียว',greenText:'Highlight พื้นเขียว + ข้อความ'}[style] || 'รูปปกติ');
   const iconFor = type => ({heading:'T',text:'¶',image:'▧',quote:'“',split:'▤',divider:'—'}[type] || '•');
+  const legacyPatterns = window.ReflectionLegacyPatterns;
+  const legacyBlocks = legacyPatterns?.blocks || [];
+  const legacyBlockMap = new Map(legacyBlocks.map(block => [block.id,block]));
+  const legacyImageTypes = new Set(legacyPatterns?.imageTypes || []);
+
+  function legacyElementName(element) { return legacyBlockMap.get(element.legacyType)?.name || 'รูปแบบ Reflection'; }
+  function legacyElementNote(element) { return legacyBlockMap.get(element.legacyType)?.note || ''; }
+  function legacyHasImage(element) { return element?.type === 'legacy' && legacyImageTypes.has(element.legacyType); }
+  function legacyDefaultWidth(type) {
+    return ({highlightImage:100,highlightGreenText:82,highlightGreenEmpty:82,contentQuoteImage:62,contentSplitQuoteRight:100,contentSplitQuoteLeft:100,contentSplitImageLeft:100,contentSplitImageRight:100,contentPortraitQuote:100,contentModal:72}[type] || 100);
+  }
+
+  function renderLegacyTools() {
+    const root = $('#legacyToolGroups');
+    if (!root || !legacyPatterns) return;
+    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}"><span class="insert-glyph legacy-tool-glyph legacy-glyph-${group.id}">${group.id==='heading'?'Tt':group.id==='highlight'?'▱':'▤'}</span><b>${escapeHtml(block.name)}</b><small>${escapeHtml(block.note)}</small></button>`).join('')}</div></section>`).join('');
+    root.querySelectorAll('[data-legacy-add]').forEach(button => {
+      button.addEventListener('click',() => addLegacyBlock(button.dataset.legacyAdd));
+      button.addEventListener('dragstart',event => {
+        draggedType = `legacy:${button.dataset.legacyAdd}`;
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('text/plain',draggedType);
+      });
+      button.addEventListener('dragend',() => {draggedType=null});
+    });
+  }
 
   function showToast(message) {
     const toast = $('#toast');
@@ -96,13 +125,15 @@
     const defaults = {
       heading:{text:'หัวข้อเรื่องราวของคุณ',fontSize:36,color:'#20271e',align:'left',background:'#f5f5f1',padding:0},
       text:{text:'คลิกเพื่อเพิ่มข้อความ เล่าเรื่องราวและรายละเอียดที่ต้องการสื่อสารกับผู้อ่าน',fontSize:18,color:'#41483f',align:'left',background:'#f5f5f1',padding:0},
-      image:{src:'',alt:'คำอธิบายรูปภาพ',width:100,aspectRatio:9/16,align:'center',fit:'cover',radius:0},
+      image:{src:'',alt:'คำอธิบายรูปภาพ',width:100,aspectRatio:9/16,align:'center',fit:'cover',radius:0,imageStyle:'normal',caption:'เขียนข้อความประกอบรูปภาพที่นี่',fontSize:18},
       quote:{text:'“เพิ่มประโยคสำคัญที่อยากให้ผู้อ่านจดจำ”',fontSize:24,color:'#384532',align:'left',background:'#e9eee3',padding:24},
       split:{imageSide:'left',src:'',alt:'คำอธิบายรูปภาพ',title:'หัวข้อย่อย',text:'เพิ่มข้อความประกอบรูปภาพที่นี่',width:100,aspectRatio:9/16,fit:'cover',background:'#e8ece3'},
       divider:{},
       banner:{title:'ข้อความสำคัญของเรื่อง',text:'ใช้แถบสีเพื่อเน้นประเด็นหรือคำชวนให้ลงมือทำ',fontSize:24,color:'#ffffff',background:'#397e22',align:'center',padding:36},
       button:{text:'ดูรายละเอียดเพิ่มเติม',url:'#',fontSize:18,color:'#ffffff',background:'#397e22',align:'left',padding:14},
       columns:{leftTitle:'หัวข้อฝั่งซ้าย',leftText:'เขียนรายละเอียดหรือข้อมูลประกอบฝั่งซ้าย',rightTitle:'หัวข้อฝั่งขวา',rightText:'เขียนรายละเอียดหรือข้อมูลประกอบฝั่งขวา',fontSize:18,color:'#41483f',background:'#eef2e9',padding:24},
+      legacy:{legacyType:'subtitle',text:'Lorem....',audioSrc:'',src:'',variant:'1',title:'',text2:'',caption:'',label:'',speakers:[]},
+      sourcePage:{markup:'',sourceId:'',imageCount:0},
       spacer:{height:48}
     };
     return {id:uid(),type,...clone(defaults[type] || {}),...overrides};
@@ -110,11 +141,38 @@
 
   const safeColor = value => /^#[0-9a-f]{6}$/i.test(String(value||'')) ? value : '#20271e';
   const safeHref = value => /^(https?:|mailto:|tel:|#|\/)/i.test(String(value||'')) ? String(value) : '#';
-  const imageWidthBase = element => element.type === 'split' ? Math.round((CONTENT_WIDTH - 48 - 15) / 2) : CONTENT_WIDTH;
-  const imageMaxPercent = element => element.type === 'split' ? 100 : 120;
+  const imageWidthBase = element => element.type === 'split' ? Math.round((CONTENT_WIDTH - 48 - 15) / 2) : element.type === 'legacy' ? ARTBOARD_WIDTH : CONTENT_WIDTH;
+  const imageMaxPercent = element => ['split','legacy'].includes(element.type) ? 100 : 120;
   const imageWidthPx = element => Math.max(1,Math.round(imageWidthBase(element) * Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100)) / 100));
   const imageAspectRatio = element => Number.isFinite(Number(element.aspectRatio)) && Number(element.aspectRatio)>0.02 && Number(element.aspectRatio)<20 ? Number(element.aspectRatio) : 9/16;
   const textStyle = element => `font-size:${Math.max(18,Math.min(72,Number(element.fontSize)||18))}px;color:${safeColor(element.color)};text-align:${['left','center','right'].includes(element.align)?element.align:'left'}`;
+  function cleanSourceMarkup(markup) {
+    return String(markup||'').replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,'').replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,'').replace(/\s+contenteditable=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-edit=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-image=("[^"]*"|'[^']*')/gi,'').replace(/\s+data-source-frame=("[^"]*"|'[^']*')/gi,'').replace(/\s+draggable=("[^"]*"|'[^']*')/gi,'');
+  }
+  function sourcePreviewMarkup(markup) {
+    let imageIndex=0;
+    const clean=cleanSourceMarkup(markup).replace(/<img\b[^>]*>/gi,tag=>{
+      const index=imageIndex++;
+      const width=Number(elements.find(item=>item.id===selectedId)?.imageWidths?.[index]);
+      const marked=tag.replace(/\s*\/?\s*>$/,' data-source-image="'+index+'">');
+      return `<span class="source-image-frame${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${width?`width:${Math.max(10,Math.min(120,width))}%`:''}">${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
+    });
+    return clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
+  }
+  function sourceHtmlFromPreview(root) {
+    const copy=root.cloneNode(true);
+    copy.querySelectorAll('.source-image-frame').forEach(frame=>{
+      const image=frame.querySelector('img');
+      if(image) frame.replaceWith(image); else frame.remove();
+    });
+    return cleanSourceMarkup(copy.innerHTML).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
+  }
+  function sourceThumbMarkup(markup) {
+    return cleanSourceMarkup(markup)
+      .replace(/<audio\b[^>]*>[\s\S]*?<\/audio\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
+      .replace(/<audio\b[^>]*\/?\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
+      .replace(/<img\b([^>]*)>/gi,(_,attrs)=>`<div class="source-thumb-image ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"></div>`);
+  }
   function renderResizeHandles(element) {
     if (element.id !== selectedId) return '';
     return `<span class="resize-handle handle-nw" data-resize-handle="nw" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-n" data-resize-handle="n" aria-hidden="true"></span><span class="resize-handle handle-ne" data-resize-handle="ne" aria-hidden="true"></span><span class="resize-handle handle-e" data-resize-handle="e" aria-hidden="true"></span><span class="resize-handle handle-se" data-resize-handle="se" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-s" data-resize-handle="s" aria-hidden="true"></span><span class="resize-handle handle-sw" data-resize-handle="sw" aria-hidden="true"></span><span class="resize-handle handle-w" data-resize-handle="w" aria-hidden="true"></span>`;
@@ -129,6 +187,10 @@
   }
 
   function renderThumb(template) {
+    if (template.markup) {
+      const preview=sourceThumbMarkup(template.markup);
+      return `<div class="template-thumb source-template-thumb" aria-hidden="true"><div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview">${preview}</div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div></div>`;
+    }
     const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
     const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
     const heading = (width = '70%') => `<i class="page-section-heading" style="--line-width:${width}"></i>`;
@@ -151,9 +213,9 @@
   function renderGallery() {
     refreshResumeButton();
     const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
-    const filtered = templates.filter(template => !query || `${template.title} ${template.description} ${template.source || ''}`.toLocaleLowerCase('th').includes(query));
+    const filtered = templates.filter(template => !query || `${template.title} ${template.description} ${template.category || ''} ${template.source || ''}`.toLocaleLowerCase('th').includes(query));
     $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
-    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${template.id}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><h3>${escapeHtml(template.title)}</h3></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
+    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" role="button" tabindex="0" data-template="${escapeHtml(template.id)}" aria-label="เลือกเทมเพลต ${escapeHtml(template.title)}">${renderThumb(template)}<div class="template-card-info"><span class="template-category">${escapeHtml(template.category||'Reflection')}</span><h3>${escapeHtml(template.title)}</h3><p class="template-patterns">${escapeHtml(template.description||`${template.imageCount||0} รูป · ${template.audioCount||0} ไฟล์เสียง`)}</p></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
   }
 
   function enterEditor(title, blocks) {
@@ -176,10 +238,17 @@
     const draggable = ' draggable="true"';
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
+    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>ต้นแบบหน้าเต็มจาก HTML ที่เคยส่ง</b><span>ข้อความแก้บนหน้าได้ · คลิกรูปเพื่อเปลี่ยนหรือปรับขนาด</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup)}</div></div>`;
     if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h2 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
-    if (element.type === 'image') return `<div class="canvas-block image-block${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div></div>`;
+    if (element.type === 'legacy') return `<div class="canvas-block legacy-pattern-block${selected}" data-id="${element.id}" data-legacy-type="${escapeHtml(element.legacyType)}"${draggable}><div class="legacy-pattern-heading">${escapeHtml(legacyElementName(element))}<span>${escapeHtml(legacyElementNote(element))}</span></div><div class="legacy-pattern-slot"></div></div>`;
+    if (element.type === 'image') {
+      const style = ['normal','highlight','green','greenText'].includes(element.imageStyle) ? element.imageStyle : 'normal';
+      const fullBleed = style === 'green' || style === 'greenText' ? ' highlight-full-bleed' : '';
+      const greenBand = style === 'green' ? '<div class="highlight-green-band highlight-green-empty" aria-hidden="true"></div>' : style === 'greenText' ? `<div class="highlight-green-band"><p style="${textStyle({...element,color:'#ffffff'})}" contenteditable="true" data-part="caption" spellcheck="false">${textHtml(element.caption || '')}</p></div>` : '';
+      return `<div class="canvas-block image-block image-style-${style}${fullBleed}${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);height:auto;min-height:0;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${greenBand}</div>`;
+    }
     if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
     if (element.type === 'banner') return `<section class="canvas-block banner-block${selected}" data-id="${element.id}" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"${draggable}><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
     if (element.type === 'button') return `<div class="canvas-block button-block${selected}" data-id="${element.id}" style="text-align:${element.align||'left'}"${draggable}><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none" contenteditable="true" data-part="text">${textHtml(element.text)}</a></div>`;
@@ -190,6 +259,56 @@
 
   function renderArtboard() {
     artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span>✳</span><b>เริ่มสร้างเรื่องราวของคุณ</b><p>เพิ่มหัวข้อ รูปภาพ แถบเน้น หรือจัดวางสองคอลัมน์</p></div>';
+    if (legacyPatterns) {
+      for (const element of elements.filter(item=>item.type==='legacy')) {
+        const slot = artboard.querySelector(`.legacy-pattern-slot[data-for="${element.id}"]`) || [...artboard.querySelectorAll('.legacy-pattern-slot')].find(node=>node.closest('[data-id]')?.dataset.id===element.id);
+        if (!slot) continue;
+        const preview = legacyPatterns.makePreview(element.legacyType,element);
+        preview.classList.add('legacy-pattern-preview');
+        const previewHeading = preview.querySelector('.preview-narrow h3,.preview-narrow h4');
+        if (previewHeading && element.text && ['subtitle','subtitleAudio','contentHeading'].includes(element.legacyType)) previewHeading.textContent = element.text;
+        if (element.legacyType==='contentText' && element.text) {const p=preview.querySelector('.preview-lorem');if(p)p.textContent=element.text;}
+        if (element.legacyType==='contentBlockquote' && element.text) {const quote=preview.querySelector('blockquote');if(quote)quote.textContent=element.text;}
+        if (element.legacyType==='highlightGreenText' && element.caption) {const copy=preview.querySelector('.green-highlight-preview-copy .preview-lorem');if(copy)copy.textContent=element.caption;}
+        if (['contentSplitQuoteLeft','contentSplitQuoteRight','contentSplitImageLeft','contentSplitImageRight'].includes(element.legacyType)) {
+          const copy=preview.querySelector('.split-quote-preview-copy');
+          const heading=copy?.querySelector('h4'); if(heading)heading.textContent=element.title||'';
+          const paragraphs=copy?.querySelectorAll('.preview-lorem'); if(paragraphs?.[0])paragraphs[0].textContent=element.text||''; if(paragraphs?.[1])paragraphs[1].textContent=element.text2||'';
+          const captions=preview.querySelectorAll('.split-quote-preview-caption span');
+          String(element.caption||'').split(/\r?\n/).filter(Boolean).forEach((caption,index)=>{if(captions[index])captions[index].textContent=caption});
+        }
+        const placeholders = [...preview.querySelectorAll('.preview-image-placeholder')];
+        placeholders.forEach((placeholder,index)=>{
+          placeholder.setAttribute('data-image-upload','');
+          placeholder.setAttribute('role','button');
+          placeholder.setAttribute('tabindex','0');
+          placeholder.setAttribute('aria-label',`เพิ่มหรือเปลี่ยนรูปสำหรับ ${legacyElementName(element)}`);
+          if (index===0) {
+            placeholder.style.width = `${Math.max(10,Math.min(100,Number(element.width)||legacyDefaultWidth(element.legacyType)))}%`;
+            placeholder.style.maxWidth = '100%';
+            if (element.aspectRatio) {
+              placeholder.style.aspectRatio = String(element.aspectRatio);
+              placeholder.style.minHeight = '0';
+            }
+          }
+          if (element.src && index===0) {
+            const image = document.createElement('img');
+            image.src = element.src;
+            image.alt = element.alt || legacyElementName(element);
+            image.style.cssText = 'display:block;width:100%;height:auto;min-height:0;object-fit:contain';
+            placeholder.replaceChildren(image);
+            placeholder.classList.add('has-selected-image');
+          } else if (!element.src && index===0) {
+            const hint = document.createElement('small');
+            hint.className = 'legacy-image-hint';
+            hint.textContent = 'คลิกเพื่อเพิ่มรูป';
+            placeholder.append(hint);
+          }
+          if (index===0) placeholder.insertAdjacentHTML('beforeend',renderResizeHandles(element));
+        });
+        slot.append(preview);
+      }
+    }
     artboard.style.width = `${ARTBOARD_WIDTH}px`;
     artboard.style.minHeight = '1400px';
     artboard.style.transform = `scale(${zoom})`;
@@ -198,7 +317,7 @@
 
   function renderLayers() {
     $('#layerCount').textContent = elements.length;
-    layerList.innerHTML = elements.map((element,index) => `<div class="layer-row${element.id===selectedId?' selected':''}" draggable="true" data-layer-id="${element.id}"><span class="layer-icon">${iconFor(element.type)}</span><span class="layer-name">${escapeHtml(element.text?.split('\n')[0] || element.title || titleFor(element.type))}</span><span class="layer-grip">⠿</span></div>`).join('');
+    layerList.innerHTML = elements.map((element,index) => `<div class="layer-row${element.id===selectedId?' selected':''}" draggable="true" data-layer-id="${element.id}"><span class="layer-icon">${iconFor(element.type)}</span><span class="layer-name">${escapeHtml(element.text?.split('\n')[0] || element.title || (element.type==='sourcePage'?'หน้าเต็ม · '+(element.sourceId||'ต้นแบบ').replace(/^old-/,''):element.type==='legacy'?legacyElementName(element):element.type==='image'?imageStyleName(element.imageStyle):titleFor(element.type)))}</span><span class="layer-grip">⠿</span></div>`).join('');
   }
 
   function field(label, content, hint='') {
@@ -227,9 +346,43 @@
     if (['heading','text','quote'].includes(element.type)) {
       fields += `<div class="inspector-group"><h3>เนื้อหา</h3>${field(element.type==='heading'?'ข้อความหัวข้อ':element.type==='quote'?'ข้อความคำพูด':'ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text)}</textarea>`)}</div>`;
       fields += designFields(element,{background:element.type!=='heading'});
+    } else if (element.type === 'sourcePage') {
+      fields += `<div class="inspector-group"><h3>ต้นแบบ HTML เต็มหน้า</h3><p class="field-hint">โครงสร้างที่เห็นคือ HTML จริงจากตัวอย่างเดิมของคุณ แก้ข้อความบนหน้าได้ และส่งออกเป็น markup เดิมโดยไม่มี CSS เพิ่ม</p>${field('แก้โค้ด HTML โดยตรง',`<textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea>`)}</div>`;
+      if (sourceImageSelection?.elementId===element.id) {
+        const index=sourceImageSelection.index;
+        fields += `<div class="inspector-group"><h3>รูปที่เลือก · ${index+1}</h3>${field('เปลี่ยนไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">เลือกรูปจากเครื่อง <span>↗</span></button>`)}${field('ความกว้างในหน้า',`<div class="range-line"><span>ลากจุดมุมภาพ หรือปรับสัดส่วน</span><b data-source-width-value>${Math.round(Number(element.imageWidths?.[index])||100)}%</b></div><input type="range" min="10" max="120" step="1" data-prop="sourceImageWidth" value="${Math.max(10,Math.min(120,Number(element.imageWidths?.[index])||100))}">`)}</div>`;
+      }
+    } else if (element.type === 'legacy') {
+      const legacyType = element.legacyType;
+      const textTypes = ['subtitle','subtitleAudio','contentHeading','contentText','contentBlockquote'];
+      fields += `<div class="inspector-group"><h3>โครงสร้างเดิม · โค้ด Reflection</h3><p class="field-hint">${escapeHtml(legacyElementNote(element))} โค้ดต้นฉบับของรูปแบบนี้จะรวมในหน้าส่งออก HTML</p></div>`;
+      if (textTypes.includes(legacyType)) fields += `<div class="inspector-group"><h3>ข้อความ</h3>${field('ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}</div>`;
+      if (legacyType==='contentSplitQuoteLeft' || legacyType==='contentSplitQuoteRight' || legacyType==='contentSplitImageLeft' || legacyType==='contentSplitImageRight') {
+        fields += `<div class="inspector-group"><h3>เนื้อหาประกอบรูป</h3>${field('หัวข้อ',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}${legacyType.startsWith('contentSplitQuote')?field('คำบรรยายใต้รูป',`<textarea data-prop="caption">${escapeHtml(element.caption||'')}</textarea>`):field('ย่อหน้าที่สอง',`<textarea data-prop="text2">${escapeHtml(element.text2||'')}</textarea>`)}</div>`;
+      }
+      if (legacyType==='highlightGreenText') fields += `<div class="inspector-group"><h3>ข้อความบนพื้นเขียว</h3>${field('ข้อความ',`<textarea data-prop="caption">${escapeHtml(element.caption||'')}</textarea>`)}</div>`;
+      if (legacyType==='audio' || legacyType==='subtitleAudio') fields += `<div class="inspector-group"><h3>เสียง</h3>${field('ที่อยู่ไฟล์เสียง',`<input type="text" data-prop="audioSrc" value="${escapeHtml(element.audioSrc||'')}" placeholder="/storage/newsroom/.../Reflection.mp4">`,'ระบุ path ของไฟล์เสียงสำหรับ HTML') }</div>`;
+      if (legacyType==='contentMedia') {
+        fields += `<div class="inspector-group"><h3>รูปแบบคอลัมน์</h3>${field('จำนวนคอลัมน์',`<select data-prop="variant"><option value="1" ${element.variant!=='2'?'selected':''}>1 คอลัมน์</option><option value="2" ${element.variant==='2'?'selected':''}>2 คอลัมน์</option></select>`)}`;
+        for (let i=1;i<=(element.variant==='2'?2:1);i++) fields += `${field(`คอลัมน์ ${i} · หัวข้อ`, `<input type="text" data-prop="media${i}Title" value="${escapeHtml(element[`media${i}Title`]||'')}">`)}${field(`คอลัมน์ ${i} · ข้อความ`, `<textarea data-prop="media${i}Text">${escapeHtml(element[`media${i}Text`]||'')}</textarea>`)}`;
+        fields += '</div>';
+      }
+      if (legacyType==='contentQuoteCard' || legacyType==='contentPortraitQuote') fields += `<div class="inspector-group"><h3>คำพูดและผู้พูด</h3>${field('คำพูด',`<textarea data-prop="quote">${escapeHtml(element.quote||'')}</textarea>`)}${legacyType==='contentPortraitQuote'?field('ชื่อผู้พูด',`<input type="text" data-prop="author" value="${escapeHtml(element.author||'')}">`):''}</div>`;
+      if (legacyType==='contentPortraitQuote') fields += `<div class="inspector-group"><h3>ตำแหน่งรูปบุคคล</h3>${field('จัดวางรูป',`<select data-prop="variant"><option value="left" ${element.variant!=='right'?'selected':''}>รูปอยู่ซ้าย</option><option value="right" ${element.variant==='right'?'selected':''}>รูปอยู่ขวา</option></select>`)}</div>`;
+      if (legacyType==='contentSpeakers') {
+        fields += `<div class="inspector-group"><h3>เสียงจากผู้คน</h3>${field('จำนวนผู้พูด',`<select data-prop="variant"><option value="2" ${element.variant!=='3'?'selected':''}>ผู้พูด 2 คน</option><option value="3" ${element.variant==='3'?'selected':''}>ผู้พูด 3 คน</option></select>`)}`;
+        for (let i=0;i<(element.variant==='3'?3:2);i++) { const speaker=element.speakers?.[i]||{}; fields += `${field(`ผู้พูด ${i+1} · คำพูด`, `<textarea data-speaker-index="${i}" data-speaker-prop="quote">${escapeHtml(speaker.quote||'')}</textarea>`)}${field(`ผู้พูด ${i+1} · ชื่อ`, `<input type="text" data-speaker-index="${i}" data-speaker-prop="name" value="${escapeHtml(speaker.name||'')}">`)}`; }
+        fields += '</div>';
+      }
+      if (legacyType==='contentModal') fields += `<div class="inspector-group"><h3>Popup</h3>${field('ข้อความปุ่ม',`<input type="text" data-prop="label" value="${escapeHtml(element.label||'อ่านข้อมูลเพิ่มเติม')}">`)}${field('หัวข้อ Popup',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('ข้อความรายละเอียด',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}</div>`;
+      if (legacyHasImage(element)) fields += `<div class="inspector-group"><h3>รูปภาพของรูปแบบเดิม</h3>${field('เลือกรูป',`<button type="button" class="file-pick" data-pick-image="true">${element.src?'เปลี่ยนรูปภาพ':'เลือกรูปจากเครื่อง'} <span>↗</span></button>`)}${field('คำอธิบายรูปภาพ',`<input type="text" data-prop="alt" value="${escapeHtml(element.alt||'')}">`)}${field('ขนาดรูปภาพ',`<div class="range-line"><span>ลากจุดรอบรูป หรือปรับความกว้าง</span><b data-width-value>${imageWidthPx(element)} px</b></div><input type="range" min="10" max="100" step="1" data-prop="width" value="${Math.max(10,Math.min(100,Number(element.width)||legacyDefaultWidth(legacyType)))}">`)}</div>`;
     } else if (element.type === 'image' || element.type === 'split') {
       fields += `<div class="inspector-group"><h3>รูปภาพ</h3>${field('ไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">${element.src?'เปลี่ยนรูปภาพ':'เลือกรูปจากอุปกรณ์'} <span>↗</span></button>`)}${field('คำอธิบายรูปภาพ',`<input type="text" data-prop="alt" value="${escapeHtml(element.alt||'')}">`)}${field('ขนาดรูปภาพ',`<div class="range-line"><span>ลากจุดที่มุมรูป หรือปรับความกว้าง</span><b data-width-value>${imageWidthPx(element)} px</b></div><input type="range" min="10" max="${imageMaxPercent(element)}" step="1" data-prop="width" value="${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}">`)}${field('การแสดงภาพ',`<select data-prop="fit"><option value="cover" ${element.fit!=='contain'?'selected':''}>เต็มกรอบ</option><option value="contain" ${element.fit==='contain'?'selected':''}>เห็นภาพครบ</option></select>`)}`;
-      if (element.type === 'image') fields += `${field('มุมภาพ',`<input type="range" min="0" max="48" step="2" data-prop="radius" value="${Number(element.radius)||0}">`)}${field('ตำแหน่งภาพ',alignmentFields(element))}`;
+      if (element.type === 'image') {
+        fields += `${field('รูปแบบภาพ',`<select data-prop="imageStyle"><option value="normal" ${(element.imageStyle||'normal')==='normal'?'selected':''}>รูปปกติ</option><option value="highlight" ${element.imageStyle==='highlight'?'selected':''}>รูป Highlight</option><option value="green" ${element.imageStyle==='green'?'selected':''}>Highlight พื้นเขียว</option><option value="greenText" ${element.imageStyle==='greenText'?'selected':''}>พื้นเขียวและมีข้อความ</option></select>`)}`;
+        if (element.imageStyle === 'greenText') fields += field('ข้อความบนพื้นเขียว',`<textarea data-prop="caption">${escapeHtml(element.caption||'')}</textarea>`);
+        fields += `${field('มุมภาพ',`<input type="range" min="0" max="48" step="2" data-prop="radius" value="${Number(element.radius)||0}">`)}${field('ตำแหน่งภาพ',alignmentFields(element))}`;
+      }
       if (element.type === 'split') fields += `${field('หัวข้อคู่ภาพ',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('เนื้อหาคู่ภาพ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}${field('ตำแหน่งรูปภาพ',`<select data-prop="imageSide"><option value="left" ${element.imageSide!=='right'?'selected':''}>ด้านซ้าย</option><option value="right" ${element.imageSide==='right'?'selected':''}>ด้านขวา</option></select>`)}`;
       fields += '</div>';
       if (element.type === 'split') fields += designFields(element,{background:true,align:false,padding:false});
@@ -244,7 +397,7 @@
     } else {
       fields = '<div class="inspector-group"><p class="field-hint">เส้นคั่นใช้แบ่งช่วงเนื้อหา</p></div>';
     }
-    inspector.innerHTML = `<div class="selected-label"><span>${iconFor(element.type)}</span><b>${titleFor(element.type)}</b><small>เลือกอยู่</small></div>${fields}<div class="inspector-group"><button class="delete-element" type="button" data-delete="${element.id}">ลบองค์ประกอบ</button></div>`;
+    inspector.innerHTML = `<div class="selected-label"><span>${iconFor(element.type)}</span><b>${element.type==='legacy'?legacyElementName(element):element.type==='image'?imageStyleName(element.imageStyle):titleFor(element.type)}</b><small>เลือกอยู่</small></div>${fields}<div class="inspector-group"><button class="delete-element" type="button" data-delete="${element.id}">ลบองค์ประกอบ</button></div>`;
   }
 
   function renderAll() {
@@ -265,16 +418,37 @@
     scheduleSave();
   }
 
-  function insertBlock(type,index) {
+  function insertBlock(type,index,overrides = {}) {
     const next = clone(elements);
-    const item = makeElement(type);
+    const item = makeElement(type,overrides);
     const selectedIndex = next.findIndex(element => element.id === selectedId);
     const insertAt = Number.isInteger(index) ? Math.max(0,Math.min(index,next.length)) : selectedIndex >= 0 ? selectedIndex+1 : next.length;
     next.splice(insertAt, 0, item);
     setElements(next,item.id);
   }
 
-  function addBlock(type) { insertBlock(type); }
+  function addLegacyBlock(legacyType,index) {
+    if (!legacyBlockMap.has(legacyType)) return;
+    const defaults = {
+      legacyType,
+      text:['subtitle','subtitleAudio'].includes(legacyType)?'Lorem....':'',
+      variant:legacyType==='contentMedia'?'1':legacyType==='contentSpeakers'?'2':'left',
+      audioSrc:'',src:'',alt:'',width:legacyDefaultWidth(legacyType),title:'หัวข้อเรื่องราว',text2:'เพิ่มรายละเอียดของเรื่องราวในย่อหน้าที่สอง',caption:legacyType.startsWith('highlight')?'เขียนข้อความประกอบรูปภาพที่นี่':'คำบรรยายรูปภาพที่หนึ่ง\nคำบรรยายรูปภาพที่สอง',label:'อ่านข้อมูลเพิ่มเติม',quote:'เพิ่มคำพูดสำคัญที่ต้องการเน้น',author:'ชื่อผู้พูด',media1Title:'หัวข้อประกอบไอคอน',media1Text:'เพิ่มข้อความอธิบายรายละเอียด',media2Title:'อีกหนึ่งประเด็นสำคัญ',media2Text:'เพิ่มข้อความอธิบายรายละเอียด',text:legacyType==='subtitle'||legacyType==='subtitleAudio'?'หัวข้อเรื่องราวของคุณ':legacyType==='contentText'?'เขียนรายละเอียดเรื่องราวของคุณที่นี่':legacyType==='contentBlockquote'?'เพิ่มข้อความอ้างอิงที่ต้องการเน้น':legacyType==='contentModal'?'เพิ่มรายละเอียดเพิ่มเติมสำหรับหน้าต่าง Popup':'ข้อความประกอบเรื่องราวของคุณ',speakers:[{quote:'เพิ่มคำพูดของผู้พูดคนที่หนึ่ง',name:'ชื่อผู้พูดคนที่หนึ่ง'},{quote:'เพิ่มคำพูดของผู้พูดคนที่สอง',name:'ชื่อผู้พูดคนที่สอง'},{quote:'เพิ่มคำพูดของผู้พูดคนที่สาม',name:'ชื่อผู้พูดคนที่สาม'}]
+    };
+    const next = clone(elements);
+    const item = makeElement('legacy',defaults);
+    const selectedIndex = next.findIndex(element=>element.id===selectedId);
+    const insertAt = Number.isInteger(index)?Math.max(0,Math.min(index,next.length)):selectedIndex>=0?selectedIndex+1:next.length;
+    next.splice(insertAt,0,item);
+    setElements(next,item.id);
+  }
+
+  function imageInsertOptions(style) {
+    if (!style) return {};
+    return {imageStyle:style,width:style==='normal'?82:100,radius:style==='normal'?6:0};
+  }
+
+  function addBlock(type,overrides = {}) { insertBlock(type,undefined,overrides); }
 
   function selectElement(id) {
     if (!elements.some(element => element.id === id)) return;
@@ -328,14 +502,15 @@
     const block = handle.closest('[data-id]');
     const element = elements.find(item => item.id === block?.dataset.id);
     const imageBox = handle.parentElement;
-    if (!element || !['image','split'].includes(element.type) || !imageBox) return;
+    const sourceIndex=element?.type==='sourcePage'?Number(imageBox?.dataset.sourceFrame):null;
+    if (!element || (!['image','split'].includes(element.type) && !legacyHasImage(element) && element.type!=='sourcePage') || !imageBox || (element.type==='sourcePage'&&!Number.isInteger(sourceIndex))) return;
     event.preventDefault();
     event.stopPropagation();
     const rect = imageBox.getBoundingClientRect();
-    const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100));
+    const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),element.type==='sourcePage'?Number(element.imageWidths?.[sourceIndex])||100:Number(element.width)||(element.type==='legacy'?legacyDefaultWidth(element.legacyType):100)));
     const width = rect.width / zoom;
     const height = Math.max(1,rect.height / zoom);
-    resizeState = {id:element.id,handle:handle.dataset.resizeHandle,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),aspect:width/height,before:clone(elements),block};
+    resizeState = {id:element.id,handle:handle.dataset.resizeHandle,sourceIndex,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),aspect:width/height,before:clone(elements),block};
     block.setAttribute('draggable','false');
     try { handle.setPointerCapture?.(event.pointerId); } catch {}
     document.addEventListener('pointermove',resizeImageMove);
@@ -356,17 +531,22 @@
     const dy = (event.clientY-resizeState.startY) / zoom * (handle.includes('n') ? -1 : 1) * resizeState.aspect;
     const delta = hasX && hasY ? (Math.abs(dx)>=Math.abs(dy)?dx:dy) : hasX ? dx : dy;
     const width = Math.max(10,Math.min(imageMaxPercent(el),resizeState.startWidth + delta / resizeState.baseWidth * 100));
-    el.width = width;
+    if(el.type==='sourcePage') {el.imageWidths ||= {};el.imageWidths[resizeState.sourceIndex]=width;}
+    else el.width = width;
     const block = artboard.querySelector(`[data-id="${el.id}"]`);
-    const imageBox = block?.querySelector('.image-placeholder');
+    const imageBox = el.type==='sourcePage'?block?.querySelector(`.source-image-frame[data-source-frame="${resizeState.sourceIndex}"]`):block?.querySelector('.image-placeholder, .preview-image-placeholder[data-image-upload]');
     if (el.type === 'image') {
       block?.style.setProperty('--image-width',`${width}%`);
       if (imageBox) imageBox.style.width = `${width}%`;
     } else if (imageBox) imageBox.style.width = `${width}%`;
     const slider = $('[data-prop="width"]',inspector);
     if (slider) slider.value = String(Math.round(width));
+    const sourceSlider=$('[data-prop="sourceImageWidth"]',inspector);
+    if(sourceSlider) sourceSlider.value=String(Math.round(width));
     const label = $('[data-width-value]',inspector);
     if (label) label.textContent = `${imageWidthPx(el)} px`;
+    const sourceLabel=$('[data-source-width-value]',inspector);
+    if(sourceLabel) sourceLabel.textContent=`${Math.round(width)}%`;
     $('#saveStatus').textContent = 'มีการแก้ไข';
     scheduleSave();
   }
@@ -393,12 +573,34 @@
     const block = target.closest('[data-id]');
     const element = elements.find(item => item.id === block?.dataset.id);
     if (!element) return;
+    if (element.type==='sourcePage') {
+      const sourceRoot=block.querySelector('[data-source-render]');
+      if (sourceRoot) element.markup=sourceHtmlFromPreview(sourceRoot);
+      const layer=$(`.layer-row[data-layer-id="${element.id}"] .layer-name`);
+      if (layer) layer.textContent='หน้าเต็ม · '+(element.title||'HTML Reflection');
+      $('#saveStatus').textContent='มีการแก้ไข';
+      scheduleSave();
+      return;
+    }
     const part = target.dataset.part || 'text';
     element[part] = target.innerText.replace(/\u00a0/g,' ').trimEnd();
     const layer = $(`.layer-row[data-layer-id="${element.id}"] .layer-name`);
     if (layer) layer.textContent = element.text?.split('\n')[0] || element.title || titleFor(element.type);
     $('#saveStatus').textContent = 'มีการแก้ไข';
     scheduleSave();
+  }
+
+  function replaceSourceImage(markup,index,src,alt) {
+    let imageIndex=0;
+    return String(markup||'').replace(/<img\b[^>]*>/gi,tag=>{
+      const current=imageIndex++;
+      if(current!==index) return tag;
+      let next=tag.replace(/\s+src=("[^"]*"|'[^']*')/i,` src="${escapeHtml(src)}"`);
+      if(!/\s+src=/i.test(next)) next=next.replace(/<img\b/i,`<img src="${escapeHtml(src)}"`);
+      if(/\s+alt=("[^"]*"|'[^']*')/i.test(next)) next=next.replace(/\s+alt=("[^"]*"|'[^']*')/i,` alt="${escapeHtml(alt)}"`);
+      else next=next.replace(/<img\b/i,`<img alt="${escapeHtml(alt)}"`);
+      return next;
+    });
   }
 
   let saveTimer;
@@ -505,37 +707,101 @@
     }
   }
 
-  function elementToHtml(element) {
-    const align = ['left','center','right'].includes(element.align) ? element.align : 'left';
-    const imageSource = element.src || '/storage/newsroom/refaction/#####/#####/#####/image.webp';
-    const imageWidth = imageWidthPx(element);
-    const imageHeight = Math.round(imageWidth * imageAspectRatio(element));
-    const img = `<img src="${escapeHtml(imageSource)}" alt="${escapeHtml(element.alt || '')}" style="display:block;width:${imageWidth}px;max-width:none;height:${imageHeight}px;object-fit:${element.fit==='contain'?'contain':'cover'};border-radius:${Math.max(0,Math.min(48,Number(element.radius)||0))}px">`;
-    const background = safeColor(element.background||'#f5f5f1');
-    const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
-    if (element.type === 'heading') return `    <h2 class="news__subtitle mb-4" style="${textStyle(element)};background:${background};padding-block:${padding}px">${textHtml(element.text)}</h2>`;
-    if (element.type === 'text') return `    <p class="mb-4" style="${textStyle(element)};background:${background};padding-block:${padding}px">${textHtml(element.text)}</p>`;
-    if (element.type === 'quote') return `    <blockquote class="my-md-5 my-4" style="${textStyle(element)};background:${background};padding:${Math.max(14,padding)}px;border-left:4px solid #84be3d">${textHtml(element.text)}</blockquote>`;
-    if (element.type === 'image') {
-      const flexAlign = align==='right'?'flex-end':align==='center'?'center':'flex-start';
-      return `    <div style="display:flex;justify-content:${flexAlign};margin:20px 0"><figure style="width:${imageWidth}px;max-width:none;margin:0">${img}</figure></div>`;
-    }
-    if (element.type === 'split') {
-      const imageCol = `<div style="min-width:0"><figure style="width:${imageWidth}px;max-width:none;margin:0">${img}</figure></div>`;
-      const textCol = `<div style="min-width:0"><h3 style="font-size:24px;color:${safeColor(element.color||'#20271e')};margin:0 0 12px">${textHtml(element.title)}</h3><p style="font-size:18px;line-height:1.8;color:${safeColor(element.color||'#41483f')};margin:0">${textHtml(element.text)}</p></div>`;
-      return `    <section style="display:grid;grid-template-columns:1fr 1fr;gap:15px;align-items:center;padding:24px;background:${background};margin:24px 0">\n        ${element.imageSide === 'right' ? `${textCol}\n        ${imageCol}` : `${imageCol}\n        ${textCol}`}\n    </section>`;
-    }
-    if (element.type === 'banner') return `    <section style="padding:${padding||36}px;background:${background};text-align:${align};color:${safeColor(element.color||'#ffffff')};margin:24px 0"><h2 style="font-size:${Math.max(22,Number(element.fontSize)||24)}px;color:${safeColor(element.color||'#ffffff')};margin:0 0 12px">${textHtml(element.title)}</h2><p style="${textStyle(element)};margin:0">${textHtml(element.text)}</p></section>`;
-    if (element.type === 'button') return `    <div style="text-align:${align};margin:20px 0"><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none">${textHtml(element.text)}</a></div>`;
-    if (element.type === 'columns') return `    <section style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:${padding||24}px;background:${background};color:${safeColor(element.color||'#41483f')};margin:24px 0"><div><h3 style="font-size:22px;color:${safeColor(element.color||'#20271e')}">${textHtml(element.leftTitle)}</h3><p style="font-size:${Math.max(18,Number(element.fontSize)||18)}px;line-height:1.8">${textHtml(element.leftText)}</p></div><div><h3 style="font-size:22px;color:${safeColor(element.color||'#20271e')}">${textHtml(element.rightTitle)}</h3><p style="font-size:${Math.max(18,Number(element.fontSize)||18)}px;line-height:1.8">${textHtml(element.rightText)}</p></div></section>`;
-    if (element.type === 'spacer') return `    <div aria-hidden="true" style="height:${Math.max(18,Math.min(320,Number(element.height)||48))}px"></div>`;
-    if (element.type === 'divider') return '    <hr style="border:0;border-top:1px solid #cbd1c5;margin:24px 0">';
+  function elementToLegacyMarkup(element) {
+    const heading = textHtml(element.title || '');
+    const text = textHtml(element.text || '');
+    if (element.type === 'banner') return `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                ${element.title ? `<h2 class="news__subtitle mb-4">${heading}</h2>\n                ` : ''}<p class="text-white">${text}</p>\n            </div>\n        </div>\n    </div>\n</div>`;
+    if (element.type === 'button') return `<p class="my-5"><a href="${escapeHtml(safeHref(element.url))}" class="btn btn--primary"><span class="btn__text btn__text--sm">${textHtml(element.text)}</span></a></p>`;
+    if (element.type === 'columns') return `<div class="container">\n    <div class="row my-5">\n        <div class="col-md-6">\n            <h4>${textHtml(element.leftTitle)}</h4>\n            <p class="mb-0">${textHtml(element.leftText)}</p>\n        </div>\n        <div class="col-md-6">\n            <h4>${textHtml(element.rightTitle)}</h4>\n            <p class="mb-0">${textHtml(element.rightText)}</p>\n        </div>\n    </div>\n</div>`;
+    if (element.type === 'spacer') return '<div class="py-5"></div>';
+    if (element.type === 'divider') return '<hr class="hr-lg-dark-green my-4">';
     return '';
   }
 
+  function elementToLegacyItem(element) {
+    if (element.type === 'legacy') return {...element,type:element.legacyType};
+    if (element.type === 'heading') return {type:'subtitle',text:element.text};
+    if (element.type === 'text') return {type:'contentText',text:element.text};
+    if (element.type === 'quote') return {type:'contentBlockquote',text:element.text};
+    if (element.type === 'image') {
+      const imageStyle = ['normal','highlight','green','greenText'].includes(element.imageStyle) ? element.imageStyle : 'normal';
+      const type = imageStyle === 'highlight' ? 'highlightImage' : imageStyle === 'green' ? 'highlightGreenEmpty' : imageStyle === 'greenText' ? 'highlightGreenText' : 'contentQuoteImage';
+      return {type,src:element.src,alt:element.alt,width:element.width,caption:element.caption};
+    }
+    if (element.type === 'split') return {type:element.imageSide === 'right' ? 'contentSplitImageRight' : 'contentSplitImageLeft',src:element.src,alt:element.alt,width:element.width,title:element.title,text:element.text,text2:element.text2};
+    return null;
+  }
+
+  function applyLegacyAssets(html, items) {
+    const imageSlots=items.filter(item=>legacyPatterns.imageTypes.includes(item.type));
+    const orderedImageSlots=imageSlots.filter(item=>item.type!=='contentModal').concat(imageSlots.filter(item=>item.type==='contentModal'));
+    let imageIndex=0;
+    html=html.replace(/<img\b[^>]*>/g,tag=>{
+      const source=tag.match(/\bsrc="([^"]+)"/)?.[1]||'';
+      if (!/highlight\.webp|quote-\d+\.webp|^data:image\//.test(source)) return tag;
+      const image=orderedImageSlots[imageIndex++];
+      if (!image) return tag;
+      const imageSource=image.src?escapeHtml(image.src):source;
+      const imageAlt=escapeHtml(image.alt||legacyElementName({legacyType:image.type}));
+      const imageWidth=Math.max(10,Math.min(120,Number(image.width)||legacyDefaultWidth(image.type)));
+      const widthPx=Math.round(ARTBOARD_WIDTH*imageWidth/100);
+      let updatedTag=tag.replace(/\bsrc="[^"]+"/,`src="${imageSource}"`).replace(/\sstyle="[^"]*"/,'');
+      updatedTag=updatedTag.replace(/\bw-100\b/g,'img-fluid');
+      if (/\balt="[^"]*"/.test(updatedTag)) updatedTag=updatedTag.replace(/\balt="[^"]*"/,`alt="${imageAlt}"`);
+      else updatedTag=updatedTag.replace(/\s*\/?\>$/,tail=>` alt="${imageAlt}"${tail}`);
+      if (/\bwidth="\d+"/.test(updatedTag)) updatedTag=updatedTag.replace(/\bwidth="\d+"/,`width="${widthPx}"`);
+      else updatedTag=updatedTag.replace(/\s*\/?\>$/,tail=>` width="${widthPx}"${tail}`);
+      return updatedTag;
+    });
+    let audioIndex=0;
+    const audioSlots=items.filter(item=>item.type==='audio'||item.type==='subtitleAudio');
+    return html.replace(/(<audio\b[^>]*\bsrc=")([^"]*)(")/g,(match,prefix,source,suffix)=>{
+      const audio=audioSlots[audioIndex++];
+      return audio?.audioSrc?`${prefix}${escapeHtml(audio.audioSrc)}${suffix}`:match;
+    });
+  }
+
   function buildExport() {
-    const content = elements.map(elementToHtml).filter(Boolean).join('\n\n');
-    return `<!-- Reflection Studio · 1000px design width -->\n<div class="reflection-content" style="box-sizing:border-box;width:1000px;min-width:1000px;max-width:none;margin:0 auto;padding:90px 96px;background:#f5f5f1;color:#252b25">\n${content}\n</div>`;
+    const contentParts=[];
+    let legacyRun=[];
+    const flushLegacy=()=>{
+      if (!legacyRun.length) return;
+      const html=applyLegacyAssets(legacyPatterns.generateHtml(legacyRun),legacyRun);
+      if (html) contentParts.push(html);
+      legacyRun=[];
+    };
+    for (const element of elements) {
+      if (element.type==='sourcePage') {
+        flushLegacy();
+        let markup=cleanSourceMarkup(element.markup);
+        let imageIndex=0;
+        markup=markup.replace(/<img\b[^>]*>/gi,tag=>{
+          const index=imageIndex++;
+          const percent=Number(element.imageWidths?.[index]);
+          if (!percent) return tag;
+          const pixels=Math.max(1000,Math.round(ARTBOARD_WIDTH*Math.max(10,Math.min(120,percent))/100));
+          let next=tag.replace(/\s+width=("[^"]*"|'[^']*')/i,'');
+          next=next.replace(/\s+class=("[^"]*"|'[^']*')/i,(match,value)=>{
+            const quote=value[0],classes=value.slice(1,-1).split(/\s+/).filter(name=>name && name!=='w-100');
+            if(!classes.includes('img-fluid')) classes.push('img-fluid');
+            return ` class=${quote}${classes.join(' ')}${quote}`;
+          });
+          if(!/\s+class=/i.test(next)) next=next.replace(/<img\b/i,'<img class="img-fluid"');
+          return next.replace(/\s*\/?\s*>$/,` width="${pixels}">`);
+        });
+        if(markup) contentParts.push(markup);
+        continue;
+      }
+      const item=elementToLegacyItem(element);
+      if (item) legacyRun.push(item);
+      else {
+        flushLegacy();
+        const markup=elementToLegacyMarkup(element);
+        if (markup) contentParts.push(markup);
+      }
+    }
+    flushLegacy();
+    return contentParts.join('\n\n');
   }
 
   async function exportDesignPng() {
@@ -586,6 +852,7 @@
       };
       const addText = (layout,x,y,width,color,align='left') => commands.push({type:'text',layout,x,y,width,color,align});
       const addRect = (x,y,width,height,color,radius=0) => commands.push({type:'rect',x,y,width,height,color,radius});
+      const addGradientRect = (x,y,width,height,top,bottom) => commands.push({type:'gradientRect',x,y,width,height,top,bottom});
       const addLine = (x1,y1,x2,y2,color) => commands.push({type:'line',x1,y1,x2,y2,color});
       const addImage = (element,x,y,width,height) => {
         const block = [...artboard.querySelectorAll('[data-id]')].find(node => node.dataset.id === element.id);
@@ -628,6 +895,13 @@
           const x = align === 'right' ? contentX+contentWidth-width : align === 'center' ? contentX+(contentWidth-width)/2 : contentX;
           addImage(element,x,cursorY,width,height);
           cursorY += height + 20;
+          if (element.imageStyle === 'green' || element.imageStyle === 'greenText') {
+            const caption = element.imageStyle === 'greenText' ? textLayout(element.caption||'',contentWidth,Math.max(18,Math.min(72,Number(element.fontSize)||18)),'400',1.8) : null;
+            const bandHeight = caption ? Math.max(180,caption.height+92) : 180;
+            addGradientRect(0,cursorY-20,ARTBOARD_WIDTH,bandHeight,'#77a84a','#397e22');
+            if (caption) addText(caption,contentX,cursorY+24,contentWidth,'#ffffff','left');
+            cursorY += bandHeight;
+          }
         } else if (element.type === 'split') {
           cursorY += 24;
           const inset = Math.max(18,padding || 24);
@@ -724,6 +998,12 @@
           roundedPath(command.x,command.y,command.width,command.height,command.radius);
           context.fillStyle = command.color;
           context.fill();
+        } else if (command.type === 'gradientRect') {
+          const gradient = context.createLinearGradient(command.x,command.y,command.x,command.y+command.height);
+          gradient.addColorStop(0,command.top);
+          gradient.addColorStop(1,command.bottom);
+          context.fillStyle = gradient;
+          context.fillRect(command.x,command.y,command.width,command.height);
         } else if (command.type === 'line') {
           context.beginPath();
           context.moveTo(command.x1,command.y1);
@@ -906,7 +1186,13 @@
       const asset = await prepareImageAsset(file);
       const alt = file.name.replace(/\.[^.]+$/,'');
       const current = elements.find(item => item.id === selectedId);
-      if (current && ['image','split'].includes(current.type)) {
+      if (current?.type==='sourcePage' && sourceImageSelection?.elementId===current.id) {
+        const next=clone(elements);
+        const target=next.find(item=>item.id===selectedId);
+        target.markup=replaceSourceImage(target.markup,sourceImageSelection.index,asset.src,alt);
+        sourceImageSelection=null;
+        setElements(next,selectedId);
+      } else if (current && (['image','split'].includes(current.type) || legacyHasImage(current))) {
         const next = clone(elements);
         const target = next.find(item => item.id === selectedId);
         target.src = asset.src;
@@ -1070,13 +1356,13 @@
     const card = event.target.closest('[data-template]');
     if (!card) return;
     const template = templates.find(item => item.id === card.dataset.template);
-    enterEditor(template.title,template.blocks);
+    enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{}}]:template.blocks);
   });
   templateGrid.addEventListener('keydown',event => {
     if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-template]')) {
       event.preventDefault();
       const template = templates.find(item => item.id === event.target.dataset.template);
-      enterEditor(template.title,template.blocks);
+      enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{}}]:template.blocks);
     }
   });
   $('#blankStart').addEventListener('click',() => enterEditor('งาน Reflection ใหม่',[]));
@@ -1118,9 +1404,9 @@
   $('#saveBtn').addEventListener('click',saveDraft);
   $('#undoBtn').addEventListener('click',undo);
   $('#redoBtn').addEventListener('click',redo);
-  $$('.insert-grid [data-add]').forEach(button => button.addEventListener('click',() => addBlock(button.dataset.add)));
+  $$('.insert-grid [data-add]').forEach(button => button.addEventListener('click',() => addBlock(button.dataset.add,imageInsertOptions(button.dataset.imageStyle))));
   $$('.insert-grid [data-add]').forEach(button => button.addEventListener('dragstart',event => {
-    draggedType = button.dataset.add;
+    draggedType = `${button.dataset.add}${button.dataset.imageStyle?`|${button.dataset.imageStyle}`:''}`;
     event.dataTransfer.effectAllowed = 'copy';
     event.dataTransfer.setData('text/plain',`insert:${draggedType}`);
   }));
@@ -1131,6 +1417,14 @@
 
   artboard.addEventListener('click',event => {
     if (event.target.closest('.button-block a')) event.preventDefault();
+    const sourceImage=event.target.closest('[data-source-image]');
+    if(sourceImage) {
+      const sourceBlock=sourceImage.closest('[data-id]');
+      sourceImageSelection={elementId:sourceBlock?.dataset.id,index:Number(sourceImage.dataset.sourceImage)};
+      if(sourceBlock?.dataset.id) selectElement(sourceBlock.dataset.id);
+      renderInspector();
+      return;
+    }
     const imageUploadButton = event.target.closest('[data-image-upload]');
     if (imageUploadButton) {
       event.preventDefault();
@@ -1144,7 +1438,9 @@
     if (block) selectElement(block.dataset.id);
   });
   artboard.addEventListener('dblclick',event => {
-    if (!event.target.closest('.image-placeholder img')) return;
+    const sourceImage=event.target.closest('[data-source-image]');
+    if(sourceImage) sourceImageSelection={elementId:sourceImage.closest('[data-id]')?.dataset.id,index:Number(sourceImage.dataset.sourceImage)};
+    if (!sourceImage && !event.target.closest('.image-placeholder img')) return;
     const block = event.target.closest('[data-id]');
     if (block) selectElement(block.dataset.id);
     imageFile.value = '';
@@ -1153,6 +1449,14 @@
   artboard.addEventListener('pointerdown',startImageResize);
   artboard.addEventListener('mousedown',startImageResize);
   artboard.addEventListener('keydown',event => {
+    if (event.target.closest('[data-image-upload]') && ['Enter',' '].includes(event.key)) {
+      event.preventDefault();
+      const imageBlock=event.target.closest('[data-id]');
+      if(imageBlock)selectElement(imageBlock.dataset.id);
+      imageFile.value='';
+      imageFile.click();
+      return;
+    }
     const handle = event.target.closest('[data-resize-handle]');
     if (!handle || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
     event.preventDefault();
@@ -1211,11 +1515,19 @@
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
-    const insertMatch = source?.match(/^insert:(heading|text|image|quote|split|divider|banner|button|columns|spacer)$/);
+    const legacyInsertMatch = source?.match(/^legacy:([A-Za-z0-9]+)$/);
+    if (legacyInsertMatch) {
+      const targetIndex = elements.findIndex(item=>item.id===target?.dataset.id);
+      const after = target && event.clientY > target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
+      addLegacyBlock(legacyInsertMatch[1],targetIndex<0?elements.length:targetIndex+(after?1:0));
+      draggedType=null;
+      return;
+    }
+    const insertMatch = source?.match(/^insert:(heading|text|image|quote|split|divider|banner|button|columns|spacer)(?:\|(normal|highlight|green|greenText))?$/);
     if (insertMatch) {
       const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
       const after = target && event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height/2;
-      insertBlock(insertMatch[1],targetIndex < 0 ? elements.length : targetIndex + (after ? 1 : 0));
+      insertBlock(insertMatch[1],targetIndex < 0 ? elements.length : targetIndex + (after ? 1 : 0),imageInsertOptions(insertMatch[2]));
       draggedType = null;
       return;
     }
@@ -1247,14 +1559,48 @@
   });
 
   inspector.addEventListener('pointerdown',event => {
-    if (event.target.matches('[data-prop]') && !inspectorBaseline) inspectorBaseline = clone(elements);
+    if (event.target.matches('[data-prop],[data-speaker-prop]') && !inspectorBaseline) inspectorBaseline = clone(elements);
   });
   inspector.addEventListener('input',event => {
+    const speakerProp = event.target.dataset.speakerProp;
+    if (speakerProp) {
+      if (!inspectorBaseline) inspectorBaseline=clone(elements);
+      const element=elements.find(item=>item.id===selectedId);
+      const speakerIndex=Number(event.target.dataset.speakerIndex);
+      if(element && Number.isInteger(speakerIndex)) {
+        element.speakers ||= [];
+        element.speakers[speakerIndex] ||= {};
+        element.speakers[speakerIndex][speakerProp]=event.target.value;
+        renderArtboard(); renderLayers(); scheduleSave();
+      }
+      return;
+    }
     const prop = event.target.dataset.prop;
     if (!prop) return;
     if (!inspectorBaseline) inspectorBaseline = clone(elements);
+    if(prop==='sourceImageWidth') {
+      const imageElement=elements.find(item=>item.id===selectedId);
+      const index=sourceImageSelection?.elementId===selectedId?sourceImageSelection.index:-1;
+      if(imageElement?.type==='sourcePage'&&index>=0) {
+        imageElement.imageWidths ||= {};
+        imageElement.imageWidths[index]=Number(event.target.value);
+        const label=$('[data-source-width-value]',inspector);if(label)label.textContent=`${Math.round(Number(event.target.value))}%`;
+        renderArtboard();scheduleSave();
+      }
+      return;
+    }
     const numericProps = ['width','fontSize','padding','radius','height'];
     const value = numericProps.includes(prop) ? Number(event.target.value) : event.target.value;
+    if (prop === 'imageStyle') {
+      const imageElement = elements.find(item => item.id === selectedId);
+      if (imageElement?.type === 'image') {
+        const oldStyle = imageElement.imageStyle || 'normal';
+        const oldWidth = oldStyle === 'normal' ? 82 : 100;
+        const oldRadius = oldStyle === 'normal' ? 6 : 0;
+        if (Math.round(Number(imageElement.width)||100) === oldWidth) imageElement.width = value === 'normal' ? 82 : 100;
+        if (Number(imageElement.radius||0) === oldRadius) imageElement.radius = value === 'normal' ? 6 : 0;
+      }
+    }
     setProperty(selectedId,prop,value,false);
     renderArtboard();
     renderLayers();
@@ -1267,9 +1613,11 @@
     if (prop === 'height') $('[data-height-value]',inspector)?.replaceChildren(`${value} px`);
   });
   inspector.addEventListener('change',event => {
+    if (event.target.matches('[data-speaker-prop]')) { if(!inspectorBaseline)inspectorBaseline=clone(elements); commitInspectorEdit(); return; }
     const prop = event.target.dataset.prop;
     if (!prop) return;
     if (!inspectorBaseline) inspectorBaseline = clone(elements);
+    if(prop==='sourceImageWidth') {commitInspectorEdit();return;}
     const numericProps = ['width','fontSize','padding','radius','height'];
     setProperty(selectedId,prop,numericProps.includes(prop)?Number(event.target.value):event.target.value,false);
     commitInspectorEdit();
@@ -1322,5 +1670,6 @@
     }
   });
 
+  renderLegacyTools();
   renderGallery();
 })();

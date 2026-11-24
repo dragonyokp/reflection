@@ -1,26 +1,31 @@
+(() => {
 const $ = (selector) => document.querySelector(selector);
 const MAX_QUOTE_COLUMNS = 4;
+const legacyText = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])).replace(/\r?\n/g, '<br>');
+const legacyImagePath = (value, fallback) => legacyText(value || fallback);
+const LEGACY_IMAGE_ROOT = '/storage/newsroom/refaction/#####/#####/#####/';
+const LEGACY_HIGHLIGHT_IMAGE = `${LEGACY_IMAGE_ROOT}highlight.webp`;
 
 const BLOCKS = [
-  { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">Lorem....</h2>\n        </div>\n    </div>\n</div>` },
-  { id: 'audio', group: 'heading', name: 'Audio player', note: 'มีเฉพาะคลิปเสียง', mini: 'audio', make: () => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n\n        </div>\n    </div>\n</div>` },
-  { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: () => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">Lorem....</h2>\n\n            <audio controls="controls" src="/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4"></audio>\n        </div>\n    </div>\n</div>` },
-  { id: 'highlightImage', group: 'highlight', name: 'Highlight', note: 'รูปใหญ่ ไม่มีพื้นหลัง', mini: 'highlightImage', make: () => makeHighlightRow() },
-  { id: 'highlightGreenText', group: 'highlight', name: 'Highlight + พื้นหลังเขียว + ข้อความ', note: 'รูปใหญ่และแถบข้อความสีขาว', mini: 'highlightGreenText', make: () => makeGreenHighlight(true) },
-  { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: () => makeGreenHighlight(false) },
-  { id: 'contentQuoteImage', group: 'content', name: 'รูปภาพ', note: 'วางในการ์ดเดิมเพื่อรวมแถว · วางด้านนอกเพื่อขึ้นการ์ดใหม่', mini: 'contentQuoteImage', make: () => makeQuoteImage(++quoteImageCounter) },
-  { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: () => `<h4></h4>` },
-  { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: () => `<p></p>` },
-  { id: 'contentBlockquote', group: 'content', name: 'Blockquote', note: 'ข้อความอ้างอิง · my-md-5 my-4', mini: 'contentBlockquote', make: () => `<blockquote class="my-md-5 my-4"></blockquote>` },
-  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: () => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3) },
-  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: () => makeSplitQuoteBlock('left', ++quoteImageCounter, true) },
-  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: () => makeSplitMediaBlock('left', ++quoteImageCounter, true) },
-  { id: 'contentSplitImageRight', group: 'content', name: 'รูปขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: () => makeSplitMediaBlock('right', ++quoteImageCounter, true) },
-  { id: 'contentMedia', group: 'content', name: 'หัวข้อพร้อมไอคอน', note: 'media · ไอคอน + h4 + ข้อความ · 1–2 คอลัมน์', mini: 'contentMedia', make: (item = {}) => makeMediaPattern(item.variant || '1') },
-  { id: 'contentQuoteCard', group: 'content', name: 'การ์ดคำพูด', note: 'card--quote · เครื่องหมายคำพูดบน–ล่าง', mini: 'contentQuoteCard', make: () => makeQuoteCard() },
-  { id: 'contentPortraitQuote', group: 'content', name: 'รูปบุคคลคู่คำพูด', note: 'รูป + การ์ดคำพูด + ชื่อผู้พูด · สลับซ้าย–ขวาได้', mini: 'contentPortraitQuote', make: (item = {}) => makeQuoteCard(item.variant || 'left') },
+  { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">${legacyText(item.text || 'Lorem....')}</h2>\n        </div>\n    </div>\n</div>` },
+  { id: 'audio', group: 'heading', name: 'Audio player', note: 'มีเฉพาะคลิปเสียง', mini: 'audio', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n\n            <audio controls="controls" src="${legacyImagePath(item.audioSrc, '/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4')}"></audio>\n\n        </div>\n    </div>\n</div>` },
+  { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">${legacyText(item.text || 'Lorem....')}</h2>\n\n            <audio controls="controls" src="${legacyImagePath(item.audioSrc, '/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4')}"></audio>\n        </div>\n    </div>\n</div>` },
+  { id: 'highlightImage', group: 'highlight', name: 'Highlight', note: 'รูปใหญ่ ไม่มีพื้นหลัง', mini: 'highlightImage', make: (item = {}) => makeHighlightRow(item) },
+  { id: 'highlightGreenText', group: 'highlight', name: 'Highlight + พื้นหลังเขียว + ข้อความ', note: 'รูปใหญ่และแถบข้อความสีขาว', mini: 'highlightGreenText', make: (item = {}) => makeGreenHighlight(true, item) },
+  { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: (item = {}) => makeGreenHighlight(false, item) },
+  { id: 'contentQuoteImage', group: 'content', name: 'รูปภาพ', note: 'วางในการ์ดเดิมเพื่อรวมแถว · วางด้านนอกเพื่อขึ้นการ์ดใหม่', mini: 'contentQuoteImage', make: (item = {}) => makeQuoteImage(++quoteImageCounter, 'my-5', item.src) },
+  { id: 'contentHeading', group: 'content', name: 'หัวข้อ', note: 'h4', mini: 'contentHeading', make: (item = {}) => `<h4>${legacyText(item.text || '')}</h4>` },
+  { id: 'contentText', group: 'content', name: 'Text', note: 'p', mini: 'contentText', make: (item = {}) => `<p>${legacyText(item.text || '')}</p>` },
+  { id: 'contentBlockquote', group: 'content', name: 'Blockquote', note: 'ข้อความอ้างอิง · my-md-5 my-4', mini: 'contentBlockquote', make: (item = {}) => `<blockquote class="my-md-5 my-4">${legacyText(item.text || '')}</blockquote>` },
+  { id: 'contentSplitQuoteRight', group: 'content', name: 'รูป Quote ขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ขวา', mini: 'contentSplitQuoteRight', make: (item = {}) => makeSplitQuoteBlock('right', ++quoteImageCounter, true, 3, item) },
+  { id: 'contentSplitQuoteLeft', group: 'content', name: 'รูป Quote ซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นหลังเขียว · รูปและคำบรรยายอยู่ซ้าย', mini: 'contentSplitQuoteLeft', make: (item = {}) => makeSplitQuoteBlock('left', ++quoteImageCounter, true, 2, item) },
+  { id: 'contentSplitImageLeft', group: 'content', name: 'รูปซ้าย + หัวข้อและเนื้อหาขวา', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageLeft', make: (item = {}) => makeSplitMediaBlock('left', ++quoteImageCounter, true, item) },
+  { id: 'contentSplitImageRight', group: 'content', name: 'รูปขวา + หัวข้อและเนื้อหาซ้าย', note: 'พื้นเขียวครึ่งคอลัมน์รูป · รูปพาดรอยต่อเขียว/เทา · h4 + 2 ย่อหน้า', mini: 'contentSplitImageRight', make: (item = {}) => makeSplitMediaBlock('right', ++quoteImageCounter, true, item) },
+  { id: 'contentMedia', group: 'content', name: 'หัวข้อพร้อมไอคอน', note: 'media · ไอคอน + h4 + ข้อความ · 1–2 คอลัมน์', mini: 'contentMedia', make: (item = {}) => makeMediaPattern(item.variant || '1', item) },
+  { id: 'contentQuoteCard', group: 'content', name: 'การ์ดคำพูด', note: 'card--quote · เครื่องหมายคำพูดบน–ล่าง', mini: 'contentQuoteCard', make: (item = {}) => makeQuoteCard('', item) },
+  { id: 'contentPortraitQuote', group: 'content', name: 'รูปบุคคลคู่คำพูด', note: 'รูป + การ์ดคำพูด + ชื่อผู้พูด · สลับซ้าย–ขวาได้', mini: 'contentPortraitQuote', make: (item = {}) => makeQuoteCard(item.variant || 'left', item) },
   { id: 'contentModal', group: 'content', name: 'ปุ่มเปิดรายละเอียด Popup', note: 'ปุ่มอ่านเพิ่มเติม + Modal · รหัสไม่ซ้ำกัน', mini: 'contentModal', make: (item = {}) => makeModalButton(item) },
-  { id: 'contentSpeakers', group: 'content', name: 'คำพูดหลายคนพร้อมเส้นคั่น', note: 'คำพูด + ชื่อผู้พูด + เส้นคั่น · 2–3 คน', mini: 'contentSpeakers', make: (item = {}) => makeSpeakers(item.variant || '2') }
+  { id: 'contentSpeakers', group: 'content', name: 'คำพูดหลายคนพร้อมเส้นคั่น', note: 'คำพูด + ชื่อผู้พูด + เส้นคั่น · 2–3 คน', mini: 'contentSpeakers', make: (item = {}) => makeSpeakers(item.variant || '2', item) }
 ];
 
 const BLOCK_GROUPS = [
@@ -39,20 +44,20 @@ let suppressLibraryClickUntil = 0;
 
 const loremHighlight = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae justo at sapien facilisis varius. Sed non augue eget erat consequat posuere.';
 
-function makeHighlightRow() {
-  return `<div class="row justify-content-center mb-5">\n    <div class="col-md-12 col-xl-10 col-xxl-8">\n        <img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/highlight.webp">\n    </div>\n</div>`;
+function makeHighlightRow(item = {}) {
+  return `<div class="row justify-content-center mb-5">\n    <div class="col-md-12 col-xl-10 col-xxl-8">\n        <img class="img-fluid" src="${legacyImagePath(item.src, LEGACY_HIGHLIGHT_IMAGE)}">\n    </div>\n</div>`;
 }
 
-function makeGreenHighlight(withText) {
-  const imageSection = `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="/storage/newsroom/refaction/#####/#####/#####/highlight.webp" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
+function makeGreenHighlight(withText, item = {}) {
+  const imageSection = `<div class="bg-split-news-big-image">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-xl-10 col-xxl-8 mb-5">\n                <img src="${legacyImagePath(item.src, LEGACY_HIGHLIGHT_IMAGE)}" class="w-100">\n            </div>\n        </div>\n    </div>\n</div>`;
   const textSection = withText
-    ? `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white"></p>\n            </div>\n        </div>\n    </div>\n</div>`
+    ? `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                <p class="text-white">${legacyText(item.caption || '')}</p>\n            </div>\n        </div>\n    </div>\n</div>`
     : `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5"></div>`;
   return `${imageSection}\n\n${textSection}`;
 }
 
-function makeQuoteImage(number, spacing = 'my-5') {
-  return `<figure class="text-center ${spacing}"><img class="img-fluid" src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp"></figure>`;
+function makeQuoteImage(number, spacing = 'my-5', source = '') {
+  return `<figure class="text-center ${spacing}"><img class="img-fluid" src="${legacyImagePath(source, `${LEGACY_IMAGE_ROOT}quote-${number}.webp`)}"></figure>`;
 }
 
 function makeQuoteRow(images) {
@@ -66,14 +71,14 @@ ${makeQuoteItem(item)}
 
 function makeNestedContent(items = []) {
   return items.map((item, index) => {
-    let markup = blockInfo(item.type).make();
+    let markup = blockInfo(item.type).make(item);
     if (item.type === 'contentText' && items[index + 1]?.type === 'contentHeading') markup = markup.replace('<p>', '<p class="mb-5">');
     return markup;
   }).join('\n');
 }
 
 function makeQuoteItem(item, spacing = 'my-5') {
-  const image = makeQuoteImage(++quoteImageCounter, item.children?.length ? 'my-5' : spacing);
+  const image = makeQuoteImage(++quoteImageCounter, item.children?.length ? 'my-5' : spacing, item.src);
   if (!item.children?.length) return image;
   const copy = makeNestedContent(item.children);
   const imageColumn = `<div class="col-md-6">${image}</div>`;
@@ -81,52 +86,57 @@ function makeQuoteItem(item, spacing = 'my-5') {
   return `<div class="row align-items-center">${item.copySide === 'left' ? copyColumn + imageColumn : imageColumn + copyColumn}</div>`;
 }
 
-function makeSplitQuoteBlock(imageSide, number, withHeading, captionLines = withHeading ? 2 : 3) {
+function makeSplitQuoteBlock(imageSide, number, withHeading, captionLines = withHeading ? 2 : 3, item = {}) {
   const imageOrder = imageSide === 'right' ? ' order-lg-12' : '';
   const textOrder = imageSide === 'right' ? ' order-lg-1' : '';
   const rowClass = imageSide === 'right' ? 'row no-gutters justify-content-end' : 'row no-gutters';
-  const caption = Array.from({ length: captionLines }, () => '<span class="d-block"></span>').join('\n                    ');
-  const textMarkup = withHeading ? '<h4></h4>\n                    <p></p>' : '<p></p>';
-  return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="${rowClass}">\n        <div class="col-lg-5 bg-green-gradient-vertical${imageOrder}">\n            <div class="h-100 align-items-center justify-content-center p-5">\n                <figure class="text-center my-5"><img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" alt="" width="450" class="img-fluid"></figure>\n                <div class="font-italic text-center small text-white mt-3">\n                    ${caption}\n                </div>\n            </div>\n        </div>\n        <div class="col-lg-7 align-self-center${textOrder}">\n            <div class="py-5 px-3 px-md-7">\n                ${textMarkup}\n            </div>\n        </div>\n    </div>\n</div>`;
+  const captions = String(item.caption || '').split(/\r?\n/).filter(Boolean);
+  const caption = (captions.length ? captions : Array.from({ length: captionLines }, () => '')).map((line) => `<span class="d-block">${legacyText(line)}</span>`).join('\n                    ');
+  const textMarkup = withHeading ? `<h4>${legacyText(item.title || '')}</h4>\n                    <p>${legacyText(item.text || '')}</p>` : `<p>${legacyText(item.text || '')}</p>`;
+  const imageSource = legacyImagePath(item.src, `${LEGACY_IMAGE_ROOT}quote-${number}.webp`);
+  const imageAlt = legacyText(item.alt || '');
+  return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="${rowClass}">\n        <div class="col-lg-5 bg-green-gradient-vertical${imageOrder}">\n            <div class="h-100 align-items-center justify-content-center p-5">\n                <figure class="text-center my-5"><img src="${imageSource}" alt="${imageAlt}" width="450" class="img-fluid"></figure>\n                <div class="font-italic text-center small text-white mt-3">\n                    ${caption}\n                </div>\n            </div>\n        </div>\n        <div class="col-lg-7 align-self-center${textOrder}">\n            <div class="py-5 px-3 px-md-7">\n                ${textMarkup}\n            </div>\n        </div>\n    </div>\n</div>`;
 }
 
-function makeSplitMediaBlock(imageSide, number, withHeading) {
-  const imagePath = `/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp`;
-  const heading = withHeading ? '                <h4></h4>\n' : '';
+function makeSplitMediaBlock(imageSide, number, withHeading, item = {}) {
+  const imagePath = legacyImagePath(item.src, `${LEGACY_IMAGE_ROOT}quote-${number}.webp`);
+  const alt = legacyText(item.alt || '');
+  const heading = withHeading ? `                <h4>${legacyText(item.title || '')}</h4>\n` : '';
+  const paragraphs = `                <p>${legacyText(item.text || '')}</p>\n                <p>${legacyText(item.text2 || '')}</p>`;
   if (imageSide === 'left') {
-    return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row justify-content-lg-start justify-content-center no-gutters">\n        <div class="col-lg-6 col-xl-5 bg-split-news-left mb-md-0 mb-4">\n            <div class="d-flex h-100 align-items-center justify-content-center p-4 p-md-6">\n                <img src="${imagePath}" alt="" width="600" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-md-10 col-lg-6 col-xl-6 align-self-center">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
+    return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row justify-content-lg-start justify-content-center no-gutters">\n        <div class="col-lg-6 col-xl-5 bg-split-news-left mb-md-0 mb-4">\n            <div class="d-flex h-100 align-items-center justify-content-center p-4 p-md-6">\n                <img src="${imagePath}" alt="${alt}" width="600" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-md-10 col-lg-6 col-xl-6 align-self-center">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}${paragraphs}\n            </div>\n        </div>\n    </div>\n</div>`;
   }
-  return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row no-gutters justify-content-end">\n        <div class="col-lg-6 col-xl-5 order-lg-2 bg-split-news-right py-5">\n            <div class="d-flex h-100 align-items-center justify-content-center p-5">\n                <img src="${imagePath}" alt="" width="800" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-lg-6 col-xl-5 align-self-center order-lg-1">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}                <p></p>\n                <p></p>\n            </div>\n        </div>\n    </div>\n</div>`;
+  return `<div class="container-fluid px-0 my-5 bg-light-grey">\n    <div class="row no-gutters justify-content-end">\n        <div class="col-lg-6 col-xl-5 order-lg-2 bg-split-news-right py-5">\n            <div class="d-flex h-100 align-items-center justify-content-center p-5">\n                <img src="${imagePath}" alt="${alt}" width="800" class="img-fluid">\n            </div>\n        </div>\n        <div class="col-lg-6 col-xl-5 align-self-center order-lg-1">\n            <div class="py-5 px-3 px-md-5 pl-xl-0">\n${heading}${paragraphs}\n            </div>\n        </div>\n    </div>\n</div>`;
 }
 
-function makeMediaPattern(columns = '1') {
+function makeMediaPattern(columns = '1', item = {}) {
   const count = columns === '2' ? 2 : 1;
   const parts = Array.from({ length: count }, (_, index) => `
     <div class="${count === 2 ? 'col-md-6' : 'col-12'}">
         <div class="media align-items-center mb-4">
             <img src="/storage/newsroom/refaction/#####/#####/#####/icon-${String(index + 1).padStart(2, '0')}.svg" width="50" class="mr-3" alt="">
             <div class="media-body">
-                <h4 class="mt-0 mb-0"></h4>
+                <h4 class="mt-0 mb-0">${legacyText(item[`media${index + 1}Title`] || '')}</h4>
             </div>
         </div>
-        <p class="mb-0"></p>
+        <p class="mb-0">${legacyText(item[`media${index + 1}Text`] || '')}</p>
     </div>`);
   return `<div class="row my-5">${parts.join('\n')}</div>`;
 }
 
-function makeQuoteCard(imageSide) {
+function makeQuoteCard(imageSide, item = {}) {
   const body = `<div class="card__body">
     <div class="card__icon"><i class="icon-quote-up"></i></div>
-    <div class="card__text pt-2"><p class="text-black mb-0"><strong></strong></p></div>
+    <div class="card__text pt-2"><p class="text-black mb-0"><strong>${legacyText(item.quote || '')}</strong></p></div>
     <div class="card__icon"><i class="icon-quote-down"></i></div>
-    ${imageSide ? '<p class="text-black mt-3"></p>' : ''}
+    ${imageSide ? `<p class="text-black mt-3">${legacyText(item.author || '')}</p>` : ''}
 </div>`;
   if (!imageSide) return `<div class="card card--quote card--quote-green mb-4 mb-md-5"><div class="row"><div class="col-12">${body}</div></div></div>`;
   const number = ++quoteImageCounter;
   return `<div class="card card--quote card--quote-green my-5">
     <div class="row">
         <div class="col-lg-6 mb-3 mb-lg-0${imageSide === 'right' ? ' order-lg-2' : ''}">
-            <img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" class="card__image img-fluid" alt="">
+            <img src="${legacyImagePath(item.src, `${LEGACY_IMAGE_ROOT}quote-${number}.webp`)}" class="card__image img-fluid" alt="${legacyText(item.alt || '')}">
         </div>
         <div class="col-lg-6${imageSide === 'right' ? ' order-lg-1' : ''}">${body}</div>
     </div>
@@ -138,7 +148,7 @@ function modalId(item = {}) {
 }
 
 function makeModalButton(item) {
-  return `<p class="my-5"><a href="#${modalId(item)}" class="btn btn--primary" data-toggle="modal" data-target="#${modalId(item)}"><span class="btn__text btn__text--sm">อ่านข้อมูลเพิ่มเติม</span></a></p>`;
+  return `<p class="my-5"><a href="#${modalId(item)}" class="btn btn--primary" data-toggle="modal" data-target="#${modalId(item)}"><span class="btn__text btn__text--sm">${legacyText(item.label || 'อ่านข้อมูลเพิ่มเติม')}</span></a></p>`;
 }
 
 function makeModalMarkup(item) {
@@ -152,17 +162,18 @@ function makeModalMarkup(item) {
                 </div>
             </div>
             <div class="modal-body">
-                <h4 class="modal__headline" id="${modalId(item)}-title"></h4>
+                <h4 class="modal__headline" id="${modalId(item)}-title">${legacyText(item.title || '')}</h4>
                 <figure class="modal-figure text-center my-4"><img src="/storage/newsroom/refaction/#####/#####/#####/quote-${number}.webp" class="img-fluid" alt=""></figure>
-                <p></p>
+                <p>${legacyText(item.text || '')}</p>
             </div>
         </div>
     </div>
 </div>`;
 }
 
-function makeSpeakers(count = '2') {
-  const parts = Array.from({ length: count === '3' ? 3 : 2 }, () => '<p class="mb-4"><strong></strong></p><p></p>');
+function makeSpeakers(count = '2', item = {}) {
+  const speakers = Array.from({ length: count === '3' ? 3 : 2 }, (_,index) => item.speakers?.[index] || {});
+  const parts = speakers.map((speaker) => `<p class="mb-4"><strong>${legacyText(speaker.quote || '')}</strong></p><p>${legacyText(speaker.name || '')}</p>`);
   return `<div class="my-md-5 my-4">${parts.join('<hr class="hr-lg-dark-green my-4">')}</div>`;
 }
 
@@ -318,23 +329,24 @@ function makeAdditionalPreview(type, item) {
     frame.style.setProperty('--media-columns', item.variant === '2' ? 2 : 1);
     for (let i = 0; i < (item.variant === '2' ? 2 : 1); i++) {
       const column = document.createElement('div'); column.className = 'example-media-column';
-      column.innerHTML = `<div class="example-media-heading"><span>${i + 1}</span><h4>Lorem ipsum dolor sit amet</h4></div><p>${lorem}</p>`;
+      column.innerHTML = `<div class="example-media-heading"><span>${i + 1}</span><h4>${legacyText(item[`media${i + 1}Title`] || 'หัวข้อประกอบไอคอน')}</h4></div><p>${legacyText(item[`media${i + 1}Text`] || lorem)}</p>`;
       frame.append(column);
     }
   } else if (type === 'contentQuoteCard' || type === 'contentPortraitQuote') {
     frame.classList.add('example-quote-card');
     const copy = document.createElement('div'); copy.className = 'example-quote-body';
-    copy.innerHTML = `<span class="example-quote-open" aria-hidden="true">“</span><p><strong>${lorem}</strong></p><span class="example-quote-close" aria-hidden="true">”</span>`;
+    copy.innerHTML = `<span class="example-quote-open" aria-hidden="true">“</span><p><strong>${legacyText(item.quote || lorem)}</strong></p><span class="example-quote-close" aria-hidden="true">”</span>`;
     if (type === 'contentPortraitQuote') {
       frame.classList.add('with-portrait');
       const portrait = imagePlaceholder('quote-N.webp · รูปบุคคล'); portrait.classList.add('example-portrait');
-      const author = document.createElement('p'); author.className = 'example-author'; author.textContent = '— Lorem ipsum —'; copy.append(author);
+      const author = document.createElement('p'); author.className = 'example-author'; author.textContent = item.author || '— ชื่อผู้พูด —'; copy.append(author);
       if (item.variant === 'right') frame.append(copy, portrait);
       else frame.append(portrait, copy);
     } else frame.append(copy);
   } else if (type === 'contentModal') {
     const note = document.createElement('p'); note.className = 'example-modal-note'; note.textContent = 'กดปุ่มเพื่อดูตัวอย่าง Popup';
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'example-modal-button'; button.textContent = 'อ่านข้อมูลเพิ่มเติม';
+    const image = imagePlaceholder('รูปประกอบ Popup'); image.classList.add('example-modal-image'); frame.append(image);
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'example-modal-button'; button.textContent = item.label || 'อ่านข้อมูลเพิ่มเติม';
     button.addEventListener('pointerdown', (event) => event.stopPropagation());
     button.addEventListener('click', (event) => { event.stopPropagation(); showExampleModal(); });
     frame.append(note, button);
@@ -343,7 +355,8 @@ function makeAdditionalPreview(type, item) {
     for (let i = 0; i < (item.variant === '3' ? 3 : 2); i++) {
       if (i) frame.append(document.createElement('hr'));
       const section = document.createElement('div');
-      section.innerHTML = `<p><strong>“${lorem}”</strong></p><p class="example-speaker-name">Lorem ipsum · ผู้พูด ${i + 1}</p>`; frame.append(section);
+      const speaker = item.speakers?.[i] || {};
+      section.innerHTML = `<p><strong>“${legacyText(speaker.quote || lorem)}”</strong></p><p class="example-speaker-name">${legacyText(speaker.name || `ผู้พูด ${i + 1}`)}</p>`; frame.append(section);
     }
   }
   return frame;
@@ -733,6 +746,14 @@ function handleCanvasDragOver(event) {
     card.classList.add(event.clientY > rect.top + rect.height / 2 ? 'drop-after' : 'drop-before');
   }
 }
+window.ReflectionLegacyPatterns = Object.freeze({
+  groups: BLOCK_GROUPS.map(({id,title,help}) => ({id,title,help})),
+  blocks: BLOCKS.map(({id,group,name,note,mini}) => ({id,group,name,note,mini})),
+  imageTypes: ['highlightImage','highlightGreenText','highlightGreenEmpty','contentQuoteImage','contentSplitQuoteRight','contentSplitQuoteLeft','contentSplitImageLeft','contentSplitImageRight','contentPortraitQuote','contentModal'],
+  makePreview: (type,item = {}) => makePreview(type,item).cloneNode(true),
+  generateHtml
+});
+if (!$('#blockLibrary')) return;
 $('#canvas').addEventListener('dragover', handleCanvasDragOver);
 
 $('#canvas').addEventListener('dragleave', (event) => {
@@ -829,31 +850,35 @@ function formatGeneratedHtml(html) {
   return lines.join('\n');
 }
 
-function updateCode() {
+function generateHtml(source = structure) {
   quoteImageCounter = 0;
   const output = [];
-  for (let index = 0; index < structure.length; index++) {
-    const current = structure[index];
-    const next = structure[index + 1];
+  for (let index = 0; index < source.length; index++) {
+    const current = source[index];
+    const next = source[index + 1];
     const formsPair = next && ((current.type === 'subtitle' && next.type === 'audio') || (current.type === 'audio' && next.type === 'subtitle'));
     if (formsPair) {
-      output.push(blockInfo('subtitleAudio').make());
+      const subtitle = current.type === 'subtitle' ? current : next;
+      const audio = current.type === 'audio' ? current : next;
+      output.push(blockInfo('subtitleAudio').make({ ...subtitle, audioSrc:audio.audioSrc }));
       index++;
     } else if (['subtitle', 'audio', 'subtitleAudio'].includes(current.type)) {
-      output.push(blockInfo(current.type).make(current.variant));
+      output.push(blockInfo(current.type).make(current));
     } else {
       const bodyBlocks = [];
-      while (index < structure.length && !['subtitle', 'audio', 'subtitleAudio'].includes(structure[index].type)) {
-        bodyBlocks.push(structure[index]);
+      while (index < source.length && !['subtitle', 'audio', 'subtitleAudio'].includes(source[index].type)) {
+        bodyBlocks.push(source[index]);
         index++;
       }
       index--;
       output.push(composeBodyBlocks(bodyBlocks));
     }
   }
-  for (const item of structure.filter((entry) => entry.type === 'contentModal')) output.push(makeModalMarkup(item));
-  $('#htmlOutput').value = formatGeneratedHtml(output.filter(Boolean).join('\n\n'));
+  for (const item of source.filter((entry) => entry.type === 'contentModal')) output.push(makeModalMarkup(item));
+  return formatGeneratedHtml(output.filter(Boolean).join('\n\n'));
 }
+
+function updateCode() { $('#htmlOutput').value = generateHtml(structure); }
 
 function composeBodyBlocks(items) {
   const sections = [];
@@ -864,7 +889,7 @@ function composeBodyBlocks(items) {
         const regularSection = composeRegularBodyBlocks(regularItems);
         if (regularSection) sections.push(regularSection);
       }
-      sections.push(blockInfo(item.type).make());
+      sections.push(blockInfo(item.type).make(item));
       regularItems = [];
     } else {
       regularItems.push(item);
@@ -883,7 +908,7 @@ function composeRegularBodyBlocks(items) {
   for (let index = 0; index < items.length; index++) {
     const item = items[index];
     if (item.type === 'highlightImage') {
-      rows.push(makeHighlightRow());
+      rows.push(makeHighlightRow(item));
       continue;
     }
     const textItems = [];
@@ -965,3 +990,4 @@ $('#downloadBtn').addEventListener('click', () => {
 
 renderLibrary();
 renderStructure();
+})();
