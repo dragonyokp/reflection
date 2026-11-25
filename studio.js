@@ -584,7 +584,7 @@
     frame.style.setProperty('--board-crop-ratio',ratio);
   }
 
-  function renderImageCropControls(block, element) {
+  function applyImageCrops(block, element) {
     for (const frame of block.querySelectorAll(boardImageFrame)) {
       const image = frame.querySelector('img');
       if (!image) continue;
@@ -592,9 +592,6 @@
       const index = frame.dataset.sourceFrame;
       const ratio = source ? element.imageCropRatios?.[index] : element.cropRatio;
       if (Number.isFinite(ratio) && ratio > 0) applyCropFrame(frame,ratio);
-      if (element.id !== selectedId || (source && index !== String(sourceImageSelection?.index))) continue;
-      if (frame.matches('.source-template-green-frame:not(.has-user-image)')) continue;
-      frame.insertAdjacentHTML('beforeend','<button class="crop-image-export" data-crop-export type="button" title="ลากจุดจับด้านบนหรือล่างเพื่อครอปภาพ">ดาวน์โหลดรูป WebP ↓</button>');
     }
   }
 
@@ -643,7 +640,7 @@
       if (!block.classList.contains('canvas-block')) continue;
       const element = elements.find(item => item.id === block.dataset.id);
       if (!element) continue;
-      renderImageCropControls(block,element);
+      applyImageCrops(block,element);
       $$('[contenteditable="true"][data-part]',block).forEach(node => {
         const format = element.textFormats?.[boardTextKey(node)];
         if (!format) return;
@@ -1424,26 +1421,16 @@
     setTimeout(() => URL.revokeObjectURL(url),5000);
   }
 
-  async function downloadCroppedImage(button) {
-    const image = button.closest(boardImageFrame)?.querySelector('img');
-    if (!image) return;
-    button.disabled = true;
-    try {
-      const {blob,width,height} = await createCroppedWebp(image);
-      const filename = (image.alt || 'reflection-image').replace(/[\\/:*?"<>|]+/g,'-').trim() || 'reflection-image';
-      downloadWebp(blob,filename + '.webp');
-      showToast(`ดาวน์โหลดรูป WebP แล้ว · ${width} × ${height} px`);
-    } catch (error) {
-      showToast(error?.message || 'ดาวน์โหลดรูปไม่สำเร็จ');
-    } finally {
-      button.disabled = false;
-    }
-  }
-
   async function exportDesignImage() {
     const button = $('#openImageExport');
-    const images = [...artboard.querySelectorAll(`${boardImageFrame} img`)].filter(image => image.getAttribute('src'));
+    const images = [...artboard.querySelectorAll('img[src]')].filter(image => {
+      const frame = image.closest(boardImageFrame);
+      const src = image.getAttribute('src').trim();
+      return frame && src && src !== '#' &&
+        !frame.matches('.source-template-green-frame:not(.has-user-image)');
+    });
     if (!images.length) {showToast('ไม่มีรูปภาพให้ส่งออก');return;}
+    const buttonMarkup = button.innerHTML;
     button.disabled = true;
     const editorWasHidden = editorView.hidden;
     const editorStyle = editorView.getAttribute('style');
@@ -1483,7 +1470,7 @@
       if (editorStyle === null) editorView.removeAttribute('style');
       else editorView.setAttribute('style',editorStyle);
       button.disabled = false;
-      button.textContent = 'ดาวน์โหลดรูปภาพ';
+      button.innerHTML = buttonMarkup;
     }
   }
 
@@ -1875,11 +1862,6 @@
   $('#fitCanvas').addEventListener('click',fitCanvasToView);
 
   artboard.addEventListener('click',event => {
-    const cropExport = event.target.closest('[data-crop-export]');
-    if (cropExport) {
-      downloadCroppedImage(cropExport);
-      return;
-    }
     const remove = event.target.closest('[data-canvas-remove]');
     if (remove) {
       removeBoardElement(remove.dataset.canvasRemove);
