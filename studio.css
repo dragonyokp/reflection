@@ -1522,3 +1522,44 @@ body{font-size:18px}
   text-align: center;
   font: 700 18px/1.1 var(--font);
 }
+.source-page-block.template-fragment {
+  margin: 12px -96px 16px !important;
+}
+.template-fragment .source-page-render {
+  min-height: 0;
+}
+.template-fragment .source-page-toolbar {
+  padding: 8px 52px 8px 18px;
+}
+.source-page-block.template-fragment > .canvas-remove-block {
+  top: 5px;
+  right: 7px;
+}
+.legacy-tool-card .template-tool-preview {
+  display: block;
+  height: 82px;
+  overflow: hidden;
+  padding: 5px;
+  background: #f6f8f2;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.template-tool-preview .container { padding-inline: 2px; }
+.template-tool-preview .row { margin-inline: 0; }
+.template-tool-preview :is(p,h2,h3,h4,li) {
+  font-size: 6px !important;
+  line-height: 1.25 !important;
+  margin: 2px 0 !important;
+}
+.template-tool-preview .source-thumb-image { min-height: 12px; }
+.canvas-block[data-block-drop]::after {
+  content: '';
+  position: absolute;
+  z-index: 12;
+  inset-inline: 0;
+  height: 3px;
+  background: #528b36;
+  pointer-events: none;
+}
+.canvas-block[data-block-drop="before"]::after { top: -5px; }
+.canvas-block[data-block-drop="after"]::after { bottom: -5px; }

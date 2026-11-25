@@ -155,11 +155,28 @@
       });
       button.addEventListener('dragend',() => {draggedType=null});
     });
-    root.querySelectorAll('[data-tool-add]').forEach(button => {
-      button.addEventListener('click',() => addBlock(button.dataset.toolAdd));
-      button.addEventListener('dragstart',event => {draggedType=button.dataset.toolAdd;event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('text/plain',draggedType)});
+    const recipes = extraTemplateTools();
+    if (!recipes.size) return;
+    const group = document.createElement('section');
+    group.className = 'tool-category legacy-tool-category';
+    group.innerHTML = '<h3 class="tool-category-title">รูปแบบจากเทมเพลต</h3><div class="insert-grid"></div>';
+    const grid = $('.insert-grid',group);
+    for (const [key, recipe] of recipes) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'legacy-tool-card';
+      button.draggable = true;
+      button.innerHTML = `<span class="source-template-preview template-tool-preview" aria-hidden="true">${sourceThumbMarkup(wrapTemplateFragment(recipe.markup,recipe.sourcePath))}</span><b>${escapeHtml(recipe.title)}</b>`;
+      button.addEventListener('click',() => insertTemplateTool(key));
+      button.addEventListener('dragstart',event => {
+        draggedType = `template-tool:${key}`;
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData('text/plain',draggedType);
+      });
       button.addEventListener('dragend',() => {draggedType=null});
-    });
+      grid.append(button);
+    }
+    root.append(group);
   }
 
   function legacyMiniMarkup(type) {
@@ -287,11 +304,11 @@
     });
   }
 
-  function sourcePreviewMarkup(markup, visualTemplate = false, editing = false) {
+  function sourcePreviewMarkup(markup, visualTemplate = false, editing = false, element = null) {
     let imageIndex=0;
     const clean=cleanSourceMarkup(markup,true).replace(/<img\b[^>]*>/gi,tag=>{
       const index=imageIndex++;
-      const width=Number(elements.find(item=>item.id===selectedId)?.imageWidths?.[index]);
+      const width=Number(element?.imageWidths?.[index]);
       const imageSource=(tag.match(/\bsrc=(['"])(.*?)\1/i)||[])[2]||'';
       const hasUserImage=/^(?:data:image\/|blob:)/i.test(imageSource);
       const marked=tag.replace(/\s*\/?\s*>$/,' data-source-image="'+index+'">');
@@ -299,7 +316,7 @@
       const nativeWidth=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
       const fullWidth=/\bw-100\b/.test(tag);
       const frameWidth=width?`width:${Math.max(10,Math.min(120,width))}%`:nativeWidth&&!fullWidth?`width:${nativeWidth}px;max-width:100%`:'';
-      const isSelected = editing && index === sourceImageSelection?.index && sourceImageSelection?.elementId === selectedId;
+      const isSelected = editing && index === sourceImageSelection?.index && sourceImageSelection?.elementId === element?.id;
       let imageControl = '';
       if (editing && visualTemplate) {
         const action = hasUserImage ? 'เปลี่ยนรูปภาพ' : 'เพิ่มรูปภาพ';
@@ -454,10 +471,134 @@
     view.style.height=`${Math.ceil(page.scrollHeight*scale)+12}px`;
   }
 
+  function templateFragmentKind(nodes, path) {
+    const [node, next] = nodes;
+    const contains = selector => node.matches(selector) || Boolean(node.querySelector(selector));
+    if (next) return ['greenHighlight','Highlight พื้นเขียว + ข้อความ'];
+    if (contains('.bg-split-news-left')) return ['halfLeft','รูปซ้าย · พื้นเขียวครึ่ง'];
+    if (contains('.bg-split-news-right')) return ['halfRight','รูปขวา · พื้นเขียวครึ่ง'];
+    if (contains('.bg-split-news-big-image')) return ['greenImage','Highlight พื้นเขียว'];
+    if (contains('.card__icon') && !contains('.media')) return ['iconCards','ชุดการ์ดไอคอน'];
+    const columns = [...(node.matches('.row') ? [node] : []),...node.querySelectorAll('.row')]
+      .map(row => [...row.children].filter(child => [...child.classList].some(name => name.startsWith('col-'))))
+      .find(items => items.length > 1);
+    if (columns) {
+      const imageColumns = columns.filter(col => col.querySelector('img'));
+      if (contains('.card--quote') && imageColumns.length === 1) return ['portraitQuote','รูปคู่การ์ดคำพูด'];
+      if (contains('.card--quote')) return ['quoteGrid','ชุดการ์ดคำพูด'];
+      if (contains('.media')) return columns.length > 2 ? ['mediaGrid','ชุดหัวข้อพร้อมไอคอน'] : ['media','หัวข้อพร้อมไอคอน'];
+      if (imageColumns.length === columns.length) return [`imageGrid${columns.length}`,`รูปเรียง ${columns.length} คอลัมน์`];
+      if (imageColumns.length === 1 && columns.length === 2) {
+        const imageColumn = imageColumns[0];
+        const order = [...imageColumn.classList].filter(name => /^order-(?:[a-z]+-)?\d+$/.test(name)).pop();
+        const right = order ? /-(?:2|12)$/.test(order) : imageColumn === columns[1];
+        const green = contains('.bg-green-gradient-vertical');
+        return [`split${green?'Green':''}${right?'Right':'Left'}`,`รูป${right?'ขวา':'ซ้าย'}คู่ข้อความ${green?' · พื้นเขียวเต็ม':''}`];
+      }
+      return ['textGrid','ข้อความหลายคอลัมน์'];
+    }
+    if (contains('.bg-green-gradient-vertical')) return ['greenBand','แถบข้อความพื้นเขียว'];
+    if (contains('.media')) return ['media','หัวข้อพร้อมไอคอน'];
+    if (contains('.card--quote')) return ['quoteCard','การ์ดคำพูด'];
+    if (contains('ol')) return ['orderedList','รายการลำดับเลข'];
+    if (contains('ul')) return ['bulletList','รายการหัวข้อย่อย'];
+    if (contains('audio')) return ['audio','เสียงประกอบ'];
+    if (contains('img')) {
+      const wide = path.some(wrapper => /\bcol-(?:xxl-8|xl-10)\b/.test(wrapper.open));
+      return wide ? ['highlight','รูป Highlight'] : ['image','รูปในเนื้อหา'];
+    }
+    if (contains('blockquote')) return ['quote','ข้อความอ้างอิง'];
+    if (node.matches('h1,h2,.news__subtitle')) return ['subtitle','Subtitle'];
+    if (node.matches('h3,h4,h5,h6')) return ['heading','หัวข้อเนื้อหา'];
+    return ['text','ข้อความ'];
+  }
+
+  function splitTemplateMarkup(source, originalMarkup = source.markup) {
+    const fragment = document.createElement('template');
+    fragment.innerHTML = cleanSourceMarkup(source.markup,true);
+    const originalImages = String(originalMarkup || '').match(/<img\b[^>]*>/gi) || [];
+    const sections = [];
+    let wrapperId = 0;
+    let imageOffset = 0;
+
+    function visit(parent, path) {
+      const children = [...parent.childNodes];
+      for (let index = 0; index < children.length; index++) {
+        const node = children[index];
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) continue;
+          const paragraph = document.createElement('p');
+          paragraph.textContent = node.textContent;
+          sections.push({type:'sourcePage',markup:paragraph.outerHTML,sourcePath:path,sourceKind:'text',title:'ข้อความ',imageCount:0});
+          continue;
+        }
+        if (node.matches('div:is(.container,.container-fluid,.row,[class*="col-"])') &&
+          node.children.length && !node.matches('[id],.bg-green-gradient-vertical') &&
+          ![...node.childNodes].some(child => child.nodeType === Node.TEXT_NODE && child.textContent.trim()) &&
+          !(node.matches('.row') && node.children.length > 1 && [...node.children].some(child => /(?:^|\s)col-/.test(child.className)))) {
+          const shell = node.cloneNode(false);
+          const close = `</${node.localName}>`;
+          visit(node,[...path,{id:`${source.id || source.sourceId}:${++wrapperId}`,open:shell.outerHTML.slice(0,-close.length),close}]);
+          continue;
+        }
+        const nodes = [node];
+        if (node.matches('.bg-split-news-big-image') && node.nextElementSibling?.matches('.bg-green-gradient-vertical')) {
+          nodes.push(node.nextElementSibling);
+          index = children.indexOf(nodes[1]);
+        }
+        const [sourceKind,title] = templateFragmentKind(nodes,path);
+        const imageCount = nodes.reduce((count,item) => count + item.querySelectorAll('img').length + Number(item.matches('img')),0);
+        const localImageSettings = key => Object.fromEntries(Array.from({length:imageCount},(_,i) => i)
+          .filter(i => source[key]?.[imageOffset+i] !== undefined).map(i => [i,source[key][imageOffset+i]]));
+        sections.push({
+          type:'sourcePage', title, sourceKind, sourceId:source.sourceId, sourcePath:path,
+          markup:nodes.map(item => item.outerHTML).join('\n'), visualTemplate:source.visualTemplate,
+          imageCount, originalImages:originalImages.slice(imageOffset,imageOffset+imageCount),
+          imageWidths:localImageSettings('imageWidths'), imageCropRatios:localImageSettings('imageCropRatios')
+        });
+        imageOffset += imageCount;
+      }
+    }
+    visit(fragment.content,[]);
+    return sections;
+  }
+
+  function wrapTemplateFragment(markup, path, render = false) {
+    if (!path.length) return render ? `<div data-source-render>${markup}</div>` : markup;
+    const opening = path.map(({open},i) => render && i === path.length-1 ? open.slice(0,-1)+' data-source-render>' : open).join('');
+    return opening + markup + path.slice().reverse().map(wrapper => wrapper.close).join('');
+  }
+
+  const templateToolRecipes = new Map();
+  function extraTemplateTools() {
+    const existing = new Set(['greenHighlight','halfLeft','halfRight','greenImage','portraitQuote','splitGreenLeft',
+      'splitGreenRight','media','quoteCard','audio','highlight','image','quote','subtitle','heading','text']);
+    for (const template of templates) {
+      if (!template.markup || template.patterns) continue;
+      for (const part of splitTemplateMarkup({markup:template.markup,sourceId:template.id,visualTemplate:true})) {
+        if (!existing.has(part.sourceKind) && !templateToolRecipes.has(part.sourceKind)) {
+          templateToolRecipes.set(part.sourceKind,part);
+        }
+      }
+    }
+    return templateToolRecipes;
+  }
+
+  function insertTemplateTool(key,index) {
+    const recipe = templateToolRecipes.get(key);
+    if (!recipe) return;
+    insertBlock('sourcePage',index,{...clone(recipe),sourcePath:[],markup:wrapTemplateFragment(recipe.markup,recipe.sourcePath)});
+  }
+
   function useTemplate(template) {
-    if(!template)return;
-    if(templatePreviewDialog?.open)templatePreviewDialog.close();
-    enterEditor(template.markup?'งาน Reflection ใหม่':template.title,template.markup?[{type:'sourcePage',title:'งาน Reflection ใหม่',markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
+    if (!template) return;
+    if (templatePreviewDialog?.open) templatePreviewDialog.close();
+    const blocks = template.patterns
+      ? template.patterns.map(({type,...fields}) => ({...fields,type:'legacy',legacyType:type,width:legacyDefaultWidth(type)}))
+      : template.markup
+        ? splitTemplateMarkup({markup:template.markup,sourceId:template.id,visualTemplate:Boolean(template.visualTemplate)})
+        : template.blocks;
+    enterEditor(template.markup ? 'งาน Reflection ใหม่' : template.title,blocks);
   }
 
   let editorDocumentVersion = 0;
@@ -466,9 +607,15 @@
     activeTextField = null;
     sourceTextSelection = null;
     sourceImageSelection = null;
-    elements = blocks.map(block => makeElement(block.type, block));
+    nextId = Math.max(1,...blocks.map(block => (Number(String(block.id).split('-').pop()) || 0) + 1));
+    const editableBlocks = blocks.flatMap(block => {
+      if (block.type !== 'sourcePage' || block.sourcePath) return [block];
+      const original = templates.find(template => template.id === block.sourceId);
+      const sections = splitTemplateMarkup(block,original?.markup);
+      return sections.length ? sections : [block];
+    });
+    elements = editableBlocks.map(block => makeElement(block.type,block));
     selectedId = elements[0]?.id || null;
-    nextId = elements.length + 1;
     undoStack = [];
     redoStack = [];
     $('#documentTitle').textContent = title;
@@ -487,7 +634,10 @@
     const draggable = ' draggable="true"';
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
-    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true)}</div></div>`;
+    if (element.type === 'sourcePage') {
+      const markup = sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true,element);
+      return `<div class="canvas-block source-page-block${element.sourcePath?' template-fragment':''}${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>${escapeHtml(element.title || 'องค์ประกอบจากเทมเพลต')}</b></div><div class="source-page-render">${wrapTemplateFragment(markup,element.sourcePath || [],true)}</div></div>`;
+    }
     if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h4 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h4></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
@@ -652,7 +802,7 @@
           if (alignBox === node && ['STRONG','SPAN'].includes(node.tagName)) node.style.display = 'block';
         }
       });
-      const name = element.type === 'legacy' ? legacyElementName(element) : titleFor(element.type);
+      const name = element.type === 'legacy' ? legacyElementName(element) : element.type === 'sourcePage' ? element.title : titleFor(element.type);
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'canvas-remove-block';
@@ -677,7 +827,7 @@
     if (!layerList) return;
     $('#layerCount').textContent = elements.length;
     layerList.innerHTML = elements.map(element => {
-      const name = element.type === 'sourcePage' ? 'หน้าเทมเพลต' :
+      const name = element.type === 'sourcePage' ? element.title || 'องค์ประกอบจากเทมเพลต' :
         element.type === 'legacy' && !['subtitle','subtitleAudio','contentHeading','contentText'].includes(element.legacyType) ? (shelfLabels[element.legacyType] || legacyElementName(element)) :
         element.text?.split('\n')[0] || element.title || (element.type === 'image' ? imageStyleName(element.imageStyle) : titleFor(element.type));
       const selected = element.id === selectedId;
@@ -721,6 +871,11 @@
         </div>
       </div>`;
       fields += `<div class="inspector-group"><details class="source-code-details"><summary>ดูหรือแก้ HTML ต้นฉบับ</summary><textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea></details></div>`;
+      const audio = element.markup.match(/<audio\b[^>]*>/i);
+      if (audio) {
+        const src = audio[0].match(/\bsrc="([^"]*)"/i)?.[1] || '';
+        fields += `<div class="inspector-group"><h3>เสียง</h3>${field('ที่อยู่ไฟล์เสียง',`<input type="text" data-prop="templateAudioSrc" value="${escapeHtml(src)}" placeholder="/storage/newsroom/.../Reflection.mp4">`)}</div>`;
+      }
       if (sourceImageSelection?.elementId===element.id) {
         const index=sourceImageSelection.index;
         fields += `<div class="inspector-group"><h3>รูปที่เลือก · ${index+1}</h3>${field('เปลี่ยนไฟล์รูปภาพ',`<button type="button" class="file-pick" data-pick-image="true">เลือกรูปจากเครื่อง <span>↗</span></button>`)}${field('ความกว้างในหน้า',`<div class="range-line"><span>ลากจุดมุมภาพ หรือปรับสัดส่วน</span><b data-source-width-value>${Math.round(Number(element.imageWidths?.[index])||100)}%</b></div><input type="range" min="10" max="120" step="1" data-prop="sourceImageWidth" value="${Math.max(10,Math.min(120,Number(element.imageWidths?.[index])||100))}">`)}</div>`;
@@ -982,7 +1137,7 @@
       const sourceRoot=block.querySelector('[data-source-render]');
       if (sourceRoot) element.markup=sourceHtmlFromPreview(sourceRoot);
       const layer=$(`.layer-row[data-layer-id="${element.id}"] .layer-name`);
-      if (layer) layer.textContent='หน้าเต็ม · '+(element.title||'HTML Reflection');
+      if (layer) layer.textContent=element.title || 'องค์ประกอบจากเทมเพลต';
       $('#saveStatus').textContent='มีการแก้ไข';
       scheduleSave();
       return;
@@ -1103,6 +1258,8 @@
   function sourceDropPoint(event) {
     const root = event.target.closest('[data-source-render]');
     if (!root) return null;
+    const element = elements.find(item => item.id === root.closest('[data-id]')?.dataset.id);
+    if (element?.sourcePath) return null;
     let anchor = event.target.closest('[data-source-edit]');
     if (!anchor) {
       let best = Infinity;
@@ -1121,6 +1278,17 @@
     $$('.source-text-drop-before,.source-text-drop-after',artboard).forEach(node => {
       node.classList.remove('source-text-drop-before','source-text-drop-after');
     });
+  }
+
+  let blockDropTarget = null;
+  function clearBlockDropHint() {
+    blockDropTarget?.removeAttribute('data-block-drop');
+    blockDropTarget = null;
+  }
+
+  function isAfterBlock(event, block) {
+    const rect = block.getBoundingClientRect();
+    return event.clientY > rect.top + rect.height / 2;
   }
 
   function changeSourceText(root, anchor, action, tag = 'p', before = false) {
@@ -1142,6 +1310,8 @@
       if (anchor) {
         if (before) anchor.before(inserted);
         else anchor.after(inserted);
+      } else if (element.sourcePath?.length) {
+        root.append(inserted);
       } else {
         const section = document.createElement('div');
         section.className = 'container';
@@ -1311,6 +1481,13 @@
       return token;
     }).join('\n');
     let legacyRun=[];
+    let sourceRun = '';
+    let sourcePath = [];
+    const flushSource = () => {
+      if (sourceRun) contentParts.push(sourceRun + sourcePath.slice().reverse().map(wrapper => wrapper.close).join(''));
+      sourceRun = '';
+      sourcePath = [];
+    };
     const flushLegacy=()=>{
       if (!legacyRun.length) return;
       const html=legacyPatterns.generateHtml(legacyRun);
@@ -1321,7 +1498,7 @@
       if (element.type==='sourcePage') {
         flushLegacy();
         const originalTemplate = templates.find(template => template.id === element.sourceId);
-        const originalImages = originalTemplate?.markup?.match(/<img\b[^>]*>/gi) || [];
+        const originalImages = element.originalImages || originalTemplate?.markup?.match(/<img\b[^>]*>/gi) || [];
         let imageIndex = 0;
         const markup = cleanSourceMarkup(element.markup).replace(/<img\b[^>]*>/gi,tag => {
           const original = originalImages[imageIndex++];
@@ -1329,9 +1506,17 @@
           if (!localImage.test(tag)) return tag;
           return original ? cleanSourceMarkup(original) : tag.replace(localImage,'src="#"');
         });
-        if(markup) contentParts.push(markup);
+        if (markup) {
+          const nextPath = element.sourcePath || [];
+          let shared = 0;
+          while (sourcePath[shared] && sourcePath[shared].id === nextPath[shared]?.id) shared++;
+          sourceRun += sourcePath.slice(shared).reverse().map(wrapper => wrapper.close).join('');
+          sourceRun += '\n' + nextPath.slice(shared).map(wrapper => wrapper.open).join('') + markup;
+          sourcePath = nextPath;
+        }
         continue;
       }
+      flushSource();
       let exportElement = element;
       if (element.textFormats) {
         exportElement = clone(element);
@@ -1354,6 +1539,7 @@
       }
     }
     flushLegacy();
+    flushSource();
     const markup = contentParts.join('\n\n');
     if (!formattedFields.size) return markup;
     const fragment = document.createElement('template');
@@ -1795,7 +1981,7 @@
       const draft = await readSavedDraft();
       if (!draft) {resumeButton.hidden = true;return;}
       enterEditor(draft.title || 'งาน Reflection',draft.elements || []);
-      nextId = Math.max(Number(draft.nextId)||1,...elements.map(item => Number(String(item.id).split('-').pop())+1 || 1));
+      nextId = Math.max(nextId,Number(draft.nextId)||1);
     } catch { showToast('เปิดร่างที่บันทึกไว้ไม่สำเร็จ'); }
     finally {resumeButton.disabled = false;}
   });
@@ -1991,6 +2177,12 @@
     event.dataTransfer.setData('text/plain',draggedId);
     block.classList.add('dragging');
   });
+  document.addEventListener('dragend',() => {
+    clearBlockDropHint();
+    clearSourceDropHint();
+    draggedId = null;
+    draggedType = null;
+  });
   artboard.addEventListener('dragend',event => event.target.closest('[data-id]')?.classList.remove('dragging'));
   artboard.addEventListener('dragover',event => {
     if (event.dataTransfer?.types?.includes('Files')) {
@@ -2000,21 +2192,36 @@
       event.dataTransfer.dropEffect='copy';
       return;
     }
-    if (draggedId || draggedType) {event.preventDefault();event.dataTransfer.dropEffect=draggedType?'copy':'move'}
+    if (!draggedId && !draggedType) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = draggedType ? 'copy' : 'move';
+    clearBlockDropHint();
+    const target = event.target.closest('.canvas-block[data-id]');
     if (sourceTextTools[draggedType]) {
       clearSourceDropHint();
       const point = sourceDropPoint(event);
-      point?.anchor?.classList.add(point.before?'source-text-drop-before':'source-text-drop-after');
+      if (point?.anchor) {
+        point.anchor.classList.add(point.before?'source-text-drop-before':'source-text-drop-after');
+        return;
+      }
+    }
+    if (target && target.dataset.id !== draggedId) {
+      blockDropTarget = target;
+      target.dataset.blockDrop = isAfterBlock(event,target) ? 'after' : 'before';
     }
   });
   artboard.addEventListener('dragleave',event => {
     const imageBox = event.target.closest('.image-placeholder,.preview-image-placeholder,.source-image-frame');
     if (imageBox && !imageBox.contains(event.relatedTarget)) imageBox.classList.remove('drop-target');
-    if (!artboard.contains(event.relatedTarget)) clearSourceDropHint();
+    if (!artboard.contains(event.relatedTarget)) {
+      clearSourceDropHint();
+      clearBlockDropHint();
+    }
   });
   artboard.addEventListener('drop',async event => {
     event.preventDefault();
     clearSourceDropHint();
+    clearBlockDropHint();
     artboard.querySelectorAll('.drop-target').forEach(node => node.classList.remove('drop-target'));
     const target = event.target.closest('[data-id]');
     const droppedFile = event.dataTransfer.files?.[0];
@@ -2027,6 +2234,15 @@
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
+    const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
+    const after = target ? isAfterBlock(event,target) : false;
+    const insertAt = targetIndex < 0 ? elements.length : targetIndex + Number(after);
+    const templateTool = source?.match(/^template-tool:([A-Za-z0-9]+)$/);
+    if (templateTool) {
+      insertTemplateTool(templateTool[1],insertAt);
+      draggedType = null;
+      return;
+    }
     const toolKey = source?.replace(/^insert:/,'');
     const textTool = Object.hasOwn(sourceTextTools,toolKey) ? sourceTextTools[toolKey] : null;
     const point = textTool && sourceDropPoint(event);
@@ -2037,25 +2253,19 @@
     }
     const legacyInsertMatch = source?.match(/^legacy:([A-Za-z0-9]+)$/);
     if (legacyInsertMatch) {
-      const targetIndex = elements.findIndex(item=>item.id===target?.dataset.id);
-      const after = target && event.clientY > target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
-      addLegacyBlock(legacyInsertMatch[1],targetIndex<0?elements.length:targetIndex+(after?1:0));
+      addLegacyBlock(legacyInsertMatch[1],insertAt);
       focusNewText($('.canvas-block.selected [contenteditable="true"]',artboard));
       draggedType=null;
       return;
     }
     const insertMatch = source?.match(/^insert:(heading|text|image|quote|split|divider|banner|button|columns|spacer)(?:\|(normal|highlight|green|greenText))?$/);
     if (insertMatch) {
-      const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
-      const after = target && event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height/2;
-      insertBlock(insertMatch[1],targetIndex < 0 ? elements.length : targetIndex + (after ? 1 : 0),imageInsertOptions(insertMatch[2]));
+      insertBlock(insertMatch[1],insertAt,imageInsertOptions(insertMatch[2]));
       focusNewText($('.canvas-block.selected [contenteditable="true"]',artboard));
       draggedType = null;
       return;
     }
     if (!source) return;
-    let after = false;
-    if (target) after = event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height/2;
     moveElement(source,target?.dataset.id || null,after);
     draggedId = null;
   });
@@ -2080,6 +2290,19 @@
     const prop = event.target.dataset.prop;
     if (!prop) return;
     if (!inspectorBaseline) inspectorBaseline = clone(elements);
+    if (prop === 'templateAudioSrc') {
+      const element = elements.find(item => item.id === selectedId && item.type === 'sourcePage');
+      if (!element) return;
+      const value = event.target.value.trim();
+      const src = value ? safeHref(value) : '';
+      element.markup = element.markup.replace(/<audio\b[^>]*>/i,tag => {
+        const clean = tag.replace(/\s+src=(?:"[^"]*"|'[^']*')/i,'');
+        return clean.slice(0,-1) + (src ? ` src="${escapeHtml(src)}"` : '') + '>';
+      });
+      renderArtboard();
+      scheduleSave();
+      return;
+    }
     if(prop==='sourceImageWidth') {
       const imageElement=elements.find(item=>item.id===selectedId);
       const index=sourceImageSelection?.elementId===selectedId?sourceImageSelection.index:-1;
@@ -2177,8 +2400,7 @@
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.target.closest('[contenteditable="true"]')) {event.preventDefault();event.shiftKey?redo():undo()}
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {event.preventDefault();saveDraft()}
     if ((event.key === 'Delete' || event.key === 'Backspace') && !event.target.closest('[contenteditable],textarea,input,select,button')) {
-      if (elements.find(item => item.id === selectedId)?.type === 'sourcePage') return;
-      if (selectedId) {setElements(elements.filter(element => element.id !== selectedId),null);showToast('ลบองค์ประกอบแล้ว')}
+      if (selectedId) {event.preventDefault();removeBoardElement(selectedId);}
     }
   });
 
