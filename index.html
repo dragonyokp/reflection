@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=2">
-  <link rel="stylesheet" href="studio.css?v=49">
+  <link rel="stylesheet" href="studio.css?v=50">
   <script src="article-templates.js?v=8" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=3" defer></script>
@@ -39,6 +39,25 @@
         </div>
 
         <section id="templates" class="template-section" aria-labelledby="templatesTitle" tabindex="-1">
+          <svg class="gallery-flow" viewBox="0 0 1600 1050" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <defs>
+              <path id="galleryFlowUpper" pathLength="100" d="M -65 75 C 300 75 410 560 802 575 S 1220 300 1665 300"/>
+              <path id="galleryFlowLower" pathLength="100" d="M -65 915 C 310 935 540 720 802 575 S 1230 375 1665 485"/>
+              <linearGradient id="galleryFlowColor">
+                <stop stop-color="#b66b3e"/>
+                <stop offset=".56" stop-color="#ed9958"/>
+                <stop offset="1" stop-color="#f9b477"/>
+              </linearGradient>
+            </defs>
+            <g class="gallery-flow-tracks" stroke="url(#galleryFlowColor)">
+              <use href="#galleryFlowUpper"/>
+              <use href="#galleryFlowLower"/>
+            </g>
+            <g class="gallery-flow-highlights" stroke="url(#galleryFlowColor)">
+              <use href="#galleryFlowUpper"/>
+              <use href="#galleryFlowLower"/>
+            </g>
+          </svg>
           <div class="section-heading">
             <div><h2 id="templatesTitle">เทมเพลต</h2><p>กดภาพเพื่อดูโครงหน้าเต็มก่อนเลือกใช้</p></div>
             <p class="template-count"><b id="templateCount"></b> แบบ</p>
