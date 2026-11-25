@@ -743,19 +743,24 @@ body{font-size:18px}
   pointer-events: none;
 }
 .gallery-flow use { vector-effect: non-scaling-stroke; }
-.gallery-flow-tracks { opacity: .29; stroke-width: 1.2; }
+.gallery-flow-tracks { opacity: .16; stroke-width: 1.1; }
 .gallery-flow-highlights use {
   opacity: .82;
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-dasharray: 7 93;
   filter: drop-shadow(0 0 4px #ee965565);
-  animation: gallery-flow-travel 16s linear infinite;
+  animation: gallery-flow-travel 16s linear infinite,
+    gallery-flow-fade 16s ease-in-out infinite;
 }
 .gallery-flow-highlights use + use { animation-delay: -7s; animation-duration: 21s; }
 @keyframes gallery-flow-travel {
   from { stroke-dashoffset: 100; }
   to { stroke-dashoffset: 0; }
+}
+@keyframes gallery-flow-fade {
+  0%, 100% { opacity: 0; }
+  15%, 85% { opacity: .82; }
 }
 @media (prefers-reduced-motion: reduce) {
   .gallery-flow-highlights { display: none; }
@@ -854,8 +859,8 @@ body{font-size:18px}
 @media(max-width:680px) {
   .gallery-view .gallery-welcome { grid-template-columns: 1fr; position: relative; gap: 0; padding-block: 22px; }
   .gallery-view .gallery-welcome-copy { max-width: 100%; }
-  .gallery-view .gallery-book-art { height: 104px; width: min(100%,360px); transform: translateY(-52px) scale(.49); }
-  .gallery-flow-tracks { opacity: .22; }
+  .gallery-view .gallery-book-art { height: 129px; width: min(100%,360px); transform: translateY(-28px) scale(.49); }
+  .gallery-flow-tracks { opacity: .13; }
   .gallery-view .gallery-start-actions { gap: 8px; }
   .gallery-view .gallery-start-actions :is(a,button) { padding-inline: 12px; }
   .gallery-view .gallery-draft-link { flex-basis: 100%; }
@@ -937,4 +942,76 @@ body{font-size:18px}
 @media (max-width: 560px) {
   .gallery-view .template-pagination { justify-content: center; padding-inline: 8px; }
   .template-pagination #templatePageLabel { width: 100%; text-align: center; }
+}
+
+.template-preview-dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  height: min(820px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+}
+.template-preview-dialog .template-dialog-head {
+  align-items: center;
+  padding: 12px 20px;
+}
+.template-dialog-head .close-dialog {
+  width: 44px;
+  height: 44px;
+  border-radius: 7px;
+  background: #1b251e;
+}
+.template-preview-dialog .template-dialog-body {
+  grid-template-columns: minmax(0,1fr) clamp(224px,22vw,270px);
+  min-height: 0;
+  max-height: none;
+  gap: 14px;
+  padding: 14px;
+  overflow: hidden;
+}
+.template-preview-dialog .template-preview-canvas {
+  height: auto !important;
+  min-height: 0;
+  max-height: none;
+}
+.template-preview-dialog .template-preview-canvas:focus-visible {
+  outline: 2px solid #a2df51;
+  outline-offset: 2px;
+}
+.template-preview-dialog .template-reference-panel {
+  position: static;
+  order: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+}
+.template-reference-panel .blank-start-button { gap: 8px; min-height: 48px; }
+
+@media (max-width: 900px) {
+  .template-preview-dialog .template-dialog-body {
+    grid-template-columns: minmax(0,1fr);
+    grid-template-rows: minmax(0,1fr) auto;
+  }
+  .template-preview-dialog .template-reference-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+  }
+  .template-reference-panel .blank-start-button { width: auto; }
+}
+
+@media (max-width: 680px) {
+  .template-preview-dialog[open] { height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); }
+  .template-preview-dialog .template-dialog-body { padding: 10px; gap: 10px; }
+  .template-preview-dialog .template-reference-panel { gap: 8px; }
+  .template-reference-panel .blank-start-button { flex: 1 1 auto; }
+  .template-preview-canvas .source-template-site-header span { display: none; }
+  .template-preview-canvas .source-template-preview :is(.container,.container-fluid) { padding-inline: 16px; }
+  .template-preview-canvas .source-template-preview :is(p,li,blockquote,figcaption,small) {
+    font-size: 16px !important;
+    line-height: 1.55 !important;
+  }
+  .template-preview-canvas .source-template-preview .row > [class*="col-"] { width: 100%; }
 }

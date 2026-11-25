@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=2">
-  <link rel="stylesheet" href="studio.css?v=50">
+  <link rel="stylesheet" href="studio.css?v=52">
   <script src="article-templates.js?v=8" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=3" defer></script>
-  <script src="studio.js?v=42" defer></script>
+  <script src="studio.js?v=44" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -43,6 +43,8 @@
             <defs>
               <path id="galleryFlowUpper" pathLength="100" d="M -65 75 C 300 75 410 560 802 575 S 1220 300 1665 300"/>
               <path id="galleryFlowLower" pathLength="100" d="M -65 915 C 310 935 540 720 802 575 S 1230 375 1665 485"/>
+              <path id="galleryFlowRising" pathLength="100" d="M -65 530 C 280 555 460 305 745 270 S 1190 160 1665 65"/>
+              <path id="galleryFlowFalling" pathLength="100" d="M -65 240 C 300 215 480 620 775 755 S 1160 895 1665 820"/>
               <linearGradient id="galleryFlowColor">
                 <stop stop-color="#b66b3e"/>
                 <stop offset=".56" stop-color="#ed9958"/>
@@ -52,6 +54,8 @@
             <g class="gallery-flow-tracks" stroke="url(#galleryFlowColor)">
               <use href="#galleryFlowUpper"/>
               <use href="#galleryFlowLower"/>
+              <use href="#galleryFlowRising"/>
+              <use href="#galleryFlowFalling"/>
             </g>
             <g class="gallery-flow-highlights" stroke="url(#galleryFlowColor)">
               <use href="#galleryFlowUpper"/>
@@ -75,8 +79,17 @@
       </section>
 
       <dialog id="templatePreviewDialog" class="template-preview-dialog" aria-labelledby="templatePreviewTitle">
-        <div class="template-dialog-head"><div><p class="eyebrow">FULL PAGE PREVIEW</p><h2 id="templatePreviewTitle">ตัวอย่างหน้า Reflection</h2><p id="templatePreviewDescription"></p></div><button id="closeTemplatePreview" class="close-dialog" type="button" aria-label="ปิดตัวอย่าง">×</button></div>
-        <div class="template-dialog-body"><div id="templatePreviewCanvas" class="template-preview-canvas"></div><aside class="template-reference-panel"><span class="template-reference-step">ก่อนเริ่มออกแบบ</span><h3>ภาพตัวอย่างหน้าเต็ม</h3><a id="templateReferenceLink" href="#" target="_blank" rel="noopener noreferrer">เปิดหน้าต้นแบบจริง ↗</a><p>ข้อความและช่องรูปใช้ Lorem ipsum กับกรอบสีเขียว คุณสามารถนำโครงไปปรับแต่งและใส่เนื้อหาจริงในหน้าถัดไป</p><button id="useTemplate" class="blank-start-button" type="button">ใช้แบบนี้แล้วแก้ไข <span>→</span></button></aside></div>
+        <div class="template-dialog-head">
+          <h2 id="templatePreviewTitle">ตัวอย่างหน้า Reflection</h2>
+          <button id="closeTemplatePreview" class="close-dialog" type="button" aria-label="ปิดตัวอย่าง">×</button>
+        </div>
+        <div class="template-dialog-body">
+          <div id="templatePreviewCanvas" class="template-preview-canvas" role="region" aria-label="ตัวอย่างเลื่อนดูได้" tabindex="0"></div>
+          <div class="template-reference-panel">
+            <a id="templateReferenceLink" href="#" target="_blank" rel="noopener noreferrer">เปิดหน้าต้นแบบจริง ↗</a>
+            <button id="useTemplate" class="blank-start-button" type="button">ใช้แบบนี้แล้วแก้ไข <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
       </dialog>
 
       <section id="audioView" class="audio-view" hidden>

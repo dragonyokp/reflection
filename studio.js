@@ -356,10 +356,7 @@
 
   function openTemplatePreview(template) {
     if (!template || !templatePreviewDialog) return;
-    $('#templatePreviewTitle').textContent = 'ตัวอย่างหน้า Reflection';
-    $('#templatePreviewDescription').textContent = 'ดูโครงหน้าและสัดส่วนก่อนเริ่มออกแบบ';
     const reference = $('#templateReferenceLink');
-    reference.textContent = 'เปิดหน้าต้นแบบจริง ↗';
     reference.href = template.referenceUrl || 'https://www.bangchak.co.th/en/newsroom/reflections';
     $('#useTemplate').dataset.templateId = template.id;
     const canvas = $('#templatePreviewCanvas');
@@ -373,7 +370,13 @@
     const view=$('#templatePreviewCanvas .source-template-preview');
     const page=$('#templatePreviewCanvas .source-template-page');
     if(!view||!page)return;
-    const scale=Math.min((view.clientWidth-32)/1000,1);
+    if (window.matchMedia('(max-width: 680px)').matches) {
+      page.style.width = '100%';
+      page.style.transform = 'none';
+      view.style.height = 'auto';
+      return;
+    }
+    const scale=Math.min(view.clientWidth/1000,1);
     page.style.width='1000px';
     page.style.transform=`scale(${scale})`;
     view.style.height=`${Math.ceil(page.scrollHeight*scale)+12}px`;
@@ -1876,5 +1879,21 @@
 
   renderLegacyTools();
   decorateIndependentTools();
+  const flowRoutes = $$('.gallery-flow-tracks use').map(track => track.getAttribute('href'));
+  const flowHighlights = $$('.gallery-flow-highlights use');
+  function chooseFlowRoute(highlight) {
+    const activeRoutes = new Set(flowHighlights.map(light => light.getAttribute('href')));
+    const availableRoutes = flowRoutes.filter(route => !activeRoutes.has(route));
+    if (!availableRoutes.length) return;
+    const route = availableRoutes[Math.floor(Math.random() * availableRoutes.length)];
+    highlight.setAttribute('href', route);
+  }
+  for (const highlight of flowHighlights) {
+    chooseFlowRoute(highlight);
+    highlight.addEventListener('animationiteration', event => {
+      if (event.animationName === 'gallery-flow-travel') chooseFlowRoute(highlight);
+    });
+  }
+
   renderGallery();
 })();
