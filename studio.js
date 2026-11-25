@@ -454,6 +454,69 @@
     return `<div class="canvas-block divider-block${selected}" data-id="${element.id}"${draggable}><hr></div>`;
   }
 
+  function bindLegacyBoardText(preview, element) {
+    const bind = (node, part, label, speakerIndex = null) => {
+      if (!node) return;
+      const data = speakerIndex === null ? element : element.speakers?.[speakerIndex];
+      node.textContent = data?.[part] ?? '';
+      node.setAttribute('contenteditable','true');
+      node.setAttribute('spellcheck','false');
+      node.setAttribute('role','textbox');
+      node.setAttribute('aria-label',label);
+      node.setAttribute('aria-multiline','true');
+      node.dataset.part = part;
+      node.dataset.emptyText = label;
+      if (speakerIndex !== null) node.dataset.boardSpeaker = speakerIndex;
+    };
+    const part = (selector, key, label) => bind($(selector,preview),key,label);
+    const type = element.legacyType;
+    if (['subtitle','subtitleAudio','contentHeading'].includes(type)) {
+      part('.preview-narrow h3,.preview-narrow h4','text','หัวข้อ');
+    } else if (type === 'contentText') {
+      part('.preview-lorem','text','ข้อความ');
+    } else if (type === 'contentBlockquote') {
+      part('blockquote','text','ข้อความอ้างอิง');
+    } else if (type === 'highlightGreenText') {
+      part('.green-highlight-preview-copy .preview-lorem','caption','ข้อความบนพื้นเขียว');
+    } else if (type.startsWith('contentSplit')) {
+      part('.split-quote-preview-copy h4','title','หัวข้อคู่รูป');
+      const paragraphs = $$('.split-quote-preview-copy .preview-lorem',preview);
+      bind(paragraphs[0],'text','ข้อความคู่รูป');
+      bind(paragraphs[1],'text2','ย่อหน้าที่สอง');
+      part('.split-quote-preview-caption','caption','คำบรรยายรูป');
+    } else if (type === 'contentMedia') {
+      $$('.example-media-column',preview).forEach((column,index) => {
+        const number = index + 1;
+        bind($('h4',column),`media${number}Title`,`หัวข้อคอลัมน์ ${number}`);
+        bind($('p',column),`media${number}Text`,`ข้อความคอลัมน์ ${number}`);
+      });
+    } else if (type === 'contentQuoteCard' || type === 'contentPortraitQuote') {
+      part('.example-quote-body strong','quote','คำพูด');
+      part('.example-author','author','ชื่อผู้พูด');
+    } else if (type === 'contentSpeakers') {
+      $$('.example-speakers > div',preview).forEach((speaker,index) => {
+        bind($('strong',speaker),'quote',`คำพูดคนที่ ${index + 1}`,index);
+        bind($('.example-speaker-name',speaker),'name',`ชื่อผู้พูดคนที่ ${index + 1}`,index);
+      });
+    } else if (type === 'contentModal') {
+      const image = $('.example-modal-image',preview);
+      const note = $('.example-modal-note',preview);
+      const previewButton = $('.example-modal-button',preview);
+      const buttonLabel = document.createElement('span');
+      buttonLabel.className = 'example-modal-button';
+      previewButton.replaceWith(buttonLabel);
+      const title = document.createElement('h4');
+      const copy = document.createElement('p');
+      note.textContent = 'เนื้อหาใน Popup';
+      note.before(buttonLabel);
+      note.after(title);
+      image.after(copy);
+      bind(buttonLabel,'label','ข้อความบนปุ่ม');
+      bind(title,'title','หัวข้อ Popup');
+      bind(copy,'text','รายละเอียด Popup');
+    }
+  }
+
   function renderArtboard() {
     artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><small>CANVAS · 1000 PX</small><b>เริ่มออกแบบ Reflection ของคุณ</b><p>ลากองค์ประกอบจากแผงซ้าย หรือเลือกเริ่มจากตัวอย่างด้านล่าง</p><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
     if (legacyPatterns) {
@@ -462,26 +525,7 @@
         if (!slot) continue;
         const preview = legacyPatterns.makePreview(element.legacyType,element);
         preview.classList.add('legacy-pattern-preview');
-        const previewHeading = preview.querySelector('.preview-narrow h3,.preview-narrow h4');
-        if (previewHeading && element.text && ['subtitle','subtitleAudio','contentHeading'].includes(element.legacyType)) previewHeading.textContent = element.text;
-        if (element.legacyType==='contentText' && element.text) {const p=preview.querySelector('.preview-lorem');if(p)p.textContent=element.text;}
-        if (element.legacyType==='contentBlockquote' && element.text) {const quote=preview.querySelector('blockquote');if(quote)quote.textContent=element.text;}
-        if (['subtitle','subtitleAudio','contentHeading','contentText','contentBlockquote'].includes(element.legacyType)) {
-          const text = preview.querySelector('.preview-narrow h3,.preview-narrow h4,.preview-lorem,blockquote');
-          if (text) {
-            text.textContent = element.text;
-            text.setAttribute('contenteditable','true');
-            text.dataset.part = 'text';
-          }
-        }
-        if (element.legacyType==='highlightGreenText' && element.caption) {const copy=preview.querySelector('.green-highlight-preview-copy .preview-lorem');if(copy)copy.textContent=element.caption;}
-        if (['contentSplitQuoteLeft','contentSplitQuoteRight','contentSplitImageLeft','contentSplitImageRight'].includes(element.legacyType)) {
-          const copy=preview.querySelector('.split-quote-preview-copy');
-          const heading=copy?.querySelector('h4'); if(heading)heading.textContent=element.title||'';
-          const paragraphs=copy?.querySelectorAll('.preview-lorem'); if(paragraphs?.[0])paragraphs[0].textContent=element.text||''; if(paragraphs?.[1])paragraphs[1].textContent=element.text2||'';
-          const captions=preview.querySelectorAll('.split-quote-preview-caption span');
-          String(element.caption||'').split(/\r?\n/).filter(Boolean).forEach((caption,index)=>{if(captions[index])captions[index].textContent=caption});
-        }
+        bindLegacyBoardText(preview,element);
         const placeholders = [...preview.querySelectorAll('.preview-image-placeholder')];
         placeholders.forEach((placeholder,index)=>{
           placeholder.setAttribute('data-image-upload','');
@@ -800,9 +844,21 @@
       return;
     }
     const part = target.dataset.part || 'text';
-    element[part] = target.innerText.replace(/\u00a0/g,' ').trimEnd();
+    const value = target.innerText.replace(/\u00a0/g,' ').trimEnd();
+    const speakerIndex = target.dataset.boardSpeaker;
+    if (speakerIndex !== undefined) {
+      element.speakers ||= [];
+      element.speakers[speakerIndex] ||= {};
+      element.speakers[speakerIndex][part] = value;
+    } else {
+      element[part] = value;
+    }
+    const inspectorField = speakerIndex === undefined
+      ? $(`[data-prop="${part}"]`,inspector)
+      : $(`[data-speaker-index="${speakerIndex}"][data-speaker-prop="${part}"]`,inspector);
+    if (inspectorField && selectedId === element.id) inspectorField.value = value;
     const layer = $(`.layer-row[data-layer-id="${element.id}"] .layer-name`);
-    if (layer) layer.textContent = element.text?.split('\n')[0] || element.title || titleFor(element.type);
+    if (layer) layer.textContent = element.text?.split('\n')[0] || element.title || (element.type === 'legacy' ? legacyElementName(element) : titleFor(element.type));
     $('#saveStatus').textContent = 'มีการแก้ไข';
     scheduleSave();
   }
@@ -1731,7 +1787,7 @@
     const emptyAction=event.target.closest('[data-empty-add]');
     if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
     if (event.target.closest('.button-block a')) event.preventDefault();
-    if (event.target.closest('[data-source-edit]')) return;
+    if (event.target.closest('[contenteditable="true"]')) return;
     const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
     const sourceImage=sourceFrame?.querySelector('[data-source-image]');
     if(sourceImage) {
@@ -1777,7 +1833,7 @@
   artboard.addEventListener('pointerdown',startImageResize);
   artboard.addEventListener('mousedown',startImageResize);
   artboard.addEventListener('keydown',event => {
-    if (event.key === 'Enter' && !event.isComposing && event.target.closest('[data-source-edit]')) {
+    if (event.key === 'Enter' && !event.isComposing && event.target.closest('[contenteditable="true"]')) {
       event.preventDefault();
       document.execCommand('insertLineBreak');
       return;
@@ -1802,37 +1858,42 @@
   });
   artboard.addEventListener('input',onInlineEdit);
   artboard.addEventListener('paste',event => {
-    if (!event.target.closest('[data-source-edit]')) return;
+    if (!event.target.closest('[contenteditable="true"]')) return;
     event.preventDefault();
     document.execCommand('insertText',false,event.clipboardData.getData('text/plain'));
   });
   artboard.addEventListener('focusin',event => {
-    const sourceText = event.target.closest('[data-source-edit]');
+    const editable = event.target.closest('[contenteditable="true"]');
+    const block = editable?.closest('.canvas-block[data-id]');
+    if (!block) return;
+    const sourceText = editable.matches('[data-source-edit]') ? editable : null;
+    const selectionChanged = selectedId !== block.dataset.id;
+    selectedId = block.dataset.id;
     if (sourceText) {
-      const block = sourceText.closest('[data-id]');
-      selectedId = block.dataset.id;
       sourceTextSelection = {elementId:selectedId,index:Number(sourceText.dataset.sourceEdit)};
       sourceImageSelection = null;
       $$('.source-image-selected',block).forEach(frame => {
         frame.classList.remove('source-image-selected');
         $$('.resize-handle',frame).forEach(handle => handle.remove());
       });
-      $$('.canvas-block.selected',artboard).forEach(node => node.classList.remove('selected'));
-      block.classList.add('selected');
       $('[data-source-text-selected]',artboard)?.removeAttribute('data-source-text-selected');
       sourceText.setAttribute('data-source-text-selected','');
+    }
+    if (selectionChanged || sourceText) {
+      $$('.canvas-block.selected',artboard).forEach(node => node.classList.remove('selected'));
+      block.classList.add('selected');
       renderLayers();
       renderInspector();
     }
-    if (event.target.closest('[contenteditable="true"]')) editBaseline = clone(elements);
+    editBaseline = clone(elements);
   });
   artboard.addEventListener('focusout',event => {
     if (!event.target.closest('[contenteditable="true"]') || !editBaseline) return;
     if (JSON.stringify(editBaseline) !== JSON.stringify(elements)) { undoStack.push(editBaseline); redoStack=[]; }
     editBaseline = null;
     renderLayers();
-    if (!event.target.closest('[data-source-edit]')) renderInspector();
     $('#undoBtn').disabled = !undoStack.length;
+    $('#redoBtn').disabled = !redoStack.length;
   });
   artboard.addEventListener('dragstart',event => {
     if (event.target.closest('[data-resize-handle],[contenteditable="true"]')) {event.preventDefault();return}
@@ -1890,7 +1951,7 @@
       const targetIndex = elements.findIndex(item=>item.id===target?.dataset.id);
       const after = target && event.clientY > target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
       addLegacyBlock(legacyInsertMatch[1],targetIndex<0?elements.length:targetIndex+(after?1:0));
-      if (textTool) focusNewText($('.canvas-block.selected [contenteditable="true"]',artboard));
+      focusNewText($('.canvas-block.selected [contenteditable="true"]',artboard));
       draggedType=null;
       return;
     }
@@ -1899,7 +1960,7 @@
       const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
       const after = target && event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height/2;
       insertBlock(insertMatch[1],targetIndex < 0 ? elements.length : targetIndex + (after ? 1 : 0),imageInsertOptions(insertMatch[2]));
-      if (textTool) focusNewText($('.canvas-block.selected [contenteditable="true"]',artboard));
+      focusNewText($('.canvas-block.selected [contenteditable="true"]',artboard));
       draggedType = null;
       return;
     }
@@ -2044,7 +2105,7 @@
 
   document.addEventListener('keydown',event => {
     if (editorView.hidden || exportDialog.open) return;
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.target.closest('[data-source-edit]')) {event.preventDefault();event.shiftKey?redo():undo()}
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.target.closest('[contenteditable="true"]')) {event.preventDefault();event.shiftKey?redo():undo()}
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {event.preventDefault();saveDraft()}
     if ((event.key === 'Delete' || event.key === 'Backspace') && !event.target.closest('[contenteditable],textarea,input,select,button')) {
       if (elements.find(item => item.id === selectedId)?.type === 'sourcePage') return;

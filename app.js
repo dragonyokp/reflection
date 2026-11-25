@@ -7,9 +7,9 @@ const LEGACY_IMAGE_ROOT = '/storage/newsroom/refaction/#####/#####/#####/';
 const LEGACY_HIGHLIGHT_IMAGE = `${LEGACY_IMAGE_ROOT}highlight.webp`;
 
 const BLOCKS = [
-  { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">${legacyText(item.text || 'Lorem....')}</h2>\n        </div>\n    </div>\n</div>` },
+  { id: 'subtitle', group: 'heading', name: 'Subtitle', note: 'หัวข้อ Reflection', mini: 'subtitle', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle">${legacyText(item.text ?? 'Lorem....')}</h2>\n        </div>\n    </div>\n</div>` },
   { id: 'audio', group: 'heading', name: 'Audio player', note: 'มีเฉพาะคลิปเสียง', mini: 'audio', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center">\n        <div class="col-md-10 col-xl-8 col-xxl-6 mb-5">\n\n            <audio controls="controls" src="${legacyImagePath(item.audioSrc, '/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4')}"></audio>\n\n        </div>\n    </div>\n</div>` },
-  { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">${legacyText(item.text || 'Lorem....')}</h2>\n\n            <audio controls="controls" src="${legacyImagePath(item.audioSrc, '/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4')}"></audio>\n        </div>\n    </div>\n</div>` },
+  { id: 'subtitleAudio', group: 'heading', name: 'Subtitle + Audio', note: 'หัวข้อและเสียงในโครงเดียว', mini: 'subtitleAudio', make: (item = {}) => `<div class="container">\n    <div class="row justify-content-center mb-5">\n        <div class="col-md-10 col-xl-8 col-xxl-6">\n            <h2 class="news__subtitle mb-4">${legacyText(item.text ?? 'Lorem....')}</h2>\n\n            <audio controls="controls" src="${legacyImagePath(item.audioSrc, '/storage/newsroom/refaction/#####/#####/#####/Reflection-#####.mp4')}"></audio>\n        </div>\n    </div>\n</div>` },
   { id: 'highlightImage', group: 'highlight', name: 'Highlight', note: 'รูปใหญ่ ไม่มีพื้นหลัง', mini: 'highlightImage', make: (item = {}) => makeHighlightRow(item) },
   { id: 'highlightGreenText', group: 'highlight', name: 'Highlight + พื้นหลังเขียว + ข้อความ', note: 'รูปใหญ่และแถบข้อความสีขาว', mini: 'highlightGreenText', make: (item = {}) => makeGreenHighlight(true, item) },
   { id: 'highlightGreenEmpty', group: 'highlight', name: 'Highlight + พื้นหลังเขียว', note: 'รูปใหญ่และพื้นหลัง ไม่มีข้อความ', mini: 'highlightGreenEmpty', make: (item = {}) => makeGreenHighlight(false, item) },
@@ -148,7 +148,7 @@ function modalId(item = {}) {
 }
 
 function makeModalButton(item) {
-  return `<p class="my-5"><a href="#${modalId(item)}" class="btn btn--primary" data-toggle="modal" data-target="#${modalId(item)}"><span class="btn__text btn__text--sm">${legacyText(item.label || 'อ่านข้อมูลเพิ่มเติม')}</span></a></p>`;
+  return `<p class="my-5"><a href="#${modalId(item)}" class="btn btn--primary" data-toggle="modal" data-target="#${modalId(item)}"><span class="btn__text btn__text--sm">${legacyText(item.label ?? 'อ่านข้อมูลเพิ่มเติม')}</span></a></p>`;
 }
 
 function makeModalMarkup(item) {
