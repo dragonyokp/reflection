@@ -1387,42 +1387,52 @@
     return fragment.innerHTML;
   }
 
+  async function createCroppedWebp(image) {
+    await image.decode();
+    const frame = image.closest(boardImageFrame);
+    const boxWidth = image.clientWidth;
+    const boxHeight = image.clientHeight;
+    if (!frame || !boxWidth || !boxHeight) throw new Error('ไม่พบกรอบรูปบนบอร์ด');
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1000,boxWidth);
+    canvas.height = Math.round(canvas.width * boxHeight / boxWidth);
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('เบราว์เซอร์นี้สร้างไฟล์ภาพไม่ได้');
+    const style = getComputedStyle(image);
+    const scale = (style.objectFit === 'contain' ? Math.min : Math.max)(canvas.width/image.naturalWidth,canvas.height/image.naturalHeight);
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    const radii = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+      .map(property => (parseFloat(style[property]) || 0)*canvas.width/boxWidth);
+    if (radii.some(Boolean) && context.roundRect) {
+      context.beginPath();
+      context.roundRect(0,0,canvas.width,canvas.height,radii);
+      context.clip();
+    }
+    context.drawImage(image,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
+    const blob = await canvasToBlob(canvas,'image/webp',.92);
+    if (blob?.type !== 'image/webp') throw new Error('เบราว์เซอร์นี้ส่งออก WebP ไม่สำเร็จ');
+    return {blob,width:canvas.width,height:canvas.height};
+  }
+
+  function downloadWebp(blob,filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url),5000);
+  }
+
   async function downloadCroppedImage(button) {
     const image = button.closest(boardImageFrame)?.querySelector('img');
     if (!image) return;
     button.disabled = true;
     try {
-      await image.decode();
-      const boxWidth = image.clientWidth;
-      const boxHeight = image.clientHeight;
-      if (!boxWidth || !boxHeight) throw new Error('ไม่พบกรอบรูปบนบอร์ด');
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1000,boxWidth);
-      canvas.height = Math.round(canvas.width * boxHeight / boxWidth);
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('เบราว์เซอร์นี้สร้างไฟล์ภาพไม่ได้');
-      const style = getComputedStyle(image);
-      const scale = (style.objectFit === 'contain' ? Math.min : Math.max)(canvas.width/image.naturalWidth,canvas.height/image.naturalHeight);
-      const width = image.naturalWidth * scale;
-      const height = image.naturalHeight * scale;
-      const radii = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
-        .map(property => (parseFloat(style[property]) || 0)*canvas.width/boxWidth);
-      if (radii.some(Boolean) && context.roundRect) {
-        context.beginPath();
-        context.roundRect(0,0,canvas.width,canvas.height,radii);
-        context.clip();
-      }
-      context.drawImage(image,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
-      const blob = await canvasToBlob(canvas,'image/webp',.92);
-      if (blob?.type !== 'image/webp') throw new Error('เบราว์เซอร์นี้ส่งออก WebP ไม่สำเร็จ');
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const {blob,width,height} = await createCroppedWebp(image);
       const filename = (image.alt || 'reflection-image').replace(/[\\/:*?"<>|]+/g,'-').trim() || 'reflection-image';
-      link.href = url;
-      link.download = filename + '.webp';
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url),1500);
-      showToast(`ดาวน์โหลดรูป WebP แล้ว · ${canvas.width} × ${canvas.height} px`);
+      downloadWebp(blob,filename + '.webp');
+      showToast(`ดาวน์โหลดรูป WebP แล้ว · ${width} × ${height} px`);
     } catch (error) {
       showToast(error?.message || 'ดาวน์โหลดรูปไม่สำเร็จ');
     } finally {
@@ -1430,102 +1440,50 @@
     }
   }
 
-  async function buildBoardWebp() {
-    await Promise.race([document.fonts?.ready, new Promise(resolve => setTimeout(resolve,1500))]);
-    const boardWidth = ARTBOARD_WIDTH;
-    const excluded = '.canvas-remove-block,.legacy-pattern-heading,.source-page-toolbar,.resize-handle,.image-replace-trigger,.source-image-replace,.crop-image-export,script,iframe,object,embed';
-    const visualProperties = [
-      'display','box-sizing','position','top','right','bottom','left','z-index','width','height','min-width','min-height','max-width','max-height',
-      'margin','padding','border','border-radius','box-shadow','background','color','opacity','overflow','aspect-ratio',
-      'font','line-height','letter-spacing','text-align','text-decoration','text-transform','white-space','overflow-wrap','word-break',
-      'transform','transform-origin','vertical-align','object-fit','object-position','align-items','align-self','justify-content',
-      'justify-items','justify-self','flex','flex-direction','flex-wrap','gap','order','grid-template-columns','grid-template-rows','grid-area'
-    ];
-    const snapshot = artboard.cloneNode(false);
-    snapshot.removeAttribute('id');
-    snapshot.removeAttribute('style');
-    snapshot.style.cssText = 'box-sizing:border-box;width:' + boardWidth + 'px;min-height:1400px;padding:' + getComputedStyle(artboard).padding + ';background:#f5f5f1;color:#252b25;font:18px Tahoma,Arial,sans-serif;overflow:hidden';
-    const copyNode = async node => {
-      if (node.nodeType === Node.TEXT_NODE) return node.cloneNode();
-      if (!(node instanceof HTMLElement) || node.matches(excluded)) return null;
-      const style = getComputedStyle(node);
-      if (style.display === 'none' || style.opacity === '0') return null;
-      const audio = node.localName === 'audio' || node.localName === 'video';
-      const copy = audio ? document.createElement('div') : node.cloneNode(false);
-      for (const attr of [...copy.attributes]) {
-        if (attr.name === 'id' || attr.name === 'style' || attr.name === 'contenteditable' || attr.name === 'draggable' || attr.name.startsWith('on')) copy.removeAttribute(attr.name);
-      }
-      for (const property of visualProperties) {
-        const value = style.getPropertyValue(property);
-        if (value && !value.includes('url(')) copy.style.setProperty(property,value);
-      }
-      if (audio) {
-        copy.textContent = node.localName === 'audio' ? '▶  คลิปเสียง' : '▶  วิดีโอ';
-        copy.style.cssText += ';padding:10px 16px;background:#edf1e9;border-radius:20px;color:#324435;';
-        return copy;
-      }
-      if (node.localName === 'img') {
-        const source = node.currentSrc || node.src;
-        copy.removeAttribute('srcset');
-        if (!source) return null;
-        if (!source.startsWith('data:image/')) {
-          const response = await fetch(source);
-          if (!response.ok) throw new Error('อ่านรูปบางรายการไม่สำเร็จ กรุณาเลือกรูปจากเครื่องแล้วลองอีกครั้ง');
-          copy.src = await blobToDataUrl(await response.blob());
-        } else {
-          copy.src = source;
-        }
-        return copy;
-      }
-      const children = await Promise.all([...node.childNodes].map(copyNode));
-      copy.append(...children.filter(Boolean));
-      return copy;
-    };
-    const children = await Promise.all([...artboard.children].map(copyNode));
-    snapshot.append(...children.filter(Boolean));
-    const height = Math.max(1400,artboard.scrollHeight,artboard.offsetHeight);
-    if (height > 32767) throw new Error('งานยาวเกินขนาดภาพที่เบราว์เซอร์สร้างได้');
-    const xhtml = new XMLSerializer().serializeToString(snapshot);
-    const canvas = document.createElement('canvas');
-    canvas.width = boardWidth;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก WebP');
-    for (let top = 0; top < height; top += 8000) {
-      const tileHeight = Math.min(8000,height-top);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${boardWidth}" height="${tileHeight}"><foreignObject y="${-top}" width="${boardWidth}" height="${height}">${xhtml}</foreignObject></svg>`;
-      const image = new Image();
-      image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      await image.decode();
-      context.fillStyle = '#f5f5f1';
-      context.fillRect(0,top,boardWidth,tileHeight);
-      context.drawImage(image,0,top);
-    }
-    const blob = await canvasToBlob(canvas,'image/webp',.92);
-    if (!blob || blob.type !== 'image/webp') throw new Error('เบราว์เซอร์นี้สร้างไฟล์ WebP ไม่สำเร็จ');
-    return {blob,height};
-  }
-
   async function exportDesignImage() {
     const button = $('#openImageExport');
-    if (!elements.length) {showToast('เพิ่มองค์ประกอบก่อนส่งออกภาพ');return;}
+    const images = [...artboard.querySelectorAll(`${boardImageFrame} img`)].filter(image => image.getAttribute('src'));
+    if (!images.length) {showToast('ไม่มีรูปภาพให้ส่งออก');return;}
     button.disabled = true;
-    button.textContent = 'กำลังสร้าง WebP…';
+    const editorWasHidden = editorView.hidden;
+    const editorStyle = editorView.getAttribute('style');
     try {
-      const {blob,height} = await buildBoardWebp();
-      const downloadUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
+      editorView.hidden = false;
+      Object.assign(editorView.style,{position:'fixed',left:'-100000px',top:'0',visibility:'hidden',pointerEvents:'none',zIndex:'-1',width:'1280px',height:'100vh'});
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const fileTitle = ($('#documentTitle').textContent.trim() || 'reflection-design').replace(/[\\/:*?"<>|]+/g,'-');
-      anchor.href = downloadUrl;
-      anchor.download = fileTitle + '.webp';
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(downloadUrl),1500);
-      showToast('ส่งออกภาพบอร์ด WebP แล้ว · ' + ARTBOARD_WIDTH + ' × ' + height + ' px');
+      const usedNames = new Set();
+      let exported = 0;
+      let failed = 0;
+      let firstError = null;
+      for (const [index,image] of images.entries()) {
+        button.textContent = `กำลังส่งออกรูป ${index+1}/${images.length}…`;
+        try {
+          const {blob} = await createCroppedWebp(image);
+          const label = (image.alt || 'image').replace(/[\\/:*?"<>|]+/g,'-').trim() || 'image';
+          let filename = `${fileTitle}-${String(index+1).padStart(2,'0')}-${label}`;
+          let unique = filename;
+          let suffix = 2;
+          while (usedNames.has(unique)) unique = `${filename}-${suffix++}`;
+          usedNames.add(unique);
+          downloadWebp(blob,unique + '.webp');
+          exported++;
+          await new Promise(resolve => setTimeout(resolve,350));
+        } catch (error) {
+          failed++;
+          firstError ||= error;
+        }
+      }
+      if (!exported) throw firstError || new Error('ไม่มีรูปภาพให้ส่งออก');
+      showToast(failed ? `ส่งออก ${exported} รูปเป็น WebP แล้ว · ข้าม ${failed} รูปที่อ่านไม่ได้` : `ส่งออกรูปแยก ${exported} รูปเป็น WebP แล้ว`);
     } catch (error) {
       showToast(error?.message || 'ส่งออก WebP ไม่สำเร็จ');
     } finally {
+      editorView.hidden = editorWasHidden;
+      if (editorStyle === null) editorView.removeAttribute('style');
+      else editorView.setAttribute('style',editorStyle);
       button.disabled = false;
-      button.textContent = 'ดาวน์โหลดรูปภาพ ↓';
+      button.textContent = 'ดาวน์โหลดรูปภาพ';
     }
   }
 
