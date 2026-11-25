@@ -130,7 +130,12 @@
   }
 
   function legacyElementName(element) { return legacyBlockMap.get(element.legacyType)?.name || 'รูปแบบ Reflection'; }
-  function legacyElementNote(element) { return legacyBlockMap.get(element.legacyType)?.note || ''; }
+  const shelfLabels = {
+    contentHeading:'หัวข้อ H4', contentText:'ย่อหน้า', contentBlockquote:'คำพูดอ้างอิง',
+    contentSplitQuoteLeft:'Quote รูปซ้าย', contentSplitQuoteRight:'Quote รูปขวา',
+    contentSplitImageLeft:'รูปซ้าย ครึ่งเขียว', contentSplitImageRight:'รูปขวา ครึ่งเขียว',
+    contentPortraitQuote:'รูปคู่คำพูด', contentModal:'ปุ่ม Popup', contentSpeakers:'คำพูดหลายคน'
+  };
   function legacyHasImage(element) { return element?.type === 'legacy' && legacyImageTypes.has(element.legacyType); }
   function legacyDefaultWidth(type) {
     return ({highlightImage:100,highlightGreenText:82,highlightGreenEmpty:82,contentQuoteImage:62,contentSplitQuoteRight:100,contentSplitQuoteLeft:100,contentSplitImageLeft:100,contentSplitImageRight:100,contentPortraitQuote:100,contentModal:72}[type] || 100);
@@ -139,7 +144,7 @@
   function renderLegacyTools() {
     const root = $('#legacyToolGroups');
     if (!root || !legacyPatterns) return;
-    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><p class="legacy-tool-help">${escapeHtml(group.help)}</p><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" title="${escapeHtml(block.note)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(block.name)}">${legacyMiniMarkup(block.mini)}<b>${escapeHtml(block.name)}</b><span class="legacy-tool-add" aria-hidden="true">+</span></button>`).join('')}</div></section>`).join('');
+    root.innerHTML = legacyPatterns.groups.map(group => `<section class="tool-category legacy-tool-category" aria-labelledby="legacyGroup-${group.id}"><h3 class="tool-category-title" id="legacyGroup-${group.id}">${escapeHtml(group.title)}</h3><div class="insert-grid">${legacyBlocks.filter(block=>block.group===group.id).map(block=>`<button class="legacy-tool-card" data-legacy-add="${escapeHtml(block.id)}" draggable="true" type="button" aria-label="เพิ่ม ${escapeHtml(shelfLabels[block.id] || block.name)}">${group.id === 'content' ? toolPreviewMarkup(block.id) : legacyMiniMarkup(block.mini)}<b>${escapeHtml(shelfLabels[block.id] || block.name)}</b></button>`).join('')}</div></section>`).join('');
     root.querySelectorAll('[data-legacy-add]').forEach(button => {
       button.addEventListener('click',() => addLegacyBlock(button.dataset.legacyAdd));
       button.addEventListener('dragstart',event => {
@@ -170,13 +175,51 @@
     return `<span class="mini mini-${escapeHtml(type)}" aria-hidden="true">${parts.map(part=>`<i class="${part}"></i>`).join('')}</span>`;
   }
 
+  function toolPreviewMarkup(type) {
+    const photo = '<i class="tool-preview-photo"></i>';
+    const title = '<i class="tool-preview-title"></i>';
+    const lines = '<i class="tool-preview-lines"></i>';
+    const copy = '<span class="tool-preview-copy">' + title + lines + '</span>';
+    const split = side => `<span class="tool-preview-split picture-${side}">${photo}${copy}</span>`;
+    const quote = '<span class="tool-preview-quote"><b>“</b>' + lines + '</span>';
+    const link = '<i class="tool-preview-link">↗</i>';
+    const previews = {
+      contentQuoteImage:photo,
+      contentHeading:title,
+      contentText:lines,
+      contentBlockquote:quote,
+      contentSplitQuoteLeft:split('left'),
+      contentSplitQuoteRight:split('right'),
+      contentSplitImageLeft:split('left'),
+      contentSplitImageRight:split('right'),
+      contentMedia:'<span class="tool-preview-media"><i>✦</i>' + copy + '</span>',
+      contentQuoteCard:'<span class="tool-preview-quote-card">' + quote + '<i class="tool-preview-byline"></i></span>',
+      contentPortraitQuote:'<span class="tool-preview-media">' + photo + quote + '</span>',
+      contentModal:'<span class="tool-preview-window">' + copy + '<i>×</i></span>',
+      contentSpeakers:'<span class="tool-preview-speakers">' + quote + quote + '</span>',
+      heading:title,
+      text:lines,
+      quote,
+      banner:'<span class="tool-preview-banner">' + title + '</span>',
+      normal:photo,
+      highlight:photo,
+      green:photo,
+      greenText:photo + '<i class="tool-preview-caption"></i>',
+      split:split('left'),
+      divider:'<span class="tool-preview-divider">' + lines + '<i></i>' + lines + '</span>',
+      button:link,
+      columns:'<span class="tool-preview-columns">' + copy + copy + '</span>',
+      spacer:'<span class="tool-preview-spacer"><i></i><span>↕</span><i></i></span>'
+    };
+    return `<span class="tool-preview tool-preview--${type}" aria-hidden="true">${previews[type] || lines}</span>`;
+  }
+
   function decorateIndependentTools() {
-    const visualByTool = {heading:'subtitle',text:'contentText',quote:'contentBlockquote',banner:'highlightGreenText',split:'contentSplitImageLeft',divider:'contentHeading',button:'contentModal',columns:'contentMedia',spacer:'contentText'};
-    $$('.tool-category:not(.legacy-tool-category) .insert-grid [data-add]').forEach(button=>{
-      const icon=button.querySelector('.insert-glyph');
-      if (!icon) return;
-      const miniType=button.dataset.add==='image' ? (button.dataset.imageStyle==='greenText'?'highlightGreenText':button.dataset.imageStyle==='green'?'highlightGreenEmpty':'highlightImage') : visualByTool[button.dataset.add];
-      icon.replaceWith(document.createRange().createContextualFragment(legacyMiniMarkup(miniType)));
+    $$('.insert-grid [data-add]').forEach(button => {
+      const icon = button.querySelector('.insert-glyph');
+      const type = button.dataset.imageStyle || button.dataset.add;
+      icon?.insertAdjacentHTML('afterend',toolPreviewMarkup(type));
+      icon?.remove();
     });
   }
 
@@ -442,11 +485,11 @@
     const draggable = ' draggable="true"';
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
-    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b><span>คลิกข้อความเพื่อแก้ไข · คลิกรูปเพื่อใส่ไฟล์</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true)}</div></div>`;
+    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true)}</div></div>`;
     if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h4 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h4></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
-    if (element.type === 'legacy') return `<div class="canvas-block legacy-pattern-block${selected}" data-id="${element.id}" data-legacy-type="${escapeHtml(element.legacyType)}"${draggable}><div class="legacy-pattern-heading">${escapeHtml(legacyElementName(element))}<span>${escapeHtml(legacyElementNote(element))}</span></div><div class="legacy-pattern-slot"></div></div>`;
+    if (element.type === 'legacy') return `<div class="canvas-block legacy-pattern-block${selected}" data-id="${element.id}" data-legacy-type="${escapeHtml(element.legacyType)}"${draggable}><div class="legacy-pattern-heading">${escapeHtml(legacyElementName(element))}</div><div class="legacy-pattern-slot"></div></div>`;
     if (element.type === 'image') {
       const style = ['normal','highlight','green','greenText'].includes(element.imageStyle) ? element.imageStyle : 'normal';
       const fullBleed = style === 'green' || style === 'greenText' ? ' highlight-full-bleed' : '';
@@ -554,7 +597,7 @@
   }
 
   function renderArtboard() {
-    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><small>CANVAS · 1000 PX</small><b>เริ่มออกแบบ Reflection ของคุณ</b><p>ลากองค์ประกอบจากแผงซ้าย หรือเลือกเริ่มจากตัวอย่างด้านล่าง</p><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
+    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><b>เริ่มออกแบบ Reflection ของคุณ</b><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
     if (legacyPatterns) {
       for (const element of elements.filter(item=>item.type==='legacy')) {
         const slot = artboard.querySelector(`.legacy-pattern-slot[data-for="${element.id}"]`) || [...artboard.querySelectorAll('.legacy-pattern-slot')].find(node=>node.closest('[data-id]')?.dataset.id===element.id);
@@ -586,10 +629,8 @@
             placeholder.replaceChildren(image);
             placeholder.classList.add('has-selected-image');
           } else if (!element.src && index===0) {
-            const hint = document.createElement('small');
-            hint.className = 'legacy-image-hint';
-            hint.textContent = 'คลิกเพื่อเพิ่มรูป';
-            placeholder.append(hint);
+            const label = placeholder.querySelector('span:not(.placeholder-icon)');
+            if (label) label.textContent = 'เพิ่มรูปภาพ';
           }
           if (index===0) placeholder.insertAdjacentHTML('beforeend',renderResizeHandles(element));
         });
@@ -635,7 +676,13 @@
 
   function renderLayers() {
     $('#layerCount').textContent = elements.length;
-    layerList.innerHTML = elements.map((element,index) => `<div class="layer-row${element.id===selectedId?' selected':''}" draggable="true" data-layer-id="${element.id}"><span class="layer-icon">${iconFor(element.type)}</span><span class="layer-name">${escapeHtml(element.text?.split('\n')[0] || element.title || (element.type==='sourcePage'?'หน้าเต็ม · '+(element.sourceId||'ต้นแบบ').replace(/^old-/,''):element.type==='legacy'?legacyElementName(element):element.type==='image'?imageStyleName(element.imageStyle):titleFor(element.type)))}</span><span class="layer-grip">⠿</span></div>`).join('');
+    layerList.innerHTML = elements.map(element => {
+      const name = element.type === 'sourcePage' ? 'หน้าเทมเพลต' :
+        element.type === 'legacy' && !['subtitle','subtitleAudio','contentHeading','contentText'].includes(element.legacyType) ? (shelfLabels[element.legacyType] || legacyElementName(element)) :
+        element.text?.split('\n')[0] || element.title || (element.type === 'image' ? imageStyleName(element.imageStyle) : titleFor(element.type));
+      const selected = element.id === selectedId;
+      return `<button type="button" class="layer-row${selected?' selected':''}" draggable="true" aria-pressed="${selected}" data-layer-id="${element.id}" title="${escapeHtml(name)}"><span class="layer-icon" aria-hidden="true">${iconFor(element.type)}</span><span class="layer-name">${escapeHtml(name)}</span><span class="layer-grip" aria-hidden="true">⠿</span></button>`;
+    }).join('');
   }
 
   function field(label, content, hint='') {
@@ -681,7 +728,6 @@
     } else if (element.type === 'legacy') {
       const legacyType = element.legacyType;
       const textTypes = ['subtitle','subtitleAudio','contentHeading','contentText','contentBlockquote'];
-      fields += `<div class="inspector-group"><h3>โครงสร้างเดิม · โค้ด Reflection</h3><p class="field-hint">${escapeHtml(legacyElementNote(element))} โค้ดต้นฉบับของรูปแบบนี้จะรวมในหน้าส่งออก HTML</p></div>`;
       if (textTypes.includes(legacyType)) fields += `<div class="inspector-group"><h3>ข้อความ</h3>${field('ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}</div>`;
       if (legacyType==='contentSplitQuoteLeft' || legacyType==='contentSplitQuoteRight' || legacyType==='contentSplitImageLeft' || legacyType==='contentSplitImageRight') {
         fields += `<div class="inspector-group"><h3>เนื้อหาประกอบรูป</h3>${field('หัวข้อ',`<input type="text" data-prop="title" value="${escapeHtml(element.title||'')}">`)}${field('ข้อความ',`<textarea data-prop="text">${escapeHtml(element.text||'')}</textarea>`)}${legacyType.startsWith('contentSplitQuote')?field('คำบรรยายใต้รูป',`<textarea data-prop="caption">${escapeHtml(element.caption||'')}</textarea>`):field('ย่อหน้าที่สอง',`<textarea data-prop="text2">${escapeHtml(element.text2||'')}</textarea>`)}</div>`;
@@ -2068,9 +2114,27 @@
     draggedId = null;
   });
 
+  const layersRail = $('#layersRail');
+  const toggleLayers = $('#toggleLayers');
+  function showLayers(open) {
+    layersRail.classList.toggle('is-open',open);
+    toggleLayers.setAttribute('aria-expanded',String(open));
+    if (open) $('#closeLayers').focus();
+  }
+  toggleLayers.addEventListener('click',() => showLayers(!layersRail.classList.contains('is-open')));
+  $('#closeLayers').addEventListener('click',() => {showLayers(false);toggleLayers.focus();});
+  layersRail.addEventListener('keydown',event => {
+    if (event.key === 'Escape' && layersRail.classList.contains('is-open')) {
+      showLayers(false);
+      toggleLayers.focus();
+    }
+  });
   layerList.addEventListener('click',event => {
     const row = event.target.closest('[data-layer-id]');
-    if (row) selectElement(row.dataset.layerId);
+    if (!row) return;
+    const id = row.dataset.layerId;
+    selectElement(id);
+    if (event.detail === 0) layerList.querySelector(`[data-layer-id="${id}"]`)?.focus();
   });
   layerList.addEventListener('dragstart',event => {
     const row = event.target.closest('[data-layer-id]');

@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=3">
-  <link rel="stylesheet" href="studio.css?v=68">
+  <link rel="stylesheet" href="studio.css?v=69">
   <script src="article-templates.js?v=9" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=5" defer></script>
-  <script src="studio.js?v=53" defer></script>
+  <script src="studio.js?v=54" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -101,7 +101,7 @@
         </div>
         <div class="workspace">
           <aside class="left-rail">
-            <div class="rail-head"><p class="eyebrow">DESIGN TOOLS</p><h2>องค์ประกอบ</h2></div>
+            <div class="rail-head"><h2>องค์ประกอบ</h2></div>
             <div class="rail-scroll">
               <div id="legacyToolGroups"></div>
               <section class="tool-category" aria-labelledby="toolsFreeTitle"><h3 class="tool-category-title" id="toolsFreeTitle"><span>04</span> เครื่องมืออิสระ</h3><div class="insert-grid">
@@ -119,9 +119,6 @@
                 <button data-add="columns" draggable="true" type="button"><span class="insert-glyph columns-glyph">▥</span><b>สองคอลัมน์</b></button>
                 <button data-add="spacer" draggable="true" type="button"><span class="insert-glyph spacer-glyph">↕</span><b>ช่องว่าง</b></button>
               </div></section>
-              <div class="layer-heading"><div><p class="eyebrow">LAYERS</p><h3>ลำดับเนื้อหา</h3></div><span id="layerCount">0</span></div>
-              <div id="layerList" class="layer-list"></div>
-              <div class="rail-foot"><span class="green-spark">✳</span><span>ลากรายการเพื่อเปลี่ยนลำดับ</span></div>
             </div>
           </aside>
           <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
@@ -133,11 +130,14 @@
                 <button type="button" data-text-format="center" aria-label="กึ่งกลาง" aria-pressed="false" title="กึ่งกลาง" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
                 <button type="button" data-text-format="right" aria-label="ชิดขวา" aria-pressed="false" title="ชิดขวา" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
               </div>
-              <div><button id="openBoardSettings" type="button">ตั้งค่าองค์ประกอบ</button><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div>
+              <div><button id="toggleLayers" type="button" aria-expanded="false" aria-controls="layersRail">เลเยอร์</button><button id="openBoardSettings" type="button">ตั้งค่าองค์ประกอบ</button><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div>
             </div>
             <div id="canvasViewport" class="canvas-viewport"><article id="artboard" class="artboard" aria-label="แคนวาส Reflection"></article></div>
-            <div class="canvas-bottom"><span><i></i> คลิกเพื่อแก้ข้อความ · ดับเบิลคลิกรูปเพื่อเปลี่ยน · ลากจุดมุมเพื่อปรับขนาด</span></div>
           </section>
+          <aside id="layersRail" class="layers-rail" aria-labelledby="layersTitle">
+            <div class="layers-header"><h2 id="layersTitle">ลำดับเนื้อหา</h2><span id="layerCount">0</span><button id="closeLayers" type="button" aria-label="ปิดเลเยอร์">×</button></div>
+            <div id="layerList" class="layer-list"></div>
+          </aside>
         </div>
       </section>
     </main>
