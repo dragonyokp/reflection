@@ -386,7 +386,7 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .image-upload-trigger>small{font:500 16px var(--font);color:#41543a}
 .image-replace-trigger{position:absolute;z-index:3;top:12px;right:12px;display:none;padding:8px 12px!important;border:1px solid #ffffffad!important;border-radius:7px!important;background:#172018dc!important;color:#f5f8f2!important;font:600 16px var(--font)!important;cursor:pointer}
 .canvas-block:hover .image-replace-trigger,.canvas-block.selected .image-replace-trigger{display:block}
-.image-placeholder.drop-target{outline:3px solid var(--orange);outline-offset:3px}
+.image-placeholder.drop-target,.preview-image-placeholder.drop-target,.source-image-frame.drop-target{outline:3px solid var(--orange);outline-offset:3px}
 .export-png{padding:9px 13px;border:1px solid #56694c;border-radius:7px;background:#283329;color:#e9f1e3;font:600 18px var(--font);cursor:pointer}
 .export-png:hover{border-color:var(--green);background:#344331}
 .export-png:disabled{opacity:.55;cursor:progress}
@@ -1112,3 +1112,13 @@ body{font-size:18px}
   }
   .template-preview-canvas .source-template-preview .row > [class*="col-"] { width: 100%; }
 }
+
+.export-asset-status{margin:0 22px 1rem;padding:.75rem 1rem;border:1px solid #80603b;border-radius:8px;background:#302719;color:#ffdfad;font-size:18px;line-height:1.5}
+
+#exportDialog .dialog-actions{align-items:center;flex-wrap:wrap}.export-feedback{color:#d1ebba;font-size:18px;margin:0 auto 0 0}.export-feedback:empty{display:none}
+
+.artboard .board-crop-frame{position:relative;height:auto!important;min-height:0!important;aspect-ratio:var(--board-crop-ratio)!important;overflow:hidden}
+.artboard :is(.board-crop-frame,.image-placeholder)>img{position:absolute!important;inset:0;width:100%!important;height:100%!important;max-height:none!important}
+.crop-image-export{position:absolute;z-index:7;bottom:16px;left:50%;translate:-50% 0;min-height:36px;max-width:calc(100% - 22px);width:max-content;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 12px;border:1px solid #a1cc75;border-radius:7px;background:#19271c;color:#f0f8e9;font:600 18px var(--font);cursor:pointer}
+.crop-image-export:is(:hover,:focus-visible){background:#354f2e;border-color:#dbf5c5}
+.crop-image-export:disabled{opacity:.65;cursor:progress}

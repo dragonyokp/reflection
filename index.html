@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=2">
-  <link rel="stylesheet" href="studio.css?v=64">
+  <link rel="stylesheet" href="studio.css?v=66">
   <script src="article-templates.js?v=8" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=4" defer></script>
-  <script src="studio.js?v=49" defer></script>
+  <script src="studio.js?v=51" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -96,8 +96,8 @@
       <section id="editorView" class="editor-view" hidden>
         <div class="editor-toolbar">
           <button id="backToGallery" class="back-button" type="button"><span>←</span> เทมเพลต</button>
-          <div class="document-name"><span class="doc-status"></span><span id="documentTitle">งาน Reflection</span><small id="saveStatus">ยังไม่บันทึก</small></div>
-          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="exportPng" class="export-png" type="button">ส่งออก PNG</button><button id="editorExport" class="editor-export" type="button">ส่งออก HTML <span>↗</span></button></div>
+          <div class="document-name"><span class="doc-status"></span><span id="documentTitle">งาน Reflection</span><small id="saveStatus" role="status">ยังไม่บันทึก</small></div>
+          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="exportPng" class="export-png" type="button">ทั้งบอร์ด (PNG)</button><button id="editorExport" class="editor-export" type="button">ส่งออก HTML <span>↗</span></button></div>
         </div>
         <div class="workspace">
           <aside class="left-rail">
@@ -145,7 +145,7 @@
       <div class="dialog-head"><h2 id="boardSettingsTitle">ตั้งค่าองค์ประกอบ</h2><button id="closeBoardSettings" class="close-dialog" type="button" aria-label="ปิดการตั้งค่า">×</button></div>
       <div id="inspector" class="inspector"></div>
     </dialog>
-    <dialog id="exportDialog" class="export-dialog"><div class="dialog-head"><div><p class="eyebrow">YOUR REFLECTION</p><h2>ส่งออก HTML</h2></div><button id="closeExport" class="close-dialog" type="button" aria-label="ปิด">×</button></div><p class="dialog-copy">คัดลอกโค้ดไปวางใน CMS ได้เลย รูปที่เพิ่มจากเครื่องจะแสดงเป็น data URI ในโค้ด</p><textarea id="exportCode" spellcheck="false" aria-label="โค้ด HTML ที่ส่งออก"></textarea><div class="dialog-actions"><button id="downloadHtml" class="dialog-secondary" type="button">ดาวน์โหลด .html</button><button id="copyHtml" class="editor-export" type="button">คัดลอกโค้ด <span>↗</span></button></div></dialog>
+    <dialog id="exportDialog" class="export-dialog"><div class="dialog-head"><div><p class="eyebrow">YOUR REFLECTION</p><h2>ส่งออก HTML</h2></div><button id="closeExport" class="close-dialog" type="button" aria-label="ปิด">×</button></div><p class="dialog-copy">คัดลอกหรือดาวน์โหลดโค้ดสำหรับวางในช่อง HTML ของ CMS</p><p id="exportAssetStatus" class="export-asset-status" role="status" hidden></p><textarea id="exportCode" spellcheck="false" aria-label="โค้ด HTML ที่ส่งออก"></textarea><div class="dialog-actions"><p id="exportFeedback" class="export-feedback" role="status"></p><button id="downloadHtml" class="dialog-secondary" type="button">ดาวน์โหลด .html</button><button id="copyHtml" class="editor-export" type="button">คัดลอกโค้ด <span>↗</span></button></div></dialog>
     <input id="imageFile" type="file" accept="image/*" hidden>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>

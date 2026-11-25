@@ -281,18 +281,10 @@
     copy.querySelectorAll('[data-template-preview-only]').forEach(node=>node.remove());
     copy.querySelectorAll('[data-source-text-selected]').forEach(node=>node.removeAttribute('data-source-text-selected'));
     copy.querySelectorAll('[data-source-edit]').forEach(node=>node.removeAttribute('spellcheck'));
-    copy.querySelectorAll('.source-image-frame').forEach((frame,index)=>{
-      const image=frame.querySelector('img');
-      if(image) {
-        const imageIndex=Number(frame.dataset.sourceFrame);
-        const percent=Number(current?.imageWidths?.[imageIndex]);
-        if(percent) {
-          const widthPx=Math.max(1000,Math.round(ARTBOARD_WIDTH*Math.max(10,Math.min(120,percent))/100));
-          image.setAttribute('width',String(widthPx));
-          image.className=String(image.className||'').split(/\s+/).filter(name=>name&&name!=='w-100').join(' ');
-        }
-        frame.replaceWith(image);
-      } else frame.remove();
+    copy.querySelectorAll('.source-image-frame').forEach(frame => {
+      const image = frame.querySelector('img');
+      if (image) frame.replaceWith(image);
+      else frame.remove();
     });
     return cleanSourceMarkup(copy.innerHTML,Boolean(current?.visualTemplate)).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
   }
@@ -308,7 +300,7 @@
   }
   function renderResizeHandles(element) {
     if (element.id !== selectedId) return '';
-    return `<span class="resize-handle handle-nw" data-resize-handle="nw" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-n" data-resize-handle="n" aria-hidden="true"></span><span class="resize-handle handle-ne" data-resize-handle="ne" aria-hidden="true"></span><span class="resize-handle handle-e" data-resize-handle="e" aria-hidden="true"></span><span class="resize-handle handle-se" data-resize-handle="se" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-s" data-resize-handle="s" aria-hidden="true"></span><span class="resize-handle handle-sw" data-resize-handle="sw" aria-hidden="true"></span><span class="resize-handle handle-w" data-resize-handle="w" aria-hidden="true"></span>`;
+    return `<span class="resize-handle handle-nw" data-resize-handle="nw" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-n" data-resize-handle="n" title="ลากเพื่อครอปความสูงของรูป" aria-hidden="true"></span><span class="resize-handle handle-ne" data-resize-handle="ne" aria-hidden="true"></span><span class="resize-handle handle-e" data-resize-handle="e" aria-hidden="true"></span><span class="resize-handle handle-se" data-resize-handle="se" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-s" data-resize-handle="s" title="ลากเพื่อครอปความสูงของรูป" aria-hidden="true"></span><span class="resize-handle handle-sw" data-resize-handle="sw" aria-hidden="true"></span><span class="resize-handle handle-w" data-resize-handle="w" aria-hidden="true"></span>`;
   }
 
   function renderImagePlaceholder(element) {
@@ -415,7 +407,9 @@
     enterEditor(template.markup?'งาน Reflection ใหม่':template.title,template.markup?[{type:'sourcePage',title:'งาน Reflection ใหม่',markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
   }
 
+  let editorDocumentVersion = 0;
   function enterEditor(title, blocks) {
+    editorDocumentVersion += 1;
     activeTextField = null;
     sourceTextSelection = null;
     sourceImageSelection = null;
@@ -452,6 +446,14 @@
       return `<div class="canvas-block image-block image-style-${style}${fullBleed}${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);height:auto;min-height:0;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${greenBand}</div>`;
     }
     if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
+    const image = `<figure class="text-center"><img class="img-fluid" src="#" alt="${escapeHtml(element.alt || '')}"></figure>`;
+    if (element.type === 'heading') return `<h2>${text}</h2>`;
+    if (element.type === 'text') return `<p>${text}</p>`;
+    if (element.type === 'quote') return `<blockquote><p>${text}</p></blockquote>`;
+    if (element.type === 'image') return image + (element.imageStyle === 'greenText' && element.caption ? `
+<p>${textHtml(element.caption)}</p>` : '');
+    if (element.type === 'split') return `${element.imageSide !== 'right' ? image + '\n' : ''}<h4>${heading}</h4>
+<p>${text}</p>${element.imageSide === 'right' ? '\n' + image : ''}`;
     if (element.type === 'banner') return `<section class="canvas-block banner-block${selected}" data-id="${element.id}" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"${draggable}><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
     if (element.type === 'button') return `<div class="canvas-block button-block${selected}" data-id="${element.id}" style="text-align:${element.align||'left'}"${draggable}><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none" contenteditable="true" data-part="text">${textHtml(element.text)}</a></div>`;
     if (element.type === 'columns') return `<div class="canvas-block columns-block${selected}" data-id="${element.id}" style="background:${background};padding:${padding||24}px;--column-text-size:${Math.max(18,Number(element.fontSize)||18)}px;color:${safeColor(element.color)}"${draggable}><div><h3 contenteditable="true" data-part="leftTitle">${textHtml(element.leftTitle)}</h3><p contenteditable="true" data-part="leftText">${textHtml(element.leftText)}</p></div><div><h3 contenteditable="true" data-part="rightTitle">${textHtml(element.rightTitle)}</h3><p contenteditable="true" data-part="rightText">${textHtml(element.rightText)}</p></div></div>`;
@@ -522,6 +524,27 @@
     }
   }
 
+  const boardImageFrame = '.image-placeholder,.preview-image-placeholder,.source-image-frame';
+
+  function applyCropFrame(frame, ratio) {
+    frame.classList.add('board-crop-frame');
+    frame.style.setProperty('--board-crop-ratio',ratio);
+  }
+
+  function renderImageCropControls(block, element) {
+    for (const frame of block.querySelectorAll(boardImageFrame)) {
+      const image = frame.querySelector('img');
+      if (!image) continue;
+      const source = frame.hasAttribute('data-source-frame');
+      const index = frame.dataset.sourceFrame;
+      const ratio = source ? element.imageCropRatios?.[index] : element.cropRatio;
+      if (Number.isFinite(ratio) && ratio > 0) applyCropFrame(frame,ratio);
+      if (element.id !== selectedId || (source && index !== String(sourceImageSelection?.index))) continue;
+      if (frame.matches('.source-template-green-frame:not(.has-user-image)')) continue;
+      frame.insertAdjacentHTML('beforeend','<button class="crop-image-export" data-crop-export type="button" title="ลากจุดจับด้านบนหรือล่างเพื่อครอปภาพ">ดาวน์โหลดรูป WebP ↓</button>');
+    }
+  }
+
   function renderArtboard() {
     artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><small>CANVAS · 1000 PX</small><b>เริ่มออกแบบ Reflection ของคุณ</b><p>ลากองค์ประกอบจากแผงซ้าย หรือเลือกเริ่มจากตัวอย่างด้านล่าง</p><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
     if (legacyPatterns) {
@@ -567,6 +590,7 @@
       if (!block.classList.contains('canvas-block')) continue;
       const element = elements.find(item => item.id === block.dataset.id);
       if (!element) continue;
+      renderImageCropControls(block,element);
       $$('[contenteditable="true"][data-part]',block).forEach(node => {
         const format = element.textFormats?.[boardTextKey(node)];
         if (!format) return;
@@ -810,10 +834,14 @@
     event.preventDefault();
     event.stopPropagation();
     const rect = imageBox.getBoundingClientRect();
-    const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),element.type==='sourcePage'?Number(element.imageWidths?.[sourceIndex])||100:Number(element.width)||(element.type==='legacy'?legacyDefaultWidth(element.legacyType):100)));
     const width = rect.width / zoom;
+    const parent = imageBox.parentElement;
+    const style = getComputedStyle(parent);
+    const parentWidth = parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const startingPercent = element.type === 'sourcePage' ? width / Math.max(1,parentWidth) * 100 : Number(element.width) || (element.type === 'legacy' ? legacyDefaultWidth(element.legacyType) : 100);
+    const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),startingPercent));
     const height = Math.max(1,rect.height / zoom);
-    resizeState = {id:element.id,handle:handle.dataset.resizeHandle,sourceIndex,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),aspect:width/height,before:clone(elements),block};
+    resizeState = {id:element.id,handle:handle.dataset.resizeHandle,sourceIndex,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),frameWidth:width,aspect:width/height,before:clone(elements),block};
     block.setAttribute('draggable','false');
     try { handle.setPointerCapture?.(event.pointerId); } catch {}
     document.addEventListener('pointermove',resizeImageMove);
@@ -832,12 +860,25 @@
     const hasY = handle.includes('n') || handle.includes('s');
     const dx = (event.clientX-resizeState.startX) / zoom * (handle.includes('w') ? -1 : 1);
     const dy = (event.clientY-resizeState.startY) / zoom * (handle.includes('n') ? -1 : 1) * resizeState.aspect;
+    const block = artboard.querySelector(`[data-id="${el.id}"]`);
+    const imageBox = el.type==='sourcePage' ? block?.querySelector(`[data-source-frame="${resizeState.sourceIndex}"]`) : block?.querySelector(boardImageFrame);
+    if (hasY && !hasX && imageBox?.querySelector('img')) {
+      if (Math.abs(dy) < 1 && !resizeState.cropping) return;
+      resizeState.cropping = true;
+      const ratio = Math.max(.25,Math.min(5,resizeState.aspect / Math.max(.01,1 + dy / resizeState.frameWidth)));
+      if (el.type === 'sourcePage') {
+        el.imageCropRatios ||= {};
+        el.imageCropRatios[resizeState.sourceIndex] = ratio;
+      } else {
+        el.cropRatio = ratio;
+      }
+      applyCropFrame(imageBox,ratio);
+      return;
+    }
     const delta = hasX && hasY ? (Math.abs(dx)>=Math.abs(dy)?dx:dy) : hasX ? dx : dy;
     const width = Math.max(10,Math.min(imageMaxPercent(el),resizeState.startWidth + delta / resizeState.baseWidth * 100));
     if(el.type==='sourcePage') {el.imageWidths ||= {};el.imageWidths[resizeState.sourceIndex]=width;}
     else el.width = width;
-    const block = artboard.querySelector(`[data-id="${el.id}"]`);
-    const imageBox = el.type==='sourcePage'?block?.querySelector(`.source-image-frame[data-source-frame="${resizeState.sourceIndex}"]`):block?.querySelector('.image-placeholder, .preview-image-placeholder[data-image-upload]');
     if (el.type === 'image') {
       block?.style.setProperty('--image-width',`${width}%`);
       if (imageBox) imageBox.style.width = `${width}%`;
@@ -865,6 +906,8 @@
     if (JSON.stringify(resizeState.before) !== JSON.stringify(elements)) {
       undoStack.push(resizeState.before);
       redoStack = [];
+      $('#saveStatus').textContent = 'มีการแก้ไข';
+      scheduleSave();
     }
     resizeState = null;
     renderAll();
@@ -1080,6 +1123,7 @@
     saveTimer = setTimeout(async () => {
       try {
         await persistDraft(payload);
+        if (!galleryView.hidden) refreshResumeButton();
         if (revision === draftSaveRevision) $('#saveStatus').textContent = 'บันทึกอัตโนมัติแล้ว';
       } catch {
         if (revision === draftSaveRevision) {
@@ -1163,11 +1207,13 @@
   }
 
   async function saveDraft() {
+    $('#saveStatus').textContent = 'กำลังบันทึกร่าง…';
     const revision = ++draftSaveRevision;
     clearTimeout(saveTimer);
     const payload = {title:$('#documentTitle').textContent,elements:clone(elements),nextId};
     try {
       await persistDraft(payload);
+      if (!galleryView.hidden) refreshResumeButton();
       if (revision === draftSaveRevision) $('#saveStatus').textContent = 'บันทึกล่าสุดแล้ว';
       showToast('บันทึกร่างไว้ในเบราว์เซอร์แล้ว');
     } catch {
@@ -1179,55 +1225,20 @@
   function elementToLegacyMarkup(element) {
     const heading = textHtml(element.title || '');
     const text = textHtml(element.text || '');
+    const image = `<figure class="text-center"><img class="img-fluid" src="#" alt="${escapeHtml(element.alt || '')}"></figure>`;
+    if (element.type === 'heading') return `<h2>${text}</h2>`;
+    if (element.type === 'text') return `<p>${text}</p>`;
+    if (element.type === 'quote') return `<blockquote><p>${text}</p></blockquote>`;
+    if (element.type === 'image') return image + (element.imageStyle === 'greenText' && element.caption ? `
+<p>${textHtml(element.caption)}</p>` : '');
+    if (element.type === 'split') return `${element.imageSide !== 'right' ? image + '\n' : ''}<h4>${heading}</h4>
+<p>${text}</p>${element.imageSide === 'right' ? '\n' + image : ''}`;
     if (element.type === 'banner') return `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                ${element.title ? `<h2 class="news__subtitle mb-4">${heading}</h2>\n                ` : ''}<p class="text-white">${text}</p>\n            </div>\n        </div>\n    </div>\n</div>`;
     if (element.type === 'button') return `<p class="my-5"><a href="${escapeHtml(safeHref(element.url))}" class="btn btn--primary"><span class="btn__text btn__text--sm">${textHtml(element.text)}</span></a></p>`;
     if (element.type === 'columns') return `<div class="container">\n    <div class="row my-5">\n        <div class="col-md-6">\n            <h4>${textHtml(element.leftTitle)}</h4>\n            <p class="mb-0">${textHtml(element.leftText)}</p>\n        </div>\n        <div class="col-md-6">\n            <h4>${textHtml(element.rightTitle)}</h4>\n            <p class="mb-0">${textHtml(element.rightText)}</p>\n        </div>\n    </div>\n</div>`;
     if (element.type === 'spacer') return '<div class="py-5"></div>';
     if (element.type === 'divider') return '<hr class="hr-lg-dark-green my-4">';
     return '';
-  }
-
-  function elementToLegacyItem(element) {
-    if (element.type === 'legacy') return {...element,type:element.legacyType};
-    if (element.type === 'heading') return {type:'subtitle',text:element.text};
-    if (element.type === 'text') return {type:'contentText',text:element.text};
-    if (element.type === 'quote') return {type:'contentBlockquote',text:element.text};
-    if (element.type === 'image') {
-      const imageStyle = ['normal','highlight','green','greenText'].includes(element.imageStyle) ? element.imageStyle : 'normal';
-      const type = imageStyle === 'highlight' ? 'highlightImage' : imageStyle === 'green' ? 'highlightGreenEmpty' : imageStyle === 'greenText' ? 'highlightGreenText' : 'contentQuoteImage';
-      return {type,src:element.src,alt:element.alt,width:element.width,caption:element.caption};
-    }
-    if (element.type === 'split') return {type:element.imageSide === 'right' ? 'contentSplitImageRight' : 'contentSplitImageLeft',src:element.src,alt:element.alt,width:element.width,title:element.title,text:element.text,text2:element.text2};
-    return null;
-  }
-
-  function applyLegacyAssets(html, items) {
-    const imageSlots=items.filter(item=>legacyPatterns.imageTypes.includes(item.type));
-    const orderedImageSlots=imageSlots.filter(item=>item.type!=='contentModal').concat(imageSlots.filter(item=>item.type==='contentModal'));
-    let imageIndex=0;
-    html=html.replace(/<img\b[^>]*>/g,tag=>{
-      const source=tag.match(/\bsrc="([^"]+)"/)?.[1]||'';
-      if (!/highlight\.webp|quote-\d+\.webp|^data:image\//.test(source)) return tag;
-      const image=orderedImageSlots[imageIndex++];
-      if (!image) return tag;
-      const imageSource=image.src?escapeHtml(image.src):source;
-      const imageAlt=escapeHtml(image.alt||legacyElementName({legacyType:image.type}));
-      const imageWidth=Math.max(10,Math.min(120,Number(image.width)||legacyDefaultWidth(image.type)));
-      const widthPx=Math.round(ARTBOARD_WIDTH*imageWidth/100);
-      let updatedTag=tag.replace(/\bsrc="[^"]+"/,`src="${imageSource}"`).replace(/\sstyle="[^"]*"/,'');
-      updatedTag=updatedTag.replace(/\bw-100\b/g,'img-fluid');
-      if (/\balt="[^"]*"/.test(updatedTag)) updatedTag=updatedTag.replace(/\balt="[^"]*"/,`alt="${imageAlt}"`);
-      else updatedTag=updatedTag.replace(/\s*\/?\>$/,tail=>` alt="${imageAlt}"${tail}`);
-      if (/\bwidth="\d+"/.test(updatedTag)) updatedTag=updatedTag.replace(/\bwidth="\d+"/,`width="${widthPx}"`);
-      else updatedTag=updatedTag.replace(/\s*\/?\>$/,tail=>` width="${widthPx}"${tail}`);
-      return updatedTag;
-    });
-    let audioIndex=0;
-    const audioSlots=items.filter(item=>item.type==='audio'||item.type==='subtitleAudio');
-    return html.replace(/(<audio\b[^>]*\bsrc=")([^"]*)(")/g,(match,prefix,source,suffix)=>{
-      const audio=audioSlots[audioIndex++];
-      return audio?.audioSrc?`${prefix}${escapeHtml(audio.audioSrc)}${suffix}`:match;
-    });
   }
 
   function buildExport() {
@@ -1243,28 +1254,21 @@
     let legacyRun=[];
     const flushLegacy=()=>{
       if (!legacyRun.length) return;
-      const html=applyLegacyAssets(legacyPatterns.generateHtml(legacyRun),legacyRun);
+      const html=legacyPatterns.generateHtml(legacyRun);
       if (html) contentParts.push(html);
       legacyRun=[];
     };
     for (const element of elements) {
       if (element.type==='sourcePage') {
         flushLegacy();
-        let markup=cleanSourceMarkup(element.markup);
-        let imageIndex=0;
-        markup=markup.replace(/<img\b[^>]*>/gi,tag=>{
-          const index=imageIndex++;
-          const percent=Number(element.imageWidths?.[index]);
-          const declared=Number((tag.match(/\bwidth=("|')?(\d+)/i)||[])[2]||0);
-          const pixels=Math.max(1000,percent?Math.round(ARTBOARD_WIDTH*Math.max(10,Math.min(120,percent))/100):declared);
-          let next=tag.replace(/\s+width=("[^"]*"|'[^']*')/i,'');
-          next=next.replace(/\s+class=("[^"]*"|'[^']*')/i,(match,value)=>{
-            const quote=value[0],classes=value.slice(1,-1).split(/\s+/).filter(name=>name && name!=='w-100');
-            if(!classes.includes('img-fluid')) classes.push('img-fluid');
-            return ` class=${quote}${classes.join(' ')}${quote}`;
-          });
-          if(!/\s+class=/i.test(next)) next=next.replace(/<img\b/i,'<img class="img-fluid"');
-          return next.replace(/\s*\/?\s*>$/,` width="${pixels}">`);
+        const originalTemplate = templates.find(template => template.id === element.sourceId);
+        const originalImages = originalTemplate?.markup?.match(/<img\b[^>]*>/gi) || [];
+        let imageIndex = 0;
+        const markup = cleanSourceMarkup(element.markup).replace(/<img\b[^>]*>/gi,tag => {
+          const original = originalImages[imageIndex++];
+          const localImage = /\bsrc=(["'])(?:data:image\/|blob:)[^"']*\1/i;
+          if (!localImage.test(tag)) return tag;
+          return original ? cleanSourceMarkup(original) : tag.replace(localImage,'src="#"');
         });
         if(markup) contentParts.push(markup);
         continue;
@@ -1283,8 +1287,7 @@
           }
         }
       }
-      const item=elementToLegacyItem(exportElement);
-      if (item) legacyRun.push(item);
+      if (exportElement.type === 'legacy') legacyRun.push({...exportElement,type:exportElement.legacyType,src:''});
       else {
         flushLegacy();
         const markup=elementToLegacyMarkup(exportElement);
@@ -1322,302 +1325,170 @@
     return fragment.innerHTML;
   }
 
+  async function downloadCroppedImage(button) {
+    const image = button.closest(boardImageFrame)?.querySelector('img');
+    if (!image) return;
+    button.disabled = true;
+    try {
+      await image.decode();
+      const boxWidth = image.clientWidth;
+      const boxHeight = image.clientHeight;
+      if (!boxWidth || !boxHeight) throw new Error('ไม่พบกรอบรูปบนบอร์ด');
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1000,boxWidth);
+      canvas.height = Math.round(canvas.width * boxHeight / boxWidth);
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('เบราว์เซอร์นี้สร้างไฟล์ภาพไม่ได้');
+      const style = getComputedStyle(image);
+      const scale = (style.objectFit === 'contain' ? Math.min : Math.max)(canvas.width/image.naturalWidth,canvas.height/image.naturalHeight);
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      const radii = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+        .map(property => (parseFloat(style[property]) || 0)*canvas.width/boxWidth);
+      if (radii.some(Boolean) && context.roundRect) {
+        context.beginPath();
+        context.roundRect(0,0,canvas.width,canvas.height,radii);
+        context.clip();
+      }
+      context.drawImage(image,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
+      const blob = await canvasToBlob(canvas,'image/webp',.92);
+      if (blob?.type !== 'image/webp') throw new Error('เบราว์เซอร์นี้ส่งออก WebP ไม่สำเร็จ');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const filename = (image.alt || 'reflection-image').replace(/[\\/:*?"<>|]+/g,'-').trim() || 'reflection-image';
+      link.href = url;
+      link.download = filename + '.webp';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url),1500);
+      showToast(`ดาวน์โหลดรูป WebP แล้ว · ${canvas.width} × ${canvas.height} px`);
+    } catch (error) {
+      showToast(error?.message || 'ดาวน์โหลดรูปไม่สำเร็จ');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function buildBoardPng() {
+    await Promise.race([document.fonts?.ready, new Promise(resolve => setTimeout(resolve,1500))]);
+    const boardWidth = ARTBOARD_WIDTH;
+    const excluded = '.canvas-remove-block,.legacy-pattern-heading,.source-page-toolbar,.resize-handle,.image-replace-trigger,.source-image-replace,.crop-image-export,script,iframe,object,embed';
+    const visualProperties = [
+      'display','box-sizing','position','top','right','bottom','left','z-index','width','height','min-width','min-height','max-width','max-height',
+      'margin','padding','border','border-radius','box-shadow','background','color','opacity','overflow','aspect-ratio',
+      'font','line-height','letter-spacing','text-align','text-decoration','text-transform','white-space','overflow-wrap','word-break',
+      'transform','transform-origin','vertical-align','object-fit','object-position','align-items','align-self','justify-content',
+      'justify-items','justify-self','flex','flex-direction','flex-wrap','gap','order','grid-template-columns','grid-template-rows','grid-area'
+    ];
+    const snapshot = artboard.cloneNode(false);
+    snapshot.removeAttribute('id');
+    snapshot.removeAttribute('style');
+    snapshot.style.cssText = 'box-sizing:border-box;width:' + boardWidth + 'px;min-height:1400px;padding:' + getComputedStyle(artboard).padding + ';background:#f5f5f1;color:#252b25;font:18px Tahoma,Arial,sans-serif;overflow:hidden';
+    const copyNode = async node => {
+      if (node.nodeType === Node.TEXT_NODE) return node.cloneNode();
+      if (!(node instanceof HTMLElement) || node.matches(excluded)) return null;
+      const style = getComputedStyle(node);
+      if (style.display === 'none' || style.opacity === '0') return null;
+      const audio = node.localName === 'audio' || node.localName === 'video';
+      const copy = audio ? document.createElement('div') : node.cloneNode(false);
+      for (const attr of [...copy.attributes]) {
+        if (attr.name === 'id' || attr.name === 'style' || attr.name === 'contenteditable' || attr.name === 'draggable' || attr.name.startsWith('on')) copy.removeAttribute(attr.name);
+      }
+      for (const property of visualProperties) {
+        const value = style.getPropertyValue(property);
+        if (value && !value.includes('url(')) copy.style.setProperty(property,value);
+      }
+      if (audio) {
+        copy.textContent = node.localName === 'audio' ? '▶  คลิปเสียง' : '▶  วิดีโอ';
+        copy.style.cssText += ';padding:10px 16px;background:#edf1e9;border-radius:20px;color:#324435;';
+        return copy;
+      }
+      if (node.localName === 'img') {
+        const source = node.currentSrc || node.src;
+        copy.removeAttribute('srcset');
+        if (!source) return null;
+        if (!source.startsWith('data:image/')) {
+          const response = await fetch(source);
+          if (!response.ok) throw new Error('อ่านรูปบางรายการไม่สำเร็จ กรุณาเลือกรูปจากเครื่องแล้วลองอีกครั้ง');
+          copy.src = await blobToDataUrl(await response.blob());
+        } else {
+          copy.src = source;
+        }
+        return copy;
+      }
+      const children = await Promise.all([...node.childNodes].map(copyNode));
+      copy.append(...children.filter(Boolean));
+      return copy;
+    };
+    const children = await Promise.all([...artboard.children].map(copyNode));
+    snapshot.append(...children.filter(Boolean));
+    const height = Math.max(1400,artboard.scrollHeight,artboard.offsetHeight);
+    if (height > 32767) throw new Error('งานยาวเกินขนาดภาพที่เบราว์เซอร์สร้างได้');
+    const xhtml = new XMLSerializer().serializeToString(snapshot);
+    const canvas = document.createElement('canvas');
+    canvas.width = boardWidth;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก PNG');
+    for (let top = 0; top < height; top += 8000) {
+      const tileHeight = Math.min(8000,height-top);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${boardWidth}" height="${tileHeight}"><foreignObject y="${-top}" width="${boardWidth}" height="${height}">${xhtml}</foreignObject></svg>`;
+      const image = new Image();
+      image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      await image.decode();
+      context.fillStyle = '#f5f5f1';
+      context.fillRect(0,top,boardWidth,tileHeight);
+      context.drawImage(image,0,top);
+    }
+    const blob = await canvasToBlob(canvas,'image/png');
+    if (!blob) throw new Error('บันทึกภาพ PNG ไม่สำเร็จ');
+    return {blob,height};
+  }
+
   async function exportDesignPng() {
     const button = $('#exportPng');
     if (!elements.length) {showToast('เพิ่มองค์ประกอบก่อนส่งออกภาพ');return;}
     button.disabled = true;
     button.textContent = 'กำลังสร้าง PNG…';
     try {
-      await optimizeLegacyEmbeddedImages();
-      await document.fonts?.ready;
-      await Promise.all([...artboard.querySelectorAll('img')].map(img => img.decode?.().catch(() => {})));
-      const measurementCanvas = document.createElement('canvas');
-      const measure = measurementCanvas.getContext('2d');
-      if (!measure) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก PNG');
-      const commands = [];
-      const contentX = 96;
-      const contentWidth = ARTBOARD_WIDTH - 192;
-      let cursorY = 90;
-      const segmenter = window.Intl?.Segmenter ? new Intl.Segmenter('th',{granularity:'word'}) : null;
-      const textLayout = (value,width,size,weight='400',lineRatio=1.8) => {
-        const font = `${weight} ${size}px "IBM Plex Sans Thai",Tahoma,sans-serif`;
-        measure.font = font;
-        const lines = [];
-        for (const paragraph of String(value ?? '').split('\n')) {
-          const parts = segmenter ? [...segmenter.segment(paragraph)].map(item => item.segment) : [...paragraph];
-          let line = '';
-          for (const part of parts) {
-            const candidate = line + part;
-            if (line && measure.measureText(candidate).width > width) {
-              lines.push(line.trimEnd());
-              line = part.trimStart();
-            } else line = candidate;
-            if (measure.measureText(line).width > width) {
-              const chars = [...line];
-              line = '';
-              for (const char of chars) {
-                if (line && measure.measureText(line + char).width > width) {
-                  lines.push(line);
-                  line = char;
-                } else line += char;
-              }
-            }
-          }
-          lines.push(line);
-        }
-        const lineHeight = Math.ceil(size * lineRatio);
-        return {font,size,lines,lineHeight,height:Math.max(1,lines.length)*lineHeight};
-      };
-      const addText = (layout,x,y,width,color,align='left') => commands.push({type:'text',layout,x,y,width,color,align});
-      const addRect = (x,y,width,height,color,radius=0) => commands.push({type:'rect',x,y,width,height,color,radius});
-      const addGradientRect = (x,y,width,height,top,bottom) => commands.push({type:'gradientRect',x,y,width,height,top,bottom});
-      const addLine = (x1,y1,x2,y2,color) => commands.push({type:'line',x1,y1,x2,y2,color});
-      const addImage = (element,x,y,width,height) => {
-        const block = [...artboard.querySelectorAll('[data-id]')].find(node => node.dataset.id === element.id);
-        const image = block?.querySelector('img');
-        commands.push({type:'image',image,x,y,width,height,fit:element.fit,radius:Math.max(0,Math.min(48,Number(element.radius)||0)),placeholder:!image || !image.complete || !image.naturalWidth});
-      };
-
-      for (const element of elements) {
-        const background = safeColor(element.background || '#f5f5f1');
-        const align = ['left','center','right'].includes(element.align) ? element.align : 'left';
-        const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
-        if (element.type === 'heading') {
-          cursorY += 5;
-          const size = Math.max(18,Math.min(72,Number(element.fontSize)||36));
-          const layout = textLayout(element.text,contentWidth,size,'600',1.28);
-          const boxHeight = layout.height + padding*2;
-          addRect(contentX,cursorY,contentWidth,boxHeight,background);
-          addText(layout,contentX,cursorY+padding,contentWidth,safeColor(element.color||'#20271e'),align);
-          cursorY += boxHeight + 16;
-        } else if (element.type === 'text') {
-          const size = Math.max(18,Math.min(72,Number(element.fontSize)||18));
-          const layout = textLayout(element.text,contentWidth,size,'400',1.8);
-          const boxHeight = layout.height + padding*2;
-          addRect(contentX,cursorY,contentWidth,boxHeight,background);
-          addText(layout,contentX,cursorY+padding,contentWidth,safeColor(element.color||'#41483f'),align);
-          cursorY += boxHeight + 16;
-        } else if (element.type === 'quote') {
-          cursorY += 14;
-          const inset = Math.max(14,padding);
-          const layout = textLayout(element.text,contentWidth-inset*2-6,Math.max(18,Math.min(72,Number(element.fontSize)||24)),'500',1.65);
-          const boxHeight = layout.height + inset*2;
-          addRect(contentX,cursorY,contentWidth,boxHeight,background);
-          addRect(contentX,cursorY,4,boxHeight,'#84be3d');
-          addText(layout,contentX+inset+4,cursorY+inset,contentWidth-inset*2-6,safeColor(element.color||'#384532'),align);
-          cursorY += boxHeight + 18;
-        } else if (element.type === 'image') {
-          cursorY += 20;
-          const width = Math.min(contentWidth,imageWidthPx(element));
-          const height = Math.max(1,Math.round(width*imageAspectRatio(element)));
-          const x = align === 'right' ? contentX+contentWidth-width : align === 'center' ? contentX+(contentWidth-width)/2 : contentX;
-          addImage(element,x,cursorY,width,height);
-          cursorY += height + 20;
-          if (element.imageStyle === 'green' || element.imageStyle === 'greenText') {
-            const caption = element.imageStyle === 'greenText' ? textLayout(element.caption||'',contentWidth,Math.max(18,Math.min(72,Number(element.fontSize)||18)),'400',1.8) : null;
-            const bandHeight = caption ? Math.max(180,caption.height+92) : 180;
-            addGradientRect(0,cursorY-20,ARTBOARD_WIDTH,bandHeight,'#77a84a','#397e22');
-            if (caption) addText(caption,contentX,cursorY+24,contentWidth,'#ffffff','left');
-            cursorY += bandHeight;
-          }
-        } else if (element.type === 'split') {
-          cursorY += 24;
-          const inset = Math.max(18,padding || 24);
-          const gap = 15;
-          const columnWidth = (contentWidth-inset*2-gap)/2;
-          const imageWidth = Math.min(columnWidth,imageWidthPx(element));
-          const imageHeight = Math.max(1,Math.round(imageWidth*imageAspectRatio(element)));
-          const title = textLayout(element.title,columnWidth,Math.max(22,Number(element.fontSize)||24),'600',1.4);
-          const body = textLayout(element.text,columnWidth,Math.max(18,Math.min(72,Number(element.fontSize)||18)),'400',1.8);
-          const copyHeight = title.height + 12 + body.height;
-          const rowHeight = Math.max(imageHeight,copyHeight);
-          addRect(contentX,cursorY,contentWidth,rowHeight+inset*2,background);
-          const imageX = contentX+inset+(element.imageSide==='right'?columnWidth+gap:0);
-          addImage(element,imageX,cursorY+inset+(rowHeight-imageHeight)/2,imageWidth,imageHeight);
-          const copyX = contentX+inset+(element.imageSide==='right'?0:columnWidth+gap);
-          const copyY = cursorY+inset+(rowHeight-copyHeight)/2;
-          addText(title,copyX,copyY,columnWidth,safeColor(element.color||'#20271e'),'left');
-          addText(body,copyX,copyY+title.height+12,columnWidth,safeColor(element.color||'#41483f'),'left');
-          cursorY += rowHeight + inset*2 + 24;
-        } else if (element.type === 'banner') {
-          cursorY += 24;
-          const inset = padding || 36;
-          const title = textLayout(element.title,contentWidth-inset*2,Math.max(22,Number(element.fontSize)||24),'600',1.4);
-          const body = textLayout(element.text,contentWidth-inset*2,Math.max(18,Math.min(72,Number(element.fontSize)||18)),'400',1.8);
-          const boxHeight = inset*2 + title.height + 12 + body.height;
-          addRect(contentX,cursorY,contentWidth,boxHeight,background,4);
-          addText(title,contentX+inset,cursorY+inset,contentWidth-inset*2,safeColor(element.color||'#ffffff'),align);
-          addText(body,contentX+inset,cursorY+inset+title.height+12,contentWidth-inset*2,safeColor(element.color||'#ffffff'),align);
-          cursorY += boxHeight + 24;
-        } else if (element.type === 'button') {
-          cursorY += 20;
-          const insetY = padding || 14;
-          const layout = textLayout(element.text,contentWidth-48,Math.max(18,Number(element.fontSize)||18),'700',1.35);
-          measure.font = layout.font;
-          const labelWidth = Math.min(contentWidth,Math.max(80,...layout.lines.map(line => measure.measureText(line).width))+48);
-          const buttonWidth = Math.max(80,labelWidth);
-          const buttonHeight = layout.height + insetY*2;
-          const x = align==='right' ? contentX+contentWidth-buttonWidth : align==='center' ? contentX+(contentWidth-buttonWidth)/2 : contentX;
-          addRect(x,cursorY,buttonWidth,buttonHeight,background,6);
-          addText(layout,x+24,cursorY+insetY,buttonWidth-48,safeColor(element.color||'#ffffff'),'center');
-          cursorY += buttonHeight + 20;
-        } else if (element.type === 'columns') {
-          cursorY += 24;
-          const inset = padding || 24;
-          const gap = 24;
-          const columnWidth = (contentWidth-inset*2-gap)/2;
-          const bodySize = Math.max(18,Number(element.fontSize)||18);
-          const leftTitle = textLayout(element.leftTitle,columnWidth,22,'600',1.4);
-          const rightTitle = textLayout(element.rightTitle,columnWidth,22,'600',1.4);
-          const leftBody = textLayout(element.leftText,columnWidth,bodySize,'400',1.8);
-          const rightBody = textLayout(element.rightText,columnWidth,bodySize,'400',1.8);
-          const leftHeight = leftTitle.height + 10 + leftBody.height;
-          const rightHeight = rightTitle.height + 10 + rightBody.height;
-          const boxHeight = Math.max(leftHeight,rightHeight)+inset*2;
-          addRect(contentX,cursorY,contentWidth,boxHeight,background,4);
-          addText(leftTitle,contentX+inset,cursorY+inset,columnWidth,safeColor(element.color||'#20271e'),'left');
-          addText(leftBody,contentX+inset,cursorY+inset+leftTitle.height+10,columnWidth,safeColor(element.color||'#41483f'),'left');
-          addText(rightTitle,contentX+inset+columnWidth+gap,cursorY+inset,columnWidth,safeColor(element.color||'#20271e'),'left');
-          addText(rightBody,contentX+inset+columnWidth+gap,cursorY+inset+rightTitle.height+10,columnWidth,safeColor(element.color||'#41483f'),'left');
-          cursorY += boxHeight + 24;
-        } else if (element.type === 'spacer') cursorY += Math.max(18,Math.min(320,Number(element.height)||48));
-        else if (element.type === 'divider') {
-          cursorY += 24;
-          addLine(contentX,cursorY,contentX+contentWidth,cursorY,'#cbd1c5');
-          cursorY += 25;
-        }
-      }
-
-      const height = Math.max(1400,Math.ceil(cursorY+90));
-      if (height > 16000) throw new Error('งานยาวเกินขนาดภาพที่เบราว์เซอร์สร้างได้');
-      const canvas = document.createElement('canvas');
-      canvas.width = ARTBOARD_WIDTH;
-      canvas.height = height;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก PNG');
-      context.fillStyle = '#f5f5f1';
-      context.fillRect(0,0,canvas.width,canvas.height);
-      const roundedPath = (x,y,width,height,radius=0) => {
-        const r = Math.min(radius,width/2,height/2);
-        context.beginPath();
-        context.moveTo(x+r,y);
-        context.lineTo(x+width-r,y);
-        context.quadraticCurveTo(x+width,y,x+width,y+r);
-        context.lineTo(x+width,y+height-r);
-        context.quadraticCurveTo(x+width,y+height,x+width-r,y+height);
-        context.lineTo(x+r,y+height);
-        context.quadraticCurveTo(x,y+height,x,y+height-r);
-        context.lineTo(x,y+r);
-        context.quadraticCurveTo(x,y,x+r,y);
-        context.closePath();
-      };
-      for (const command of commands) {
-        if (command.type === 'rect') {
-          roundedPath(command.x,command.y,command.width,command.height,command.radius);
-          context.fillStyle = command.color;
-          context.fill();
-        } else if (command.type === 'gradientRect') {
-          const gradient = context.createLinearGradient(command.x,command.y,command.x,command.y+command.height);
-          gradient.addColorStop(0,command.top);
-          gradient.addColorStop(1,command.bottom);
-          context.fillStyle = gradient;
-          context.fillRect(command.x,command.y,command.width,command.height);
-        } else if (command.type === 'line') {
-          context.beginPath();
-          context.moveTo(command.x1,command.y1);
-          context.lineTo(command.x2,command.y2);
-          context.strokeStyle = command.color;
-          context.lineWidth = 1;
-          context.stroke();
-        } else if (command.type === 'text') {
-          context.font = command.layout.font;
-          context.fillStyle = command.color;
-          context.textAlign = command.align;
-          context.textBaseline = 'top';
-          const anchor = command.align === 'center' ? command.x+command.width/2 : command.align === 'right' ? command.x+command.width : command.x;
-          command.layout.lines.forEach((line,index) => context.fillText(line,anchor,command.y+index*command.layout.lineHeight));
-        } else if (command.type === 'image') {
-          roundedPath(command.x,command.y,command.width,command.height,command.radius);
-          context.save();
-          context.clip();
-          const image = command.image;
-          if (image && !command.placeholder && (image.currentSrc.startsWith('data:') || new URL(image.currentSrc,location.href).origin === location.origin)) {
-            const scale = command.fit === 'contain' ? Math.min(command.width/image.naturalWidth,command.height/image.naturalHeight) : Math.max(command.width/image.naturalWidth,command.height/image.naturalHeight);
-            const drawWidth = image.naturalWidth*scale;
-            const drawHeight = image.naturalHeight*scale;
-            context.drawImage(image,command.x+(command.width-drawWidth)/2,command.y+(command.height-drawHeight)/2,drawWidth,drawHeight);
-          } else {
-            const gradient = context.createLinearGradient(command.x,command.y,command.x+command.width,command.y+command.height);
-            gradient.addColorStop(0,'#dbe5cd');
-            gradient.addColorStop(.52,'#a9c578');
-            gradient.addColorStop(.53,'#708d50');
-            gradient.addColorStop(1,'#4e653c');
-            context.fillStyle = gradient;
-            context.fillRect(command.x,command.y,command.width,command.height);
-            context.fillStyle = '#eef5e8';
-            context.font = '700 22px "IBM Plex Sans Thai",Tahoma,sans-serif';
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.fillText('เพิ่มรูปภาพ',command.x+command.width/2,command.y+command.height/2);
-          }
-          context.restore();
-        }
-      }
-      const blob = await canvasToBlob(canvas,'image/png');
-      if (!blob) throw new Error('บันทึกภาพ PNG ไม่สำเร็จ');
-      const fileTitle = ($('#documentTitle').textContent.trim() || 'reflection-design').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,'-');
+      const {blob,height} = await buildBoardPng();
       const downloadUrl = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
+      const fileTitle = ($('#documentTitle').textContent.trim() || 'reflection-design').replace(/[\\/:*?"<>|]+/g,'-');
       anchor.href = downloadUrl;
-      anchor.download = `${fileTitle}.png`;
+      anchor.download = fileTitle + '.png';
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(downloadUrl),1500);
-      showToast(`ส่งออกภาพ PNG แล้ว · ${ARTBOARD_WIDTH} × ${height} px`);
+      showToast('ส่งออกภาพ PNG แล้ว · ' + ARTBOARD_WIDTH + ' × ' + height + ' px');
     } catch (error) {
-      showToast(error?.message || 'ส่งออก PNG ไม่สำเร็จ ลองส่งออก HTML แทน');
+      showToast(error?.message || 'ส่งออก PNG ไม่สำเร็จ');
     } finally {
       button.disabled = false;
-      button.textContent = 'ส่งออก PNG';
+      button.textContent = 'ทั้งบอร์ด (PNG)';
     }
   }
 
-  async function optimizeLegacyEmbeddedImages() {
-    const next = clone(elements);
-    let updated = false;
-    for (const element of next) {
-      if (!['image','split'].includes(element.type) || !/^data:image\/(png|jpeg|webp);base64,/i.test(element.src||'') || element.src.length < 1_000_000) continue;
-      const response = await fetch(element.src);
-      if (!response.ok) continue;
-      const blob = await response.blob();
-      const file = new File([blob],`${(element.alt||'reflection-image').replace(/[^\wก-๙-]+/g,'-')}.${blob.type.split('/')[1]||'png'}`,{type:blob.type});
-      const asset = await prepareImageAsset(file);
-      if (asset.optimized && asset.bytes < blob.size) {
-        element.src = asset.src;
-        if (asset.aspectRatio) element.aspectRatio = asset.aspectRatio;
-        updated = true;
-      }
-    }
-    if (updated) {
-      elements = next;
-      renderAll();
-      scheduleSave();
-      showToast('ปรับรูปขนาดใหญ่ให้พร้อมส่งออกแล้ว');
-    }
-  }
-
-  async function openExport() {
-    const exportButton = $('#editorExport');
-    exportButton.disabled = true;
-    exportButton.textContent = 'เตรียมโค้ดส่งออก…';
+  function openExport() {
     try {
-      await optimizeLegacyEmbeddedImages();
       exportCode.value = buildExport();
+      $('#exportFeedback').textContent = '';
+      const fragment = document.createElement('template');
+      fragment.innerHTML = exportCode.value;
+      const assets = [...fragment.content.querySelectorAll('img,audio,video,source')];
+      const missing = assets.filter(node => {
+        const path = node.getAttribute('src');
+        if (node.matches('audio,video') && !path && node.querySelector('source')) return false;
+        return !path || path === '#' || path.includes('#####');
+      }).length;
+      const embedded = assets.filter(node => node.getAttribute('src')?.startsWith('data:')).length;
+      const notes = [];
+      if (missing) notes.push(`มีไฟล์สื่อ ${missing} รายการที่ต้องใส่พาธจริงหลังอัปโหลดเข้า CMS`);
+      if (embedded) notes.push(`มีไฟล์ฝังในโค้ด ${embedded} รายการ หาก CMS ตัดออก ให้อัปโหลดไฟล์ใน CMS แล้วใช้พาธของไฟล์`);
+      const status = $('#exportAssetStatus');
+      status.textContent = notes.join(' · ');
+      status.hidden = !notes.length;
       exportDialog.showModal();
     } catch {
-      showToast('เตรียมรูปภาพไม่สำเร็จ ลองบันทึกงานแล้วเปิดส่งออกอีกครั้ง');
-    } finally {
-      exportButton.disabled = false;
-      exportButton.innerHTML = 'ส่งออก HTML <span>↗</span>';
+      showToast('เตรียม HTML ไม่สำเร็จ กรุณาลองอีกครั้ง');
     }
   }
 
@@ -1702,28 +1573,31 @@
 
   async function applyFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
+    const targetId = selectedId;
+    const sourceSlot = sourceImageSelection;
+    const documentVersion = editorDocumentVersion;
     showToast('กำลังเตรียมรูปภาพ…');
     try {
       const asset = await prepareImageAsset(file);
+      if (documentVersion !== editorDocumentVersion) return;
       const alt = file.name.replace(/\.[^.]+$/,'');
-      const current = elements.find(item => item.id === selectedId);
-      if (current?.type==='sourcePage' && sourceImageSelection?.elementId===current.id) {
+      const current = elements.find(item => item.id === targetId);
+      if (current?.type==='sourcePage' && sourceSlot?.elementId===current.id) {
         const next=clone(elements);
-        const target=next.find(item=>item.id===selectedId);
-        target.markup=replaceSourceImage(target.markup,sourceImageSelection.index,asset.src,alt);
-        sourceImageSelection=null;
-        setElements(next,selectedId);
+        const target=next.find(item=>item.id===targetId);
+        target.markup=replaceSourceImage(target.markup,sourceSlot.index,asset.src,alt);
+        setElements(next,targetId);
       } else if (current && (['image','split'].includes(current.type) || legacyHasImage(current))) {
         const next = clone(elements);
-        const target = next.find(item => item.id === selectedId);
+        const target = next.find(item => item.id === targetId);
         target.src = asset.src;
         target.alt = alt;
         if (asset.aspectRatio) target.aspectRatio = asset.aspectRatio;
-        setElements(next,selectedId);
-      } else {
+        setElements(next,targetId);
+      } else if (!targetId || current) {
         const next = clone(elements);
         const image = makeElement('image',{src:asset.src,alt,...(asset.aspectRatio?{aspectRatio:asset.aspectRatio}:{})});
-        const selectedIndex = next.findIndex(item => item.id === selectedId);
+        const selectedIndex = next.findIndex(item => item.id === targetId);
         next.splice(selectedIndex < 0 ? next.length : selectedIndex + 1,0,image);
         setElements(next,image.id);
       }
@@ -1743,7 +1617,7 @@
   }
 
   function setAudioFile(file) {
-    if (!file) return;
+    if (!file || audioBusy) return;
     if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name)) {
       showToast('เลือกไฟล์เสียง MP3, WAV, M4A, AAC, OGG หรือ FLAC');
       return;
@@ -1812,6 +1686,8 @@
   async function convertAudioFile() {
     if (!audioEngine?.loaded || !audioFileObject || audioBusy) return;
     audioBusy = true;
+    const outputControls = ['#audioFile','#audioOutputFormat','#audioBitrate','#audioOutputName','#removeAudio'];
+    outputControls.forEach(selector => { $(selector).disabled = true; });
     $('#convertAudio').disabled = true;
     $('#loadEngine').disabled = true;
     $('#audioProgressWrap').hidden = false;
@@ -1831,10 +1707,11 @@
       $('#audioProgressPercent').textContent = '25%';
       $('#audioProgressBar').style.width = '25%';
       await audioEngine.writeFile(inputName,new Uint8Array(await audioFileObject.arrayBuffer()));
-      const encodeArgs = ['-i',inputName,'-vn','-ac','2','-c:a',codec,'-b:a',$('#audioBitrate').value];
+      const encodeArgs = ['-i',inputName,'-vn','-af','aformat=channel_layouts=mono,pan=stereo|c0=c0|c1=c0','-c:a',codec,'-b:a',$('#audioBitrate').value];
       if (format === 'mp4') encodeArgs.push('-movflags','+faststart');
       encodeArgs.push(outputName);
-      await audioEngine.exec(encodeArgs);
+      const status = await audioEngine.exec(encodeArgs);
+      if (status !== 0) throw new Error('แปลงไฟล์ไม่สำเร็จ กรุณาตรวจสอบไฟล์ต้นฉบับ');
       $('#audioProgressPercent').textContent = '88%';
       $('#audioProgressBar').style.width = '88%';
       const data = await audioEngine.readFile(outputName);
@@ -1857,6 +1734,7 @@
     } finally {
       try {if (inputName) await audioEngine.deleteFile(inputName);if (outputName) await audioEngine.deleteFile(outputName);} catch {}
       audioBusy = false;
+      outputControls.forEach(selector => { $(selector).disabled = false; });
       $('#convertAudio').disabled = !audioFileObject || !audioEngine?.loaded;
       $('#loadEngine').disabled = false;
     }
@@ -1919,22 +1797,29 @@
   });
   $('#editorExport').addEventListener('click',openExport);
   $('#closeExport').addEventListener('click',() => exportDialog.close());
-  $('#copyHtml').addEventListener('click',async () => {
-    try { await navigator.clipboard.writeText(exportCode.value); showToast('คัดลอก HTML แล้ว'); }
-    catch { exportCode.select(); document.execCommand('copy'); showToast('คัดลอก HTML แล้ว'); }
+  $('#copyHtml').addEventListener('click', async () => {
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(exportCode.value);
+      copied = true;
+    } catch {
+      exportCode.focus();
+      exportCode.select();
+      try { copied = document.execCommand('copy'); } catch {}
+    }
+    $('#exportFeedback').textContent = copied ? 'คัดลอก HTML แล้ว' : 'เลือกโค้ดให้แล้ว กด Ctrl+C เพื่อคัดลอก';
   });
-  $('#downloadHtml').addEventListener('click',async () => {
+  $('#downloadHtml').addEventListener('click',() => {
     const downloadButton = $('#downloadHtml');
     downloadButton.disabled = true;
     try {
-      await optimizeLegacyEmbeddedImages();
-      exportCode.value = buildExport();
-      const blob = new Blob([`<!doctype html><html lang="th"><meta charset="utf-8"><title>Reflection export</title><body>\n${exportCode.value}\n</body></html>`],{type:'text/html;charset=utf-8'});
+      const blob = new Blob([exportCode.value],{type:'text/html;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url; link.download = 'reflection-content.html'; link.click();
     setTimeout(() => URL.revokeObjectURL(url),1000);
-    } catch {showToast('ดาวน์โหลดไม่สำเร็จ ลองเปิดส่งออก HTML อีกครั้ง');}
+      $('#exportFeedback').textContent = 'เริ่มดาวน์โหลด HTML แล้ว';
+    } catch {$('#exportFeedback').textContent = 'ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง';}
     finally {downloadButton.disabled = false;}
   });
   $('#saveBtn').addEventListener('click',saveDraft);
@@ -1967,6 +1852,11 @@
   $('#fitCanvas').addEventListener('click',fitCanvasToView);
 
   artboard.addEventListener('click',event => {
+    const cropExport = event.target.closest('[data-crop-export]');
+    if (cropExport) {
+      downloadCroppedImage(cropExport);
+      return;
+    }
     const remove = event.target.closest('[data-canvas-remove]');
     if (remove) {
       removeBoardElement(remove.dataset.canvasRemove);
@@ -2099,7 +1989,7 @@
   artboard.addEventListener('dragend',event => event.target.closest('[data-id]')?.classList.remove('dragging'));
   artboard.addEventListener('dragover',event => {
     if (event.dataTransfer?.types?.includes('Files')) {
-      const imageBox = event.target.closest('.image-placeholder');
+      const imageBox = event.target.closest('.image-placeholder,.preview-image-placeholder,.source-image-frame');
       event.preventDefault();
       imageBox?.classList.add('drop-target');
       event.dataTransfer.dropEffect='copy';
@@ -2113,17 +2003,19 @@
     }
   });
   artboard.addEventListener('dragleave',event => {
-    const imageBox = event.target.closest('.image-placeholder');
+    const imageBox = event.target.closest('.image-placeholder,.preview-image-placeholder,.source-image-frame');
     if (imageBox && !imageBox.contains(event.relatedTarget)) imageBox.classList.remove('drop-target');
     if (!artboard.contains(event.relatedTarget)) clearSourceDropHint();
   });
   artboard.addEventListener('drop',async event => {
     event.preventDefault();
     clearSourceDropHint();
-    artboard.querySelectorAll('.image-placeholder.drop-target').forEach(node => node.classList.remove('drop-target'));
+    artboard.querySelectorAll('.drop-target').forEach(node => node.classList.remove('drop-target'));
     const target = event.target.closest('[data-id]');
     const droppedFile = event.dataTransfer.files?.[0];
     if (droppedFile?.type.startsWith('image/')) {
+      const frame = event.target.closest('[data-source-frame]');
+      sourceImageSelection = frame && target ? {elementId:target.dataset.id,index:Number(frame.dataset.sourceFrame)} : null;
       if (target) selectElement(target.dataset.id);
       else selectedId = null;
       await applyFile(droppedFile);
@@ -2278,6 +2170,10 @@
     $('#audioFile').value = '';
     $('#audioFileInfo').hidden = true;
     $('#sourceAudioPreview').hidden = true;
+    $('#sourceAudio').removeAttribute('src');
+    $('#audioResult').hidden = true;
+    $('#resultAudio').removeAttribute('src');
+    if (audioResultUrl) {URL.revokeObjectURL(audioResultUrl);audioResultUrl=null;}
     $('#convertAudio').disabled = true;
   });
   $('#loadEngine').addEventListener('click',loadAudioEngine);
