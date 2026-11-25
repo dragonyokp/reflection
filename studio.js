@@ -1879,21 +1879,5 @@
 
   renderLegacyTools();
   decorateIndependentTools();
-  const flowRoutes = $$('.gallery-flow-tracks use').map(track => track.getAttribute('href'));
-  const flowHighlights = $$('.gallery-flow-highlights use');
-  function chooseFlowRoute(highlight) {
-    const activeRoutes = new Set(flowHighlights.map(light => light.getAttribute('href')));
-    const availableRoutes = flowRoutes.filter(route => !activeRoutes.has(route));
-    if (!availableRoutes.length) return;
-    const route = availableRoutes[Math.floor(Math.random() * availableRoutes.length)];
-    highlight.setAttribute('href', route);
-  }
-  for (const highlight of flowHighlights) {
-    chooseFlowRoute(highlight);
-    highlight.addEventListener('animationiteration', event => {
-      if (event.animationName === 'gallery-flow-travel') chooseFlowRoute(highlight);
-    });
-  }
-
   renderGallery();
 })();
