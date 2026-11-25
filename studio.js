@@ -1525,7 +1525,7 @@
       showToast(error?.message || 'ส่งออก WebP ไม่สำเร็จ');
     } finally {
       button.disabled = false;
-      button.textContent = 'ดาวน์โหลดภาพบอร์ด WebP ↓';
+      button.textContent = 'ดาวน์โหลดรูปภาพ ↓';
     }
   }
 
