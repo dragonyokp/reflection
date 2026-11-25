@@ -284,7 +284,11 @@
   const safeHref = value => /^(https?:|mailto:|tel:|#|\/)/i.test(String(value||'')) ? String(value) : '#';
   const imageWidthBase = element => element.type === 'split' ? Math.round((CONTENT_WIDTH - 48 - 15) / 2) : element.type === 'legacy' ? ARTBOARD_WIDTH : CONTENT_WIDTH;
   const imageMaxPercent = element => ['split','legacy'].includes(element.type) ? 100 : 120;
-  const imageWidthPx = element => Math.max(1,Math.round(imageWidthBase(element) * Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100)) / 100));
+  function imageWidthPx(element) {
+    const block = element.id && artboard.querySelector(`[data-id="${CSS.escape(element.id)}"]`);
+    const frame = block?.querySelector('.image-placeholder,.preview-image-placeholder');
+    return frame?.offsetWidth || Math.max(1,Math.round(imageWidthBase(element) * Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100)) / 100));
+  }
   const imageAspectRatio = element => Number.isFinite(Number(element.aspectRatio)) && Number(element.aspectRatio)>0.02 && Number(element.aspectRatio)<20 ? Number(element.aspectRatio) : 9/16;
   const textStyle = element => `font-size:${Math.max(18,Math.min(72,Number(element.fontSize)||18))}px;color:${safeColor(element.color)};text-align:${['left','center','right'].includes(element.align)?element.align:'left'}`;
   function cleanSourceMarkup(markup, keepTemplateHints = false) {
@@ -368,7 +372,7 @@
   function renderImagePlaceholder(element) {
     const hasImage = Boolean(element.src);
     const image = hasImage ? `<img src="${escapeHtml(element.src)}" alt="${escapeHtml(element.alt)}" style="object-fit:${element.fit==='contain'?'contain':'cover'};border-radius:${Math.max(0,Math.min(48,Number(element.radius)||0))}px">` : '';
-    const uploadButton = `<button class="image-upload-trigger" type="button" data-image-upload aria-label="เลือกภาพ ${escapeHtml(element.alt || '')}"><span>▧</span><b>เพิ่มรูปภาพ</b><small>คลิกเพื่อเลือกไฟล์</small></button>`;
+    const uploadButton = `<button class="image-upload-trigger" type="button" data-image-upload aria-label="เลือกรูปภาพ"><b>＋ เพิ่มรูปภาพ</b></button>`;
     const replaceButton = hasImage ? `<button class="image-replace-trigger" type="button" data-image-upload>เปลี่ยนรูป</button>` : '';
     return `${image || uploadButton}${replaceButton}${renderResizeHandles(element)}`;
   }
@@ -631,37 +635,40 @@
 
   function renderBlock(element) {
     const selected = element.id === selectedId ? ' selected' : '';
-    const draggable = ' draggable="true"';
+    const sourceClass = element.type === 'sourcePage' ? ' source-page-block' : '';
+    const legacy = element.type === 'legacy' ? ' data-legacy-type="'+escapeHtml(element.legacyType)+'"' : '';
+    const name = element.type === 'legacy' ? (shelfLabels[element.legacyType] || legacyElementName(element)) :
+      element.type === 'sourcePage' ? (element.title || 'องค์ประกอบจากเทมเพลต') :
+      element.type === 'image' ? imageStyleName(element.imageStyle) : titleFor(element.type);
+    return `<div class="canvas-block board-section${sourceClass}${selected}" data-id="${element.id}"${legacy} draggable="true">
+      <div class="board-section-header"><b>${escapeHtml(name)}</b><button class="canvas-remove-block" data-canvas-remove="${element.id}" type="button" title="ลบ ${escapeHtml(name)}" aria-label="ลบ ${escapeHtml(name)}">×</button></div>
+      ${renderBlockBody(element)}
+    </div>`;
+  }
+
+  function renderBlockBody(element) {
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
     if (element.type === 'sourcePage') {
       const markup = sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true,element);
-      return `<div class="canvas-block source-page-block${element.sourcePath?' template-fragment':''}${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>${escapeHtml(element.title || 'องค์ประกอบจากเทมเพลต')}</b></div><div class="source-page-render">${wrapTemplateFragment(markup,element.sourcePath || [],true)}</div></div>`;
+      return `<div class="source-page-render">${wrapTemplateFragment(markup,element.sourcePath || [],true)}</div>`;
     }
-    if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h4 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h4></div>`;
-    if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
-    if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
-    if (element.type === 'legacy') return `<div class="canvas-block legacy-pattern-block${selected}" data-id="${element.id}" data-legacy-type="${escapeHtml(element.legacyType)}"${draggable}><div class="legacy-pattern-heading">${escapeHtml(legacyElementName(element))}</div><div class="legacy-pattern-slot"></div></div>`;
+    if (element.type === 'heading') return `<div class="board-block-content heading-block" style="background:${background};padding-block:${padding}px"><h4 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h4></div>`;
+    if (element.type === 'text') return `<div class="board-block-content text-block" style="background:${background};padding-block:${padding}px"><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
+    if (element.type === 'quote') return `<div class="board-block-content quote-block" style="background:${background};padding:${Math.max(14,padding)}px"><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
+    if (element.type === 'legacy') return '<div class="legacy-pattern-slot"></div>';
     if (element.type === 'image') {
       const style = ['normal','highlight','green','greenText'].includes(element.imageStyle) ? element.imageStyle : 'normal';
       const fullBleed = style === 'green' || style === 'greenText' ? ' highlight-full-bleed' : '';
       const greenBand = style === 'green' ? '<div class="highlight-green-band highlight-green-empty" aria-hidden="true"></div>' : style === 'greenText' ? `<div class="highlight-green-band"><p style="${textStyle({...element,color:'#ffffff'})}" contenteditable="true" data-part="caption" spellcheck="false">${textHtml(element.caption || '')}</p></div>` : '';
-      return `<div class="canvas-block image-block image-style-${style}${fullBleed}${selected}" data-id="${element.id}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"${draggable}><div class="image-placeholder" style="width:var(--image-width);height:auto;min-height:0;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${greenBand}</div>`;
+      return `<div class="board-block-content image-block image-style-${style}${fullBleed}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"><div class="image-placeholder" style="width:var(--image-width);height:auto;min-height:0;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${greenBand}</div>`;
     }
-    if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
-    const image = `<figure class="text-center"><img class="img-fluid" src="#" alt="${escapeHtml(element.alt || '')}"></figure>`;
-    if (element.type === 'heading') return `<h4>${text}</h4>`;
-    if (element.type === 'text') return `<p>${text}</p>`;
-    if (element.type === 'quote') return `<blockquote><p>${text}</p></blockquote>`;
-    if (element.type === 'image') return image + (element.imageStyle === 'greenText' && element.caption ? `
-<p>${textHtml(element.caption)}</p>` : '');
-    if (element.type === 'split') return `${element.imageSide !== 'right' ? image + '\n' : ''}<h4>${heading}</h4>
-<p>${text}</p>${element.imageSide === 'right' ? '\n' + image : ''}`;
-    if (element.type === 'banner') return `<section class="canvas-block banner-block${selected}" data-id="${element.id}" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"${draggable}><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
-    if (element.type === 'button') return `<div class="canvas-block button-block${selected}" data-id="${element.id}" style="text-align:${element.align||'left'}"${draggable}><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none" contenteditable="true" data-part="text">${textHtml(element.text)}</a></div>`;
-    if (element.type === 'columns') return `<div class="canvas-block columns-block${selected}" data-id="${element.id}" style="background:${background};padding:${padding||24}px;--column-text-size:${Math.max(18,Number(element.fontSize)||18)}px;color:${safeColor(element.color)}"${draggable}><div><h3 contenteditable="true" data-part="leftTitle">${textHtml(element.leftTitle)}</h3><p contenteditable="true" data-part="leftText">${textHtml(element.leftText)}</p></div><div><h3 contenteditable="true" data-part="rightTitle">${textHtml(element.rightTitle)}</h3><p contenteditable="true" data-part="rightText">${textHtml(element.rightText)}</p></div></div>`;
-    if (element.type === 'spacer') return `<div class="canvas-block spacer-block${selected}" data-id="${element.id}" style="height:${Math.max(18,Math.min(320,Number(element.height)||48))}px"${draggable}><span>ช่องว่าง · ${Math.max(18,Number(element.height)||48)} px</span></div>`;
-    return `<div class="canvas-block divider-block${selected}" data-id="${element.id}"${draggable}><hr></div>`;
+    if (element.type === 'split') return `<div class="board-block-content split-block" style="background:${background}">${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
+    if (element.type === 'banner') return `<section class="board-block-content banner-block" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
+    if (element.type === 'button') return `<div class="board-block-content button-block" style="text-align:${element.align||'left'}"><a href="${escapeHtml(safeHref(element.url))}" style="display:inline-block;padding:${padding||14}px 24px;background:${background};color:${safeColor(element.color||'#ffffff')};font-size:${Math.max(18,Number(element.fontSize)||18)}px;border-radius:6px;text-decoration:none" contenteditable="true" data-part="text">${textHtml(element.text)}</a></div>`;
+    if (element.type === 'columns') return `<div class="board-block-content columns-block" style="background:${background};padding:${padding||24}px;--column-text-size:${Math.max(18,Number(element.fontSize)||18)}px;color:${safeColor(element.color)}"><div><h3 contenteditable="true" data-part="leftTitle">${textHtml(element.leftTitle)}</h3><p contenteditable="true" data-part="leftText">${textHtml(element.leftText)}</p></div><div><h3 contenteditable="true" data-part="rightTitle">${textHtml(element.rightTitle)}</h3><p contenteditable="true" data-part="rightText">${textHtml(element.rightText)}</p></div></div>`;
+    if (element.type === 'spacer') return `<div class="board-block-content spacer-block" style="height:${Math.max(18,Math.min(320,Number(element.height)||48))}px"><span>ช่องว่าง · ${Math.max(18,Number(element.height)||48)} px</span></div>`;
+    return `<div class="board-block-content divider-block"><hr></div>`;
   }
 
   function bindLegacyBoardText(preview, element) {
@@ -802,15 +809,6 @@
           if (alignBox === node && ['STRONG','SPAN'].includes(node.tagName)) node.style.display = 'block';
         }
       });
-      const name = element.type === 'legacy' ? legacyElementName(element) : element.type === 'sourcePage' ? element.title : titleFor(element.type);
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'canvas-remove-block';
-      remove.dataset.canvasRemove = element.id;
-      remove.title = `ลบ ${name}`;
-      remove.setAttribute('aria-label',remove.title);
-      remove.textContent = '×';
-      block.append(remove);
     }
     artboard.style.width = `${ARTBOARD_WIDTH}px`;
     artboard.style.minHeight = '1400px';
