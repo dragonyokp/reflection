@@ -224,7 +224,7 @@
     if(!keepTemplateHints) clean=clean.replace(/\s+data-template-placeholder=("[^"]*"|'[^']*'|[^\s>]+)/gi,'');
     return clean;
   }
-  function sourcePreviewMarkup(markup, visualTemplate = false) {
+  function sourcePreviewMarkup(markup, visualTemplate = false, editing = false) {
     let imageIndex=0;
     const clean=cleanSourceMarkup(markup,true).replace(/<img\b[^>]*>/gi,tag=>{
       const index=imageIndex++;
@@ -236,7 +236,15 @@
       const nativeWidth=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
       const fullWidth=/\bw-100\b/.test(tag);
       const frameWidth=width?`width:${Math.max(10,Math.min(120,width))}%`:nativeWidth&&!fullWidth?`width:${nativeWidth}px;max-width:100%`:'';
-      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${visualTemplate&&!hasUserImage?'<span class="source-template-green-label" aria-hidden="true">IMAGE</span>':''}${marked}${index===Number(sourceImageSelection?.index)&&sourceImageSelection?.elementId===selectedId?renderResizeHandles({id:selectedId}):''}</span>`;
+      const isSelected = editing && index === sourceImageSelection?.index && sourceImageSelection?.elementId === selectedId;
+      let imageControl = '';
+      if (editing && visualTemplate) {
+        const action = hasUserImage ? 'เปลี่ยนรูปภาพ' : 'เพิ่มรูปภาพ';
+        imageControl = `<button class="source-image-pick${hasUserImage ? ' source-image-replace' : ''}" data-source-pick type="button" aria-label="${action} ตำแหน่งที่ ${index + 1}"><span aria-hidden="true">${hasUserImage ? '↻' : '+'}</span> ${action}</button>`;
+      } else if (visualTemplate && !hasUserImage) {
+        imageControl = '<span class="source-template-green-label" aria-hidden="true">IMAGE</span>';
+      }
+      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${isSelected?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${marked}${imageControl}${isSelected?renderResizeHandles({id:selectedId}):''}</span>`;
     });
     const editable=clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
     return (visualTemplate?templatePageHeading(): '')+editable;
@@ -288,7 +296,7 @@
   function renderThumb(template) {
     if (template.markup) {
       const preview=sourceThumbMarkup(template.markup);
-      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${templatePageHeading()}${preview}</div>`:preview}</div></div>`;
+      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${preview}</div>`:preview}</div></div>`;
     }
     const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
     const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
@@ -395,7 +403,7 @@
     const draggable = ' draggable="true"';
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
-    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b><span>ข้อความแก้บนหน้าได้ · คลิกรูปเพื่อเลือกและปรับขนาด</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate))}</div></div>`;
+    if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b><span>คลิกช่องรูปเพื่อใส่ไฟล์ · ลากจุดจับเพื่อปรับขนาด</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true)}</div></div>`;
     if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h2 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
@@ -1588,10 +1596,19 @@
     const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
     const sourceImage=sourceFrame?.querySelector('[data-source-image]');
     if(sourceImage) {
+      if (event.target.closest('[data-resize-handle]')) return;
+      const openPicker = Boolean(event.target.closest('[data-source-pick]'));
       const sourceBlock=sourceImage.closest('[data-id]');
       sourceImageSelection={elementId:sourceBlock?.dataset.id,index:Number(sourceImage.dataset.sourceImage)};
-      if(sourceBlock?.dataset.id) {selectElement(sourceBlock.dataset.id);renderArtboard();}
-      renderInspector();
+      if (sourceBlock?.dataset.id) {
+        const alreadySelected = selectedId === sourceBlock.dataset.id;
+        selectElement(sourceBlock.dataset.id);
+        if (alreadySelected && !openPicker) renderArtboard();
+      }
+      if (openPicker) {
+        imageFile.value = '';
+        imageFile.click();
+      }
       return;
     }
     const imageUploadButton = event.target.closest('[data-image-upload]');
