@@ -1342,6 +1342,55 @@ body{font-size:18px}
   .editor-view .canvas-controls > div { flex: none; }
 }
 
+/* A focused canvas and a dedicated export step keep the editor uncluttered. */
+.editor-view .workspace { grid-template-columns: clamp(300px,22vw,332px) minmax(0,1fr); }
+.editor-view .canvas-controls #toggleLayers { display:none !important; }
+.editor-view .left-rail { border-right:1px solid #343b35; }
+.export-view { min-height:calc(100vh - 84px); background:radial-gradient(ellipse at 18% 0%,#2b3828 0,transparent 38%),#171d19; color:#eef3e9; }
+.export-view[hidden] { display:none !important; }
+.export-page-toolbar { height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(20px,5vw,84px); border-bottom:1px solid #39443a; background:#1a211c; }
+.export-page-step { color:#9aa696; font:700 12px var(--display); letter-spacing:1.5px; }
+.export-page-step i { display:inline-block; width:8px; height:8px; margin-right:9px; border-radius:50%; background:var(--orange); box-shadow:0 0 14px #ff9b4b77; }
+.export-page-content { width:min(1160px,calc(100% - 56px)); margin:0 auto; padding:clamp(36px,6vh,72px) 0 64px; }
+.export-page-content>.eyebrow { margin:0 0 10px; color:#b5c5ac; font:700 13px var(--display); letter-spacing:1px; }
+.export-page-content>.eyebrow span { color:var(--orange); }
+.export-page-content h1 { margin:0; color:#f2f5ed; font:800 clamp(32px,4vw,46px)/1.25 var(--font); }
+.export-page-intro { margin:12px 0 32px; color:#b5c0b3; font-size:18px; line-height:1.7; }
+.export-choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.export-choice-card { min-width:0; overflow:hidden; border:1px solid #465347; border-radius:14px; background:#202a22; box-shadow:0 18px 45px #0e140e3d; }
+.export-choice-visual { position:relative; height:210px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:linear-gradient(135deg,#26362a,#18201a); }
+.export-visual-image:before { position:absolute; inset:0; content:""; background:linear-gradient(140deg,transparent 48%,#91cb3d18 49%,transparent 70%); }
+.export-file-page { position:relative; width:126px; height:155px; padding:20px 16px; display:flex; flex-direction:column; gap:13px; border:1px solid #91bb6c; border-radius:5px; background:#f6f7f1; box-shadow:0 15px 30px #080e0a88; transform:rotate(-4deg); }
+.export-file-page i { height:8px; border-radius:5px; background:#d9e1d2; }
+.export-file-page i:first-child { width:73%; height:13px; background:#608856; }
+.export-file-page b { position:absolute; inset:68px 16px auto; height:42px; display:grid; place-items:center; background:linear-gradient(135deg,#c4dda9,#79ab5f); color:#3a5d36; font:700 9px var(--display); letter-spacing:2px; }
+.export-file-badge { position:absolute; right:calc(50% - 90px); bottom:27px; padding:8px 12px; border-radius:6px; background:#ff9749; color:#182018; font:800 13px var(--display); letter-spacing:1px; transform:rotate(5deg); }
+.export-visual-code { align-content:center; align-items:flex-start; flex-direction:column; gap:13px; padding:34px 15%; background:linear-gradient(135deg,#26362a,#19221b); }
+.export-visual-code span { color:#c2d6b3; font:600 18px/1.2 ui-monospace,Consolas,monospace; }
+.export-visual-code span:nth-child(2) { margin-left:28px; color:#ffb16f; }
+.export-visual-code span:nth-child(3) { margin-left:56px; color:#a5dd63; }
+.export-visual-code b { position:absolute; right:10%; bottom:25px; color:#ffffff10; font:800 58px var(--display); }
+.export-choice-copy { padding:24px 26px 27px; }
+.export-choice-copy>.eyebrow { margin:0 0 6px; color:var(--orange); font:700 12px var(--display); letter-spacing:1px; }
+.export-choice-copy h2 { margin:0; color:#f0f4eb; font-size:24px; line-height:1.4; }
+.export-choice-copy>p:not(.eyebrow) { min-height:58px; margin:9px 0 20px; color:#b5c0b3; font-size:18px; line-height:1.65; }
+.export-choice-button { width:100%; display:flex; align-items:center; justify-content:space-between; border:0; border-radius:8px; padding:13px 16px; background:var(--green); color:#18210f; font:700 18px var(--font); cursor:pointer; }
+.export-choice-button:hover { background:#b0e967; }
+.export-choice-button span { font-size:22px; }
+.export-choice-copy small { display:block; margin-top:12px; color:#99a595; font-size:14px; line-height:1.55; }
+.export-page-note { display:flex; align-items:flex-start; gap:10px; margin-top:23px; padding:14px 17px; border:1px solid #39483b; border-radius:8px; color:#aebbac; font-size:16px; line-height:1.55; }
+.export-page-note span { flex:none; display:grid; width:22px; height:22px; place-items:center; border-radius:50%; background:#354934; color:#c6e4a8; font:700 14px var(--display); }
+@media (max-width:760px) {
+  .editor-view .workspace { grid-template-columns:1fr; }
+  .export-page-toolbar { padding:0 16px; }
+  .export-page-step { font-size:10px; }
+  .export-page-content { width:calc(100% - 32px); padding:32px 0 44px; }
+  .export-choice-grid { grid-template-columns:1fr; gap:15px; }
+  .export-choice-visual { height:155px; }
+  .export-choice-copy { padding:20px; }
+  .export-choice-copy>p:not(.eyebrow) { min-height:0; }
+}
+
 /* Miniatures share the visual structure of their corresponding blocks. */
 .tool-preview {
   display: grid;

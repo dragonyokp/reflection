@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=3">
-  <link rel="stylesheet" href="studio.css?v=69">
+  <link rel="stylesheet" href="studio.css?v=70">
   <script src="article-templates.js?v=9" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=5" defer></script>
-  <script src="studio.js?v=54" defer></script>
+  <script src="studio.js?v=55" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -97,7 +97,7 @@
         <div class="editor-toolbar">
           <button id="backToGallery" class="back-button" type="button"><span>←</span> เทมเพลต</button>
           <div class="document-name"><span class="doc-status"></span><span id="documentTitle">งาน Reflection</span><small id="saveStatus" role="status">ยังไม่บันทึก</small></div>
-          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="exportPng" class="export-png" type="button">ทั้งบอร์ด (PNG)</button><button id="editorExport" class="editor-export" type="button">ส่งออก HTML <span>↗</span></button></div>
+          <div class="editor-actions"><button id="undoBtn" class="tool-button" title="เลิกทำ" aria-label="เลิกทำ">↶</button><button id="redoBtn" class="tool-button" title="ทำซ้ำ" aria-label="ทำซ้ำ">↷</button><span class="toolbar-separator"></span><button id="saveBtn" class="save-button" type="button">บันทึกร่าง</button><button id="editorExport" class="editor-export" type="button">ส่งออก <span>↗</span></button></div>
         </div>
         <div class="workspace">
           <aside class="left-rail">
@@ -130,14 +130,30 @@
                 <button type="button" data-text-format="center" aria-label="กึ่งกลาง" aria-pressed="false" title="กึ่งกลาง" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
                 <button type="button" data-text-format="right" aria-label="ชิดขวา" aria-pressed="false" title="ชิดขวา" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
               </div>
-              <div><button id="toggleLayers" type="button" aria-expanded="false" aria-controls="layersRail">เลเยอร์</button><button id="openBoardSettings" type="button">ตั้งค่าองค์ประกอบ</button><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div>
+              <div><button id="openBoardSettings" type="button">ตั้งค่าองค์ประกอบ</button><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div>
             </div>
             <div id="canvasViewport" class="canvas-viewport"><article id="artboard" class="artboard" aria-label="แคนวาส Reflection"></article></div>
           </section>
-          <aside id="layersRail" class="layers-rail" aria-labelledby="layersTitle">
-            <div class="layers-header"><h2 id="layersTitle">ลำดับเนื้อหา</h2><span id="layerCount">0</span><button id="closeLayers" type="button" aria-label="ปิดเลเยอร์">×</button></div>
-            <div id="layerList" class="layer-list"></div>
-          </aside>
+        </div>
+      </section>
+
+      <section id="exportView" class="export-view" hidden aria-labelledby="exportPageTitle">
+        <div class="export-page-toolbar"><button id="backToEditor" class="back-button" type="button"><span>←</span> กลับไปแก้ไข</button><span class="export-page-step"><i></i> EXPORT YOUR REFLECTION</span></div>
+        <div class="export-page-content">
+          <p class="eyebrow"><span>ขั้นตอนสุดท้าย</span> · เลือกรูปแบบไฟล์</p>
+          <h1 id="exportPageTitle">ส่งออกผลงาน</h1>
+          <p class="export-page-intro">เลือกสิ่งที่ต้องการนำไปใช้ ระบบจะสร้างไฟล์จากบอร์ดที่คุณออกแบบไว้</p>
+          <div class="export-choice-grid">
+            <article class="export-choice-card">
+              <div class="export-choice-visual export-visual-image" aria-hidden="true"><span class="export-file-page"><i></i><i></i><b>IMAGE</b></span><span class="export-file-badge">WEBP</span></div>
+              <div class="export-choice-copy"><p class="eyebrow">ภาพจากบอร์ด</p><h2>ส่งออกเป็นรูปภาพ</h2><p>บันทึกภาพหน้า Reflection ทั้งบอร์ดเป็น WebP โดยใช้ขนาดและการจัดวางตามบอร์ด</p><button id="openImageExport" class="export-choice-button" type="button">ดาวน์โหลดภาพบอร์ด WebP <span>↓</span></button><small>รูปแต่ละชิ้นบนบอร์ดก็ดาวน์โหลดแยกเป็น WebP ได้จากปุ่มบนรูป</small></div>
+            </article>
+            <article class="export-choice-card">
+              <div class="export-choice-visual export-visual-code" aria-hidden="true"><span>&lt;p&gt;</span><span>&lt;strong&gt;</span><span>&lt;figure&gt;</span><b>HTML</b></div>
+              <div class="export-choice-copy"><p class="eyebrow">สำหรับนำเข้า CMS</p><h2>ส่งออกเป็น HTML</h2><p>สร้างโค้ดรูปแบบเดิมสำหรับนำไปวางในช่อง HTML ของเว็บไซต์</p><button id="openHtmlExport" class="export-choice-button" type="button">ดูและส่งออก HTML <span>↗</span></button><small>คัดลอกโค้ด หรือดาวน์โหลดไฟล์ .html ได้จากหน้าถัดไป</small></div>
+            </article>
+          </div>
+          <div class="export-page-note"><span>i</span> ไฟล์ภาพที่ส่งออกจากเครื่องมือนี้เป็น WebP ทั้งภาพบอร์ดและรูปที่ดาวน์โหลดแยกจากแต่ละชิ้น</div>
         </div>
       </section>
     </main>

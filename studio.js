@@ -5,10 +5,11 @@
   const editorView = $('#editorView');
   const templateGrid = $('#templateGrid');
   const artboard = $('#artboard');
-  const layerList = $('#layerList');
+  const layerList = null;
   const inspector = $('#inspector');
   const imageFile = $('#imageFile');
   const exportDialog = $('#exportDialog');
+  const exportView = $('#exportView');
   const exportCode = $('#exportCode');
   const templatePreviewDialog = $('#templatePreviewDialog');
   const DRAFT_KEY = 'reflectionStudioDraftV1';
@@ -239,6 +240,7 @@
     galleryView.hidden = mode !== 'gallery';
     editorView.hidden = mode !== 'editor';
     $('#audioView').hidden = mode !== 'audio';
+    exportView.hidden = mode !== 'export';
     if (mode !== 'editor') setActiveMode(mode);
     window.scrollTo(0,0);
   }
@@ -675,6 +677,7 @@
   }
 
   function renderLayers() {
+    if (!layerList) return;
     $('#layerCount').textContent = elements.length;
     layerList.innerHTML = elements.map(element => {
       const name = element.type === 'sourcePage' ? 'หน้าเทมเพลต' :
@@ -1427,7 +1430,7 @@
     }
   }
 
-  async function buildBoardPng() {
+  async function buildBoardWebp() {
     await Promise.race([document.fonts?.ready, new Promise(resolve => setTimeout(resolve,1500))]);
     const boardWidth = ARTBOARD_WIDTH;
     const excluded = '.canvas-remove-block,.legacy-pattern-heading,.source-page-toolbar,.resize-handle,.image-replace-trigger,.source-image-replace,.crop-image-export,script,iframe,object,embed';
@@ -1487,7 +1490,7 @@
     canvas.width = boardWidth;
     canvas.height = height;
     const context = canvas.getContext('2d');
-    if (!context) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก PNG');
+    if (!context) throw new Error('เบราว์เซอร์ไม่รองรับการส่งออก WebP');
     for (let top = 0; top < height; top += 8000) {
       const tileHeight = Math.min(8000,height-top);
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${boardWidth}" height="${tileHeight}"><foreignObject y="${-top}" width="${boardWidth}" height="${height}">${xhtml}</foreignObject></svg>`;
@@ -1498,31 +1501,31 @@
       context.fillRect(0,top,boardWidth,tileHeight);
       context.drawImage(image,0,top);
     }
-    const blob = await canvasToBlob(canvas,'image/png');
-    if (!blob) throw new Error('บันทึกภาพ PNG ไม่สำเร็จ');
+    const blob = await canvasToBlob(canvas,'image/webp',.92);
+    if (!blob || blob.type !== 'image/webp') throw new Error('เบราว์เซอร์นี้สร้างไฟล์ WebP ไม่สำเร็จ');
     return {blob,height};
   }
 
-  async function exportDesignPng() {
-    const button = $('#exportPng');
+  async function exportDesignImage() {
+    const button = $('#openImageExport');
     if (!elements.length) {showToast('เพิ่มองค์ประกอบก่อนส่งออกภาพ');return;}
     button.disabled = true;
-    button.textContent = 'กำลังสร้าง PNG…';
+    button.textContent = 'กำลังสร้าง WebP…';
     try {
-      const {blob,height} = await buildBoardPng();
+      const {blob,height} = await buildBoardWebp();
       const downloadUrl = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       const fileTitle = ($('#documentTitle').textContent.trim() || 'reflection-design').replace(/[\\/:*?"<>|]+/g,'-');
       anchor.href = downloadUrl;
-      anchor.download = fileTitle + '.png';
+      anchor.download = fileTitle + '.webp';
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(downloadUrl),1500);
-      showToast('ส่งออกภาพ PNG แล้ว · ' + ARTBOARD_WIDTH + ' × ' + height + ' px');
+      showToast('ส่งออกภาพบอร์ด WebP แล้ว · ' + ARTBOARD_WIDTH + ' × ' + height + ' px');
     } catch (error) {
-      showToast(error?.message || 'ส่งออก PNG ไม่สำเร็จ');
+      showToast(error?.message || 'ส่งออก WebP ไม่สำเร็จ');
     } finally {
       button.disabled = false;
-      button.textContent = 'ทั้งบอร์ด (PNG)';
+      button.textContent = 'ดาวน์โหลดภาพบอร์ด WebP ↓';
     }
   }
 
@@ -1854,7 +1857,10 @@
   $('#backToGallery').addEventListener('click',() => {
     showMode('gallery');
   });
-  $('#editorExport').addEventListener('click',openExport);
+  $('#editorExport').addEventListener('click',() => showMode('export'));
+  $('#backToEditor').addEventListener('click',() => showMode('editor'));
+  $('#openImageExport').addEventListener('click',exportDesignImage);
+  $('#openHtmlExport').addEventListener('click',openExport);
   $('#closeExport').addEventListener('click',() => exportDialog.close());
   $('#copyHtml').addEventListener('click', async () => {
     let copied = false;
@@ -2114,44 +2120,6 @@
     draggedId = null;
   });
 
-  const layersRail = $('#layersRail');
-  const toggleLayers = $('#toggleLayers');
-  function showLayers(open) {
-    layersRail.classList.toggle('is-open',open);
-    toggleLayers.setAttribute('aria-expanded',String(open));
-    if (open) $('#closeLayers').focus();
-  }
-  toggleLayers.addEventListener('click',() => showLayers(!layersRail.classList.contains('is-open')));
-  $('#closeLayers').addEventListener('click',() => {showLayers(false);toggleLayers.focus();});
-  layersRail.addEventListener('keydown',event => {
-    if (event.key === 'Escape' && layersRail.classList.contains('is-open')) {
-      showLayers(false);
-      toggleLayers.focus();
-    }
-  });
-  layerList.addEventListener('click',event => {
-    const row = event.target.closest('[data-layer-id]');
-    if (!row) return;
-    const id = row.dataset.layerId;
-    selectElement(id);
-    if (event.detail === 0) layerList.querySelector(`[data-layer-id="${id}"]`)?.focus();
-  });
-  layerList.addEventListener('dragstart',event => {
-    const row = event.target.closest('[data-layer-id]');
-    if (!row) return;
-    draggedId = row.dataset.layerId;
-    row.classList.add('dragging');
-    event.dataTransfer.setData('text/plain',draggedId);
-  });
-  layerList.addEventListener('dragend',event => event.target.closest('[data-layer-id]')?.classList.remove('dragging'));
-  layerList.addEventListener('dragover',event => {if (draggedId) event.preventDefault()});
-  layerList.addEventListener('drop',event => {
-    event.preventDefault();
-    const row = event.target.closest('[data-layer-id]');
-    moveElement(event.dataTransfer.getData('text/plain') || draggedId,row?.dataset.layerId || null,false);
-    draggedId = null;
-  });
-
   inspector.addEventListener('pointerdown',event => {
     if (event.target.matches('[data-prop],[data-speaker-prop]') && !inspectorBaseline) inspectorBaseline = clone(elements);
   });
@@ -2233,7 +2201,6 @@
     if (remove) removeBoardElement(remove.dataset.delete);
   });
   imageFile.addEventListener('change',() => applyFile(imageFile.files?.[0]));
-  $('#exportPng').addEventListener('click',exportDesignPng);
   $('#audioFile').addEventListener('change',() => setAudioFile($('#audioFile').files?.[0]));
   $('#audioOutputFormat').addEventListener('change',() => {
     updateAudioOutputUI();
