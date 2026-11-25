@@ -288,7 +288,7 @@
   function renderThumb(template) {
     if (template.markup) {
       const preview=sourceThumbMarkup(template.markup);
-      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${templatePageHeading()}${preview}</div>`:preview}</div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div></div>`;
+      return `<div class="template-thumb source-template-thumb${template.visualTemplate?' visual-template-thumb':''}" aria-hidden="true"><div class="source-template-preview">${template.visualTemplate?`<div class="source-template-page">${templatePageHeading()}${preview}</div>`:preview}</div></div>`;
     }
     const lines = (count = 3, extra = '') => `<div class="page-lines ${extra}">${Array.from({length:count},(_,i)=>`<i class="line-${i+1}"></i>`).join('')}</div>`;
     const photo = (extra = '') => `<div class="page-photo ${extra}"><span>IMAGE</span></div>`;
@@ -310,12 +310,13 @@
   }
 
   function fitFullTemplatePreviews() {
-    $$('.visual-template-thumb .source-template-preview').forEach(view=>{
+    $$('.visual-template-thumb .source-template-preview',templateGrid).forEach(view=>{
       const page=$('.source-template-page',view);
       if(!page)return;
       page.style.transform='none';
       page.style.width='1000px';
-      const scale=Math.min((view.clientWidth-24)/1000,1);
+      if (!view.clientWidth) return;
+      const scale=Math.min(view.clientWidth/1000,1);
       page.style.transform=`scale(${scale})`;
     });
   }
@@ -325,8 +326,14 @@
     templatePage = Math.min(Math.max(1,templatePage),pageCount);
     const start = (templatePage-1)*TEMPLATES_PER_PAGE;
     const visibleTemplates = templates.slice(start,start+TEMPLATES_PER_PAGE);
-    $('#templateCount').textContent = String(templates.length).padStart(2,'0');
-    templateGrid.innerHTML = visibleTemplates.map((template,index) => `<article class="template-card" data-template="${escapeHtml(template.id)}"><button class="template-card-preview" type="button" data-preview-template="${escapeHtml(template.id)}" aria-label="เปิดภาพตัวอย่างแบบที่ ${start+index+1}">${renderThumb(template)}<span class="preview-hover-label">ดูตัวอย่าง <b>↗</b></span></button></article>`).join('');
+    $('#templateCount').textContent = String(templates.length);
+    templateGrid.innerHTML = visibleTemplates.map((template,index) => `
+      <article class="template-card" data-template="${escapeHtml(template.id)}">
+        <button class="template-card-preview" type="button" data-preview-template="${escapeHtml(template.id)}" aria-haspopup="dialog" aria-label="เปิดภาพตัวอย่างแบบที่ ${start+index+1}">
+          ${renderThumb(template)}
+          <span class="template-open-icon" aria-hidden="true">↗</span>
+        </button>
+      </article>`).join('');
     const pagination=$('#templatePagination');
     pagination.hidden=pageCount<=1;
     $('#templatePageLabel').textContent=`หน้า ${templatePage} / ${pageCount}`;
@@ -1520,7 +1527,10 @@
   $('#closeTemplatePreview')?.addEventListener('click',()=>templatePreviewDialog.close());
   $('#useTemplate')?.addEventListener('click',event=>useTemplate(templates.find(item=>item.id===event.currentTarget.dataset.templateId)));
   templatePreviewDialog?.addEventListener('click',event=>{if(event.target===templatePreviewDialog)templatePreviewDialog.close();});
-  window.addEventListener('resize',fitTemplateDetailPreview);
+  window.addEventListener('resize', () => {
+    if (!galleryView.hidden) fitFullTemplatePreviews();
+    if (templatePreviewDialog.open) fitTemplateDetailPreview();
+  });
   $('#blankStart').addEventListener('click',() => enterEditor('งาน Reflection ใหม่',[]));
   galleryView.addEventListener('click',async event => {
     if (!event.target.closest('#resumeDraft')) return;

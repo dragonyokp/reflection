@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=2">
-  <link rel="stylesheet" href="studio.css?v=45">
+  <link rel="stylesheet" href="studio.css?v=46">
   <script src="article-templates.js?v=7" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=3" defer></script>
-  <script src="studio.js?v=38" defer></script>
+  <script src="studio.js?v=39" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -26,14 +26,22 @@
     <main>
       <section id="galleryView" class="gallery-view">
         <div class="gallery-welcome">
-          <div class="gallery-welcome-copy"><p class="eyebrow"><span>01</span> REFLECTION DESIGN STUDIO</p><h1>ออกแบบหน้า <em>Reflection</em></h1><p>เลือกหน้าตัวอย่างแล้วปรับเป็นงานของคุณ พร้อมส่งออก HTML สำหรับ CMS</p><div class="gallery-start-actions"><button id="blankStart" class="blank-start-button" type="button"><span>＋</span> เริ่มจากหน้าว่าง</button><button id="resumeDraft" class="resume-draft" type="button" hidden>เปิดงานที่บันทึกไว้ <span>↗</span></button></div></div>
-          <div class="gallery-book-art" aria-hidden="true"><div class="book-orbit"></div><div class="book-back-page"><span>02</span><i></i><i></i><i></i><i></i></div><div class="book-cover"><div class="book-cover-top"><b>REFLECTION</b><span>✳</span></div><div class="book-cover-art"><i></i><b></b></div><strong>ทุกเรื่องราว<br>มีความหมาย</strong><small>CREATE YOUR STORY</small></div><div class="book-sticker">MAKE IT<br><b>YOURS</b></div></div>
+          <div class="gallery-welcome-copy">
+            <h1>ออกแบบหน้า <em>Reflection</em></h1>
+            <p>จัดวางข้อความและรูปภาพ แล้วส่งออก HTML ไปใช้ใน CMS</p>
+            <div class="gallery-start-actions">
+              <a class="blank-start-button" href="#templates">ดูเทมเพลต <span aria-hidden="true">↓</span></a>
+              <button id="blankStart" class="resume-draft" type="button"><span aria-hidden="true">＋</span> เริ่มจากหน้าว่าง</button>
+              <button id="resumeDraft" class="resume-draft gallery-draft-link" type="button" hidden>เปิดงานที่บันทึกไว้ <span aria-hidden="true">↗</span></button>
+            </div>
+          </div>
+          <div class="gallery-book-art" aria-hidden="true"><div class="book-orbit"></div><div class="book-back-page"><span>02</span><i></i><i></i><i></i><i></i></div><div class="book-cover"><div class="book-cover-top"><b>REFLECTION</b><span>✳</span></div><div class="book-cover-art"><i></i><b></b></div><strong>ทุกเรื่องราว<br>มีความหมาย</strong></div><div class="book-sticker">MAKE IT<br><b>YOURS</b></div></div>
         </div>
 
-        <section id="templates" class="template-section">
+        <section id="templates" class="template-section" aria-labelledby="templatesTitle" tabindex="-1">
           <div class="section-heading">
-            <div><p class="eyebrow"><span>02</span> REFLECTION REFERENCES</p><h2>เลือกแบบจาก <span>ภาพตัวอย่าง</span></h2><p>กดภาพเพื่อดูหน้าเต็ม แล้วเลือกแบบไปปรับแต่งต่อได้ทันที</p></div>
-            <div class="template-count"><b id="templateCount">08</b><span>แบบตัวอย่าง</span></div>
+            <div><h2 id="templatesTitle">เทมเพลต</h2><p>กดภาพเพื่อดูโครงหน้าเต็มก่อนเลือกใช้</p></div>
+            <p class="template-count"><b id="templateCount"></b> แบบ</p>
           </div>
           <div id="templateGrid" class="template-grid"></div>
           <nav id="templatePagination" class="template-pagination" aria-label="หน้าของตัวอย่างเทมเพลต" hidden><button id="templatePrev" type="button">← ก่อนหน้า</button><span id="templatePageLabel"></span><button id="templateNext" type="button">หน้าถัดไป →</button></nav>
