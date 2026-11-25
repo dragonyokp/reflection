@@ -748,14 +748,22 @@ body{font-size:18px}
     #151c17;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .gallery-view .gallery-book-art {
-    animation: gallery-book-reveal 850ms cubic-bezier(.25,.65,.35,1) both;
+  .gallery-book-art .book-cover {
+    transform-origin: 16% 88%;
+    animation: gallery-cover-sway 6s ease-in-out infinite;
+  }
+  .gallery-book-art .book-back-page {
+    transform-origin: 18% 88%;
+    animation: gallery-page-fan 6s ease-in-out infinite;
   }
 }
-@keyframes gallery-book-reveal {
-  from { opacity: .8; translate: 0 4px; rotate: -.7deg; }
-  55% { opacity: 1; translate: 0 -3px; rotate: .4deg; }
-  to { opacity: 1; translate: 0 0; rotate: 0deg; }
+@keyframes gallery-cover-sway {
+  0%, 100% { transform: translate(0, 0) rotate(-7deg); }
+  50% { transform: translate(-4px, -5px) rotate(-10deg); }
+}
+@keyframes gallery-page-fan {
+  0%, 100% { transform: translate(0, 0) rotate(8deg); }
+  50% { transform: translate(3px, -4px) rotate(10.5deg); }
 }
 .gallery-view .section-heading { gap: 12px; align-items: center; margin-bottom: 18px; }
 .gallery-view .section-heading h2 { font-size: 28px; }
