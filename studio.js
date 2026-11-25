@@ -248,9 +248,8 @@
       return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${isSelected?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${marked}${imageControl}${isSelected?renderResizeHandles({id:selectedId}):''}</span>`;
     });
     const editable=clean.replace(/<(h[1-6]|p|blockquote|li|figcaption)(\b[^>]*)>/gi,'<$1$2 contenteditable="true" data-source-edit="true" spellcheck="false">').replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
-    return (visualTemplate?templatePageHeading(): '')+editable;
+    return editable;
   }
-  function templatePageHeading(){return '<header class="source-template-article-heading" data-template-preview-only="true"><span>BCP REFLECTION · Lorem ipsum</span><h1>Lorem ipsum dolor sit amet</h1><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p></header>';}
   function sourceHtmlFromPreview(root) {
     const copy=root.cloneNode(true);
     const current=elements.find(item=>item.id===root.closest('[data-id]')?.dataset.id);
