@@ -166,6 +166,14 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .source-page-block.selected{outline:2px solid #82c83a;outline-offset:0}
 .source-page-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid #e4e8e0;background:#f7f9f4;color:#52604f;font-size:15px}
 .source-page-toolbar b{font-size:18px}.source-page-toolbar span{color:#788575;font-size:18px}
+.source-page-render [data-source-edit] { cursor: text; min-height: 1em; }
+.source-page-render [data-source-edit]:hover { outline: 1px dashed #97b87e; outline-offset: 3px; }
+.source-page-render [data-source-edit]:focus,
+.source-page-render [data-source-text-selected] { outline: 2px solid #729849; outline-offset: 3px; }
+.source-page-render .source-text-drop-before { box-shadow: 0 -4px #76a34e; }
+.source-page-render .source-text-drop-after { box-shadow: 0 4px #76a34e; }
+.source-text-actions { display: grid; gap: 8px; }
+.source-text-actions .delete-element:disabled { opacity: .45; cursor: default; }
 .source-page-render{box-sizing:border-box;width:1000px;max-width:none;min-height:600px;margin-left:-96px;padding:0;background:#fff;color:#292f2a;font:18px/1.75 "IBM Plex Sans Thai",Arial,sans-serif;overflow:hidden}
 .source-page-render *{box-sizing:border-box}
 .source-page-render :is(p,li,blockquote,figcaption){font-size:18px;line-height:1.8}
