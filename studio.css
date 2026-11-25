@@ -175,6 +175,7 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .source-text-actions { display: grid; gap: 8px; }
 .source-text-actions .delete-element:disabled { opacity: .45; cursor: default; }
 .canvas-block [contenteditable="true"][data-part] {
+  pointer-events: auto;
   cursor: text;
   white-space: pre-wrap;
   min-height: 1em;
