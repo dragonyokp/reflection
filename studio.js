@@ -17,7 +17,8 @@
   const ARTBOARD_WIDTH = 1000;
   const ARTBOARD_PADDING = 96;
   const CONTENT_WIDTH = ARTBOARD_WIDTH - ARTBOARD_PADDING * 2;
-  let activeTemplateCategory = 'ทั้งหมด';
+  const TEMPLATES_PER_PAGE = 10;
+  let templatePage = 1;
 
   const starterTemplates = [
     { id:'saf-journey', title:'From Biodiesel to SAF', category:'พลังงาน', tag:'LONGFORM / ENERGY', layout:'energy', date:'10 JUL 2026', source:'From Biodiesel to SAF', description:'บทความยาวแบบเส้นทางพลังงาน: เกริ่นเรื่อง ภาพเปิด ลำดับเหตุการณ์ ประเด็นสำคัญ และบทสรุป', blocks:[
@@ -320,23 +321,26 @@
   }
   function renderGallery() {
     refreshResumeButton();
-    const query = $('#templateSearch').value.trim().toLocaleLowerCase('th');
-    const filterRoot=$('#templateFilters');
-    const categories=['ทั้งหมด',...new Set(templates.map(template=>template.category).filter(Boolean))];
-    const categoryLabels={ทั้งหมด:'ทั้งหมด',Article:'บทความ',Feature:'บทความพิเศษ',Interview:'สัมภาษณ์',Quote:'คำพูด','Photo story':'เรื่องเล่าภาพ',Audio:'เสียง',Energy:'พลังงาน',Community:'สังคม'};
-    if(filterRoot) filterRoot.innerHTML=categories.map(category=>`<button class="filter-chip${activeTemplateCategory===category?' active':''}" data-template-category="${escapeHtml(category)}" type="button">${escapeHtml(categoryLabels[category]||category)}</button>`).join('');
-    const filtered = templates.filter(template => (activeTemplateCategory==='ทั้งหมด'||template.category===activeTemplateCategory) && (!query || `${template.title} ${template.description} ${template.category || ''} ${template.referenceTitle || ''}`.toLocaleLowerCase('th').includes(query)));
-    $('#templateCount').textContent = String(filtered.length).padStart(2,'0');
-    templateGrid.innerHTML = filtered.length ? filtered.map(template => `<article class="template-card" data-template="${escapeHtml(template.id)}"><button class="template-card-preview" type="button" data-preview-template="${escapeHtml(template.id)}" aria-label="ดูตัวอย่าง ${escapeHtml(template.title)}">${renderThumb(template)}<span class="preview-hover-label">ดูหน้าเต็ม <b>↗</b></span></button><div class="template-card-info"><span class="template-category">${escapeHtml(categoryLabels[template.category]||template.category||'Reflection')}</span><h3>${escapeHtml(template.title.replace(/^\d+\s*·\s*/,''))}</h3><p class="template-patterns">${escapeHtml(template.description||`${template.imageCount||0} รูป · ${template.audioCount||0} ไฟล์เสียง`)}</p><span class="template-source-caption">อ้างอิง: ${escapeHtml(template.referenceTitle||'รูปแบบ Reflection')}</span><button class="card-use" type="button" data-preview-template="${escapeHtml(template.id)}">ดูตัวอย่างและเลือกใช้ <b>→</b></button></div></article>`).join('') : '<div class="no-results">ไม่พบเทมเพลตที่ตรงกับคำค้น</div>';
+    const pageCount = Math.max(1,Math.ceil(templates.length/TEMPLATES_PER_PAGE));
+    templatePage = Math.min(Math.max(1,templatePage),pageCount);
+    const start = (templatePage-1)*TEMPLATES_PER_PAGE;
+    const visibleTemplates = templates.slice(start,start+TEMPLATES_PER_PAGE);
+    $('#templateCount').textContent = String(templates.length).padStart(2,'0');
+    templateGrid.innerHTML = visibleTemplates.map((template,index) => `<article class="template-card" data-template="${escapeHtml(template.id)}"><button class="template-card-preview" type="button" data-preview-template="${escapeHtml(template.id)}" aria-label="เปิดภาพตัวอย่างแบบที่ ${start+index+1}">${renderThumb(template)}<span class="preview-hover-label">ดูตัวอย่าง <b>↗</b></span></button></article>`).join('');
+    const pagination=$('#templatePagination');
+    pagination.hidden=pageCount<=1;
+    $('#templatePageLabel').textContent=`หน้า ${templatePage} / ${pageCount}`;
+    $('#templatePrev').disabled=templatePage===1;
+    $('#templateNext').disabled=templatePage===pageCount;
     fitFullTemplatePreviews();
   }
 
   function openTemplatePreview(template) {
     if (!template || !templatePreviewDialog) return;
-    $('#templatePreviewTitle').textContent = template.title;
-    $('#templatePreviewDescription').textContent = template.description || '';
+    $('#templatePreviewTitle').textContent = 'ตัวอย่างหน้า Reflection';
+    $('#templatePreviewDescription').textContent = 'ดูโครงหน้าและสัดส่วนก่อนเริ่มออกแบบ';
     const reference = $('#templateReferenceLink');
-    reference.textContent = template.referenceTitle || 'เปิดหน้าอ้างอิง';
+    reference.textContent = 'เปิดหน้าต้นแบบจริง ↗';
     reference.href = template.referenceUrl || 'https://www.bangchak.co.th/en/newsroom/reflections';
     $('#useTemplate').dataset.templateId = template.id;
     const canvas = $('#templatePreviewCanvas');
@@ -359,7 +363,7 @@
   function useTemplate(template) {
     if(!template)return;
     if(templatePreviewDialog?.open)templatePreviewDialog.close();
-    enterEditor(template.title,template.markup?[{type:'sourcePage',title:template.title,markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
+    enterEditor(template.markup?'งาน Reflection ใหม่':template.title,template.markup?[{type:'sourcePage',title:'งาน Reflection ใหม่',markup:template.markup,sourceId:template.id,imageCount:template.imageCount,imageWidths:{},visualTemplate:Boolean(template.visualTemplate)}]:template.blocks);
   }
 
   function enterEditor(title, blocks) {
@@ -1494,13 +1498,8 @@
     }
   }
 
-  $('#templateSearch').addEventListener('input',renderGallery);
-  $('#templateFilters')?.addEventListener('click',event=>{
-    const button=event.target.closest('[data-template-category]');
-    if(!button)return;
-    activeTemplateCategory=button.dataset.templateCategory;
-    renderGallery();
-  });
+  $('#templatePrev').addEventListener('click',()=>{if(templatePage>1){templatePage--;renderGallery();$('#templates').scrollIntoView({behavior:'smooth',block:'start'});}});
+  $('#templateNext').addEventListener('click',()=>{const pageCount=Math.ceil(templates.length/TEMPLATES_PER_PAGE);if(templatePage<pageCount){templatePage++;renderGallery();$('#templates').scrollIntoView({behavior:'smooth',block:'start'});}});
   $('#studioModes').addEventListener('click',event => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
