@@ -716,6 +716,29 @@ body{font-size:18px}
 .gallery-view .gallery-start-actions a { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
 .gallery-view .gallery-start-actions :is(a,button) { min-height: 48px; font-size: 18px; }
 .gallery-view .gallery-draft-link:not([hidden]) { border-color: transparent; background: transparent; }
+.gallery-view .gallery-start-actions :is(a,button,span) {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+.gallery-view .gallery-start-actions .blank-start-button:is(:hover,:focus-visible) {
+  background-color: #b9e878;
+  border-color: #b9e878;
+}
+.gallery-view .gallery-start-actions .blank-start-button:is(:hover,:focus-visible) span { color: #31581e; }
+.gallery-view #blankStart:is(:hover,:focus-visible) {
+  background-color: #364832;
+  border-color: #a6d768;
+  color: #f3f9ed;
+}
+.gallery-view #blankStart:is(:hover,:focus-visible) span { color: #b9e878; }
+.gallery-view .gallery-start-actions .gallery-draft-link:is(:hover,:focus-visible):not([hidden]) {
+  color: #ffca9d;
+  background-color: #ec93421a;
+}
+.gallery-view .gallery-draft-link:is(:hover,:focus-visible) span { color: #ffd8b5; }
+.gallery-view .gallery-start-actions :is(a,button):focus-visible {
+  outline: 2px solid #b9e878;
+  outline-offset: 3px;
+}
 
 .gallery-view .template-section {
   padding: 32px var(--gallery-gutter) 54px;
@@ -726,12 +749,13 @@ body{font-size:18px}
 }
 @media (prefers-reduced-motion: no-preference) {
   .gallery-view .gallery-book-art {
-    animation: gallery-book-reveal 480ms cubic-bezier(.2,.75,.3,1) both;
+    animation: gallery-book-reveal 850ms cubic-bezier(.25,.65,.35,1) both;
   }
 }
 @keyframes gallery-book-reveal {
-  from { opacity: .55; translate: 0 8px; }
-  to { opacity: 1; translate: 0 0; }
+  from { opacity: .8; translate: 0 4px; rotate: -.7deg; }
+  55% { opacity: 1; translate: 0 -3px; rotate: .4deg; }
+  to { opacity: 1; translate: 0 0; rotate: 0deg; }
 }
 .gallery-view .section-heading { gap: 12px; align-items: center; margin-bottom: 18px; }
 .gallery-view .section-heading h2 { font-size: 28px; }
