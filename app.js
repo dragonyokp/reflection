@@ -370,10 +370,23 @@ function makePreview(type, item = {}) {
     preview.append(makeAdditionalPreview(type, item));
     return preview;
   }
-  if (type === 'subtitle') {
-    const inner = document.createElement('div'); inner.className = 'preview-narrow';
-    const title = document.createElement('h3'); title.textContent = 'Lorem....';
-    inner.append(title); preview.append(inner);
+  if (type === 'subtitle' || type === 'subtitleAudio' || type === 'audio') {
+    const inner = document.createElement('div');
+    inner.className = 'preview-narrow';
+    if (type !== 'audio') {
+      const title = document.createElement('h2');
+      title.className = 'news__subtitle';
+      title.textContent = 'Lorem....';
+      inner.append(title);
+    }
+    if (type !== 'subtitle') {
+      const player = document.createElement('audio');
+      player.controls = true;
+      player.preload = 'metadata';
+      if (item.audioSrc) player.src = item.audioSrc;
+      inner.append(player);
+    }
+    preview.append(inner);
   } else if (type === 'highlightImage') {
     const inner = document.createElement('div'); inner.className = 'highlight-preview-layout';
     const image = imagePlaceholder('highlight.webp · เติม path จริงใน HTML');
@@ -383,31 +396,27 @@ function makePreview(type, item = {}) {
     const frame = document.createElement('div'); frame.className = `green-highlight-preview ${type === 'highlightGreenEmpty' ? 'is-empty' : ''}`;
     const image = imagePlaceholder('highlight.webp · รูปอยู่บนพื้นหลังเขียว');
     image.classList.add('green-highlight-preview-image');
-    frame.append(image);
+    const media = document.createElement('div');
+    media.className = 'green-highlight-preview-media';
+    const wide = document.createElement('div');
+    wide.className = 'highlight-preview-layout';
+    wide.append(image);
+    media.append(wide);
+    frame.append(media);
     if (type === 'highlightGreenText') {
       const copy = document.createElement('div'); copy.className = 'green-highlight-preview-copy';
       const lorem = previewText(loremHighlight, 'preview-lorem text-white');
       copy.append(lorem); frame.append(copy);
     }
     preview.append(frame);
-  } else if (type === 'audio' || type === 'video') {
-    const player = document.createElement('div'); player.className = `mock-player ${type === 'video' ? 'mock-video' : ''}`;
-    if (type === 'video') player.append(imagePlaceholder('พื้นที่วิดีโอ'));
+  } else if (type === 'video') {
+    const player = document.createElement('div'); player.className = 'mock-player mock-video';
+    player.append(imagePlaceholder('พื้นที่วิดีโอ'));
     const controls = document.createElement('div'); controls.className = 'mock-controls';
     const play = document.createElement('span'); play.className = 'mock-play'; play.textContent = '▶';
     const track = document.createElement('span'); track.className = 'mock-track';
     const duration = document.createElement('small'); duration.textContent = '0:00 / 0:00';
     controls.append(play, track, duration); player.append(controls); preview.append(player);
-  } else if (type === 'subtitleAudio') {
-    const inner = document.createElement('div'); inner.className = 'preview-narrow preview-combined';
-    const title = document.createElement('h3'); title.textContent = 'Lorem....';
-    const player = document.createElement('div'); player.className = 'mock-player';
-    const controls = document.createElement('div'); controls.className = 'mock-controls';
-    const play = document.createElement('span'); play.className = 'mock-play'; play.textContent = '▶';
-    const track = document.createElement('span'); track.className = 'mock-track';
-    const duration = document.createElement('small'); duration.textContent = '0:00 / 0:00';
-    controls.append(play, track, duration); player.append(controls);
-    inner.append(title, player); preview.append(inner);
   } else if (type === 'contentHeading') {
     const inner = document.createElement('div'); inner.className = 'preview-narrow';
     const heading = document.createElement('h4'); heading.textContent = 'Lorem....';

@@ -344,6 +344,14 @@
       if (!view.clientWidth) return;
       const scale=Math.min(view.clientWidth/1000,1);
       page.style.transform=`scale(${scale})`;
+      const split = page.querySelector('.bg-split-news-left,.bg-split-news-right')?.parentElement;
+      if (!split) return;
+      const bounds = view.getBoundingClientRect();
+      const panel = split.getBoundingClientRect();
+      if (panel.top >= bounds.bottom) {
+        const offset = Math.min(panel.top-bounds.top,panel.bottom-bounds.bottom+12);
+        page.style.transform = `translateY(-${offset}px) scale(${scale})`;
+      }
     });
   }
   function renderGallery() {
@@ -435,7 +443,7 @@
     const background = safeColor(element.background || '#f5f5f1');
     const padding = Math.max(0,Math.min(96,Number(element.padding)||0));
     if (element.type === 'sourcePage') return `<div class="canvas-block source-page-block${selected}" data-id="${element.id}"${draggable}><div class="source-page-toolbar"><b>หน้าออกแบบต้นแบบ</b><span>คลิกข้อความเพื่อแก้ไข · คลิกรูปเพื่อใส่ไฟล์</span></div><div class="source-page-render" data-source-render>${sourcePreviewMarkup(element.markup,Boolean(element.visualTemplate),true)}</div></div>`;
-    if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h2 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h2></div>`;
+    if (element.type === 'heading') return `<div class="canvas-block heading-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><h4 style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</h4></div>`;
     if (element.type === 'text') return `<div class="canvas-block text-block${selected}" data-id="${element.id}" style="background:${background};padding-block:${padding}px"${draggable}><p style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</p></div>`;
     if (element.type === 'quote') return `<div class="canvas-block quote-block${selected}" data-id="${element.id}" style="background:${background};padding:${Math.max(14,padding)}px"${draggable}><blockquote style="${textStyle(element)}" contenteditable="true" data-part="text" spellcheck="false">${textHtml(element.text)}</blockquote></div>`;
     if (element.type === 'legacy') return `<div class="canvas-block legacy-pattern-block${selected}" data-id="${element.id}" data-legacy-type="${escapeHtml(element.legacyType)}"${draggable}><div class="legacy-pattern-heading">${escapeHtml(legacyElementName(element))}<span>${escapeHtml(legacyElementNote(element))}</span></div><div class="legacy-pattern-slot"></div></div>`;
@@ -447,7 +455,7 @@
     }
     if (element.type === 'split') return `<div class="canvas-block split-block${selected}" data-id="${element.id}" style="background:${background}"${draggable}>${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
     const image = `<figure class="text-center"><img class="img-fluid" src="#" alt="${escapeHtml(element.alt || '')}"></figure>`;
-    if (element.type === 'heading') return `<h2>${text}</h2>`;
+    if (element.type === 'heading') return `<h4>${text}</h4>`;
     if (element.type === 'text') return `<p>${text}</p>`;
     if (element.type === 'quote') return `<blockquote><p>${text}</p></blockquote>`;
     if (element.type === 'image') return image + (element.imageStyle === 'greenText' && element.caption ? `
@@ -478,7 +486,7 @@
     const part = (selector, key, label) => bind($(selector,preview),key,label);
     const type = element.legacyType;
     if (['subtitle','subtitleAudio','contentHeading'].includes(type)) {
-      part('.preview-narrow h3,.preview-narrow h4','text','หัวข้อ');
+      part('.preview-narrow h2,.preview-narrow h4','text','หัวข้อ');
     } else if (type === 'contentText') {
       part('.preview-lorem','text','ข้อความ');
     } else if (type === 'contentBlockquote') {
@@ -561,10 +569,12 @@
           placeholder.setAttribute('tabindex','0');
           placeholder.setAttribute('aria-label',`เพิ่มหรือเปลี่ยนรูปสำหรับ ${legacyElementName(element)}`);
           if (index===0) {
-            placeholder.style.width = `${Math.max(10,Math.min(100,Number(element.width)||legacyDefaultWidth(element.legacyType)))}%`;
+            const defaultWidth = legacyDefaultWidth(element.legacyType);
+            const width = Number(element.width) || defaultWidth;
+            if (width !== defaultWidth) placeholder.style.width = `${Math.max(10,Math.min(100,width/defaultWidth*100))}%`;
             placeholder.style.maxWidth = '100%';
             if (element.aspectRatio) {
-              placeholder.style.aspectRatio = String(element.aspectRatio);
+              placeholder.style.aspectRatio = String(1/element.aspectRatio);
               placeholder.style.minHeight = '0';
             }
           }
@@ -882,7 +892,10 @@
     if (el.type === 'image') {
       block?.style.setProperty('--image-width',`${width}%`);
       if (imageBox) imageBox.style.width = `${width}%`;
-    } else if (imageBox) imageBox.style.width = `${width}%`;
+    } else if (imageBox) {
+      const baseline = el.type === 'legacy' ? legacyDefaultWidth(el.legacyType) : 100;
+      imageBox.style.width = `${Math.max(10,Math.min(100,width/baseline*100))}%`;
+    }
     const slider = $('[data-prop="width"]',inspector);
     if (slider) slider.value = String(Math.round(width));
     const sourceSlider=$('[data-prop="sourceImageWidth"]',inspector);
@@ -1226,7 +1239,7 @@
     const heading = textHtml(element.title || '');
     const text = textHtml(element.text || '');
     const image = `<figure class="text-center"><img class="img-fluid" src="#" alt="${escapeHtml(element.alt || '')}"></figure>`;
-    if (element.type === 'heading') return `<h2>${text}</h2>`;
+    if (element.type === 'heading') return `<h4>${text}</h4>`;
     if (element.type === 'text') return `<p>${text}</p>`;
     if (element.type === 'quote') return `<blockquote><p>${text}</p></blockquote>`;
     if (element.type === 'image') return image + (element.imageStyle === 'greenText' && element.caption ? `
@@ -1865,7 +1878,7 @@
     const emptyAction=event.target.closest('[data-empty-add]');
     if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
     if (event.target.closest('.button-block a')) event.preventDefault();
-    if (event.target.closest('[contenteditable="true"]')) return;
+    if (event.target.closest('[contenteditable="true"],audio,video')) return;
     const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
     const sourceImage=sourceFrame?.querySelector('[data-source-image]');
     if(sourceImage) {
