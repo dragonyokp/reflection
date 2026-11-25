@@ -55,6 +55,10 @@
   let draggedType = null;
   let sourceImageSelection = null;
   let sourceTextSelection = null;
+  let activeTextField = null;
+  const boardTextTools = $('#boardTextTools');
+  const boardSettings = $('#boardSettings');
+  const textAlignClasses = ['text-left','text-center','text-right'];
   let resizeState = null;
   let inspectorBaseline = null;
   let toastTimer = 0;
@@ -412,6 +416,7 @@
   }
 
   function enterEditor(title, blocks) {
+    activeTextField = null;
     sourceTextSelection = null;
     sourceImageSelection = null;
     elements = blocks.map(block => makeElement(block.type, block));
@@ -558,6 +563,31 @@
         slot.append(preview);
       }
     }
+    for (const block of artboard.children) {
+      if (!block.classList.contains('canvas-block')) continue;
+      const element = elements.find(item => item.id === block.dataset.id);
+      if (!element) continue;
+      $$('[contenteditable="true"][data-part]',block).forEach(node => {
+        const format = element.textFormats?.[boardTextKey(node)];
+        if (!format) return;
+        if (format.bold) node.style.fontWeight = '700';
+        if (format.italic) node.style.fontStyle = 'italic';
+        if (format.align) {
+          const alignBox = node.closest('.button-block') || node;
+          alignBox.style.textAlign = format.align;
+          if (alignBox === node && ['STRONG','SPAN'].includes(node.tagName)) node.style.display = 'block';
+        }
+      });
+      const name = element.type === 'legacy' ? legacyElementName(element) : titleFor(element.type);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'canvas-remove-block';
+      remove.dataset.canvasRemove = element.id;
+      remove.title = `ลบ ${name}`;
+      remove.setAttribute('aria-label',remove.title);
+      remove.textContent = '×';
+      block.append(remove);
+    }
     artboard.style.width = `${ARTBOARD_WIDTH}px`;
     artboard.style.minHeight = '1400px';
     artboard.style.transform = `scale(${zoom})`;
@@ -566,6 +596,7 @@
     const viewportStyle=getComputedStyle(viewport);
     const available=viewport.clientWidth-parseFloat(viewportStyle.paddingLeft||0)-parseFloat(viewportStyle.paddingRight||0);
     viewport.classList.toggle('canvas-fit',ARTBOARD_WIDTH*zoom<=available+1);
+    updateBoardTextTools();
   }
 
   function renderLayers() {
@@ -679,6 +710,15 @@
     scheduleSave();
   }
 
+  function removeBoardElement(id) {
+    const element = elements.find(item => item.id === id);
+    if (!element) return;
+    if (sourceTextSelection?.elementId === id) sourceTextSelection = null;
+    if (sourceImageSelection?.elementId === id) sourceImageSelection = null;
+    setElements(elements.filter(item => item.id !== id),selectedId === id ? null : selectedId);
+    showToast('ลบองค์ประกอบแล้ว');
+  }
+
   function insertBlock(type,index,overrides = {}) {
     const next = clone(elements);
     const item = makeElement(type,overrides);
@@ -713,6 +753,8 @@
 
   function selectElement(id) {
     if (!elements.some(element => element.id === id)) return;
+    activeTextField = null;
+    updateBoardTextTools();
     if (selectedId === id) {
       renderLayers();
       renderInspector();
@@ -868,9 +910,86 @@
     node.focus();
     const range = document.createRange();
     range.selectNodeContents(node);
+    range.collapse(false);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
+  }
+
+  function boardTextKey(node) {
+    return node.dataset.boardSpeaker === undefined ? node.dataset.part : `speaker:${node.dataset.boardSpeaker}:${node.dataset.part}`;
+  }
+
+  function currentBoardText() {
+    if (!activeTextField || activeTextField.elementId !== selectedId) return null;
+    const block = $(`.canvas-block[data-id="${selectedId}"]`,artboard);
+    if (!block) return null;
+    if (activeTextField.sourceIndex !== undefined) {
+      return $(`[data-source-edit="${activeTextField.sourceIndex}"]`,block);
+    }
+    return $$('[contenteditable="true"][data-part]',block).find(node => boardTextKey(node) === activeTextField.key);
+  }
+
+  function wholeTextMark(node,tag) {
+    let current = node;
+    while (current.children.length === 1 && current.childNodes.length === 1) {
+      current = current.firstElementChild;
+      if (current.localName === tag) return current;
+      if (!['strong','em'].includes(current.localName)) break;
+    }
+    return null;
+  }
+
+  function updateBoardTextTools() {
+    const node = currentBoardText();
+    const item = elements.find(element => element.id === selectedId);
+    $('#openBoardSettings').disabled = !item;
+    const source = node?.hasAttribute('data-source-edit');
+    const format = source ? {
+      bold:Boolean(wholeTextMark(node,'strong')), italic:Boolean(wholeTextMark(node,'em')),
+      align:textAlignClasses.find(name => node.classList.contains(name))?.slice(5)
+    } : item?.textFormats?.[activeTextField?.key];
+    $$('[data-text-format]',boardTextTools).forEach(button => {
+      button.disabled = !node;
+      const key = button.dataset.textFormat;
+      const isPressed = key === 'bold' || key === 'italic' ? Boolean(format?.[key]) : (format?.align || 'left') === key;
+      button.setAttribute('aria-pressed',String(Boolean(node && isPressed)));
+    });
+  }
+
+  function applyBoardTextFormat(command) {
+    const node = currentBoardText();
+    if (!node) return;
+    const id = selectedId;
+    const isMark = command === 'bold' || command === 'italic';
+    const sourceRoot = node.closest('[data-source-render]');
+    if (document.activeElement === node) node.blur();
+    const next = clone(elements);
+    const element = next.find(item => item.id === id);
+    if (sourceRoot) {
+      if (isMark) {
+        const tag = command === 'bold' ? 'strong' : 'em';
+        const existing = wholeTextMark(node,tag);
+        if (existing) existing.replaceWith(...existing.childNodes);
+        else {
+          const wrapper = document.createElement(tag);
+          wrapper.append(...node.childNodes);
+          node.append(wrapper);
+        }
+      } else {
+        node.classList.remove(...textAlignClasses);
+        node.classList.add(`text-${command}`);
+      }
+      element.markup = sourceHtmlFromPreview(sourceRoot);
+    } else {
+      element.textFormats ||= {};
+      const key = boardTextKey(node);
+      const format = element.textFormats[key] ||= {};
+      if (isMark) format[command] = !format[command];
+      else format.align = command;
+    }
+    setElements(next,id);
+    focusNewText(currentBoardText());
   }
 
   const sourceTextTools = {
@@ -1113,6 +1232,14 @@
 
   function buildExport() {
     const contentParts=[];
+    const formattedFields = new Map();
+    const tokenPrefix = `REFLECTION_FORMAT_${Date.now().toString(36)}_`;
+    const mark = (value,format) => String(value ?? '').split('\n').map(line => {
+      if (!line) return '';
+      const token = `${tokenPrefix}${formattedFields.size}_END`;
+      formattedFields.set(token,{value:line,format});
+      return token;
+    }).join('\n');
     let legacyRun=[];
     const flushLegacy=()=>{
       if (!legacyRun.length) return;
@@ -1142,16 +1269,57 @@
         if(markup) contentParts.push(markup);
         continue;
       }
-      const item=elementToLegacyItem(element);
+      let exportElement = element;
+      if (element.textFormats) {
+        exportElement = clone(element);
+        for (const [key,format] of Object.entries(element.textFormats)) {
+          if (!format.align && !format.bold && !format.italic) continue;
+          const speaker = key.match(/^speaker:(\d+):(quote|name)$/);
+          if (speaker) {
+            const record = exportElement.speakers?.[speaker[1]];
+            if (record) record[speaker[2]] = mark(record[speaker[2]],format);
+          } else {
+            exportElement[key] = mark(exportElement[key],format);
+          }
+        }
+      }
+      const item=elementToLegacyItem(exportElement);
       if (item) legacyRun.push(item);
       else {
         flushLegacy();
-        const markup=elementToLegacyMarkup(element);
+        const markup=elementToLegacyMarkup(exportElement);
         if (markup) contentParts.push(markup);
       }
     }
     flushLegacy();
-    return contentParts.join('\n\n');
+    const markup = contentParts.join('\n\n');
+    if (!formattedFields.size) return markup;
+    const fragment = document.createElement('template');
+    fragment.innerHTML = markup;
+    const walker = document.createTreeWalker(fragment.content,NodeFilter.SHOW_TEXT);
+    const tokens = [];
+    while (walker.nextNode()) {
+      if (formattedFields.has(walker.currentNode.nodeValue)) tokens.push(walker.currentNode);
+    }
+    for (const token of tokens) {
+      const {value,format} = formattedFields.get(token.nodeValue);
+      if (format.align) {
+        const parent = token.parentElement.closest('p,h1,h2,h3,h4,h5,h6,blockquote,.font-italic');
+        if (parent) {
+          parent.classList.remove(...textAlignClasses);
+          parent.classList.add(`text-${format.align}`);
+        }
+      }
+      let replacement = document.createTextNode(value);
+      for (const [enabled,tag] of [[format.bold,'strong'],[format.italic,'em']]) {
+        if (!enabled) continue;
+        const wrapper = document.createElement(tag);
+        wrapper.append(replacement);
+        replacement = wrapper;
+      }
+      token.replaceWith(replacement);
+    }
+    return fragment.innerHTML;
   }
 
   async function exportDesignPng() {
@@ -1772,6 +1940,21 @@
   $('#saveBtn').addEventListener('click',saveDraft);
   $('#undoBtn').addEventListener('click',undo);
   $('#redoBtn').addEventListener('click',redo);
+  $('#openBoardSettings').addEventListener('click',() => {
+    renderInspector();
+    if (!boardSettings.open) boardSettings.showModal();
+  });
+  $('#closeBoardSettings').addEventListener('click',() => boardSettings.close());
+  boardSettings.addEventListener('click',event => {
+    if (event.target === boardSettings) boardSettings.close();
+  });
+  boardTextTools.addEventListener('mousedown',event => {
+    if (event.target.closest('[data-text-format]')) event.preventDefault();
+  });
+  boardTextTools.addEventListener('click',event => {
+    const button = event.target.closest('[data-text-format]');
+    if (button) applyBoardTextFormat(button.dataset.textFormat);
+  });
   $$('.insert-grid [data-add]').forEach(button => button.addEventListener('click',() => addBlock(button.dataset.add,imageInsertOptions(button.dataset.imageStyle))));
   $$('.insert-grid [data-add]').forEach(button => button.addEventListener('dragstart',event => {
     draggedType = `${button.dataset.add}${button.dataset.imageStyle?`|${button.dataset.imageStyle}`:''}`;
@@ -1784,6 +1967,11 @@
   $('#fitCanvas').addEventListener('click',fitCanvasToView);
 
   artboard.addEventListener('click',event => {
+    const remove = event.target.closest('[data-canvas-remove]');
+    if (remove) {
+      removeBoardElement(remove.dataset.canvasRemove);
+      return;
+    }
     const emptyAction=event.target.closest('[data-empty-add]');
     if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
     if (event.target.closest('.button-block a')) event.preventDefault();
@@ -1869,6 +2057,10 @@
     const sourceText = editable.matches('[data-source-edit]') ? editable : null;
     const selectionChanged = selectedId !== block.dataset.id;
     selectedId = block.dataset.id;
+    activeTextField = sourceText
+      ? {elementId:selectedId,sourceIndex:sourceText.dataset.sourceEdit}
+      : {elementId:selectedId,key:boardTextKey(editable)};
+    updateBoardTextTools();
     if (sourceText) {
       sourceTextSelection = {elementId:selectedId,index:Number(sourceText.dataset.sourceEdit)};
       sourceImageSelection = null;
@@ -1896,7 +2088,7 @@
     $('#redoBtn').disabled = !redoStack.length;
   });
   artboard.addEventListener('dragstart',event => {
-    if (event.target.closest('[data-resize-handle],[contenteditable="true"]')) {event.preventDefault();return}
+    if (event.target.closest('[data-resize-handle],[data-canvas-remove],[contenteditable="true"]')) {event.preventDefault();return}
     const block = event.target.closest('[data-id]');
     if (!block) return;
     draggedId = block.dataset.id;
@@ -2069,10 +2261,7 @@
     const align = event.target.closest('[data-align]');
     if (align) {inspectorBaseline=clone(elements);setProperty(selectedId,'align',align.dataset.align,false);commitInspectorEdit();return}
     const remove = event.target.closest('[data-delete]');
-    if (remove) {
-      setElements(elements.filter(element => element.id !== remove.dataset.delete),null);
-      showToast('ลบองค์ประกอบแล้ว');
-    }
+    if (remove) removeBoardElement(remove.dataset.delete);
   });
   imageFile.addEventListener('change',() => applyFile(imageFile.files?.[0]));
   $('#exportPng').addEventListener('click',exportDesignPng);
@@ -2104,7 +2293,7 @@
   });
 
   document.addEventListener('keydown',event => {
-    if (editorView.hidden || exportDialog.open) return;
+    if (editorView.hidden || exportDialog.open || boardSettings.open) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.target.closest('[contenteditable="true"]')) {event.preventDefault();event.shiftKey?redo():undo()}
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {event.preventDefault();saveDraft()}
     if ((event.key === 'Delete' || event.key === 'Backspace') && !event.target.closest('[contenteditable],textarea,input,select,button')) {

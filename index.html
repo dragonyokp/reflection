@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=2">
-  <link rel="stylesheet" href="studio.css?v=62">
+  <link rel="stylesheet" href="studio.css?v=64">
   <script src="article-templates.js?v=8" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=4" defer></script>
-  <script src="studio.js?v=47" defer></script>
+  <script src="studio.js?v=49" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -125,18 +125,26 @@
             </div>
           </aside>
           <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
-            <div class="canvas-controls"><span>หน้า Reflection / <b>เนื้อหาหลัก</b></span><div><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div></div>
+            <div class="canvas-controls">
+              <div id="boardTextTools" class="board-text-tools" role="group" aria-label="จัดรูปแบบข้อความ">
+                <button type="button" data-text-format="bold" aria-label="ตัวหนา" aria-pressed="false" title="ตัวหนา" disabled><strong>B</strong></button>
+                <button type="button" data-text-format="italic" aria-label="ตัวเอียง" aria-pressed="false" title="ตัวเอียง" disabled><em>I</em></button>
+                <button type="button" data-text-format="left" aria-label="ชิดซ้าย" aria-pressed="false" title="ชิดซ้าย" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
+                <button type="button" data-text-format="center" aria-label="กึ่งกลาง" aria-pressed="false" title="กึ่งกลาง" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
+                <button type="button" data-text-format="right" aria-label="ชิดขวา" aria-pressed="false" title="ชิดขวา" disabled><span class="alignment-icon" aria-hidden="true"></span></button>
+              </div>
+              <div><button id="openBoardSettings" type="button">ตั้งค่าองค์ประกอบ</button><button id="zoomOut" type="button" aria-label="ซูมออก">−</button><span id="zoomLabel">100%</span><button id="zoomIn" type="button" aria-label="ซูมเข้า">＋</button><button id="fitCanvas" type="button">พอดีจอ</button></div>
+            </div>
             <div id="canvasViewport" class="canvas-viewport"><article id="artboard" class="artboard" aria-label="แคนวาส Reflection"></article></div>
             <div class="canvas-bottom"><span><i></i> คลิกเพื่อแก้ข้อความ · ดับเบิลคลิกรูปเพื่อเปลี่ยน · ลากจุดมุมเพื่อปรับขนาด</span></div>
           </section>
-          <aside class="right-rail">
-            <div class="rail-head property-head"><p class="eyebrow">DESIGN DETAILS</p><h2>ปรับแต่ง</h2></div>
-            <div id="inspector" class="inspector"><div class="inspector-empty"><span>✳</span><b>เลือกองค์ประกอบ</b><p>คลิกข้อความหรือรูปบนแคนวาส เพื่อปรับแต่งรายละเอียด</p></div></div>
-            <div class="export-note"><span>HTML พร้อมใช้งาน</span><p>ออกแบบและจัดการเนื้อหาบนพื้นที่นี้ แล้วส่งออกจากเครื่องมือเดียวกันได้ทันที</p></div>
-          </aside>
         </div>
       </section>
     </main>
+    <dialog id="boardSettings" class="export-dialog board-settings" aria-labelledby="boardSettingsTitle">
+      <div class="dialog-head"><h2 id="boardSettingsTitle">ตั้งค่าองค์ประกอบ</h2><button id="closeBoardSettings" class="close-dialog" type="button" aria-label="ปิดการตั้งค่า">×</button></div>
+      <div id="inspector" class="inspector"></div>
+    </dialog>
     <dialog id="exportDialog" class="export-dialog"><div class="dialog-head"><div><p class="eyebrow">YOUR REFLECTION</p><h2>ส่งออก HTML</h2></div><button id="closeExport" class="close-dialog" type="button" aria-label="ปิด">×</button></div><p class="dialog-copy">คัดลอกโค้ดไปวางใน CMS ได้เลย รูปที่เพิ่มจากเครื่องจะแสดงเป็น data URI ในโค้ด</p><textarea id="exportCode" spellcheck="false" aria-label="โค้ด HTML ที่ส่งออก"></textarea><div class="dialog-actions"><button id="downloadHtml" class="dialog-secondary" type="button">ดาวน์โหลด .html</button><button id="copyHtml" class="editor-export" type="button">คัดลอกโค้ด <span>↗</span></button></div></dialog>
     <input id="imageFile" type="file" accept="image/*" hidden>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

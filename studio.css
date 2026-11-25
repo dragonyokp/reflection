@@ -174,6 +174,29 @@ body{font-size:18px}.studio-topbar{min-height:84px}.studio-modes{gap:8px}.studio
 .source-page-render .source-text-drop-after { box-shadow: 0 4px #76a34e; }
 .source-text-actions { display: grid; gap: 8px; }
 .source-text-actions .delete-element:disabled { opacity: .45; cursor: default; }
+.canvas-block > .canvas-remove-block {
+  position: absolute;
+  z-index: 10;
+  top: 2px;
+  right: -42px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #d8b9af;
+  border-radius: 7px;
+  background: #fff7f3;
+  color: #853e2e;
+  font: 700 23px/1 system-ui,sans-serif;
+  cursor: pointer;
+}
+.canvas-block > .canvas-remove-block:is(:hover,:focus-visible) {
+  border-color: #a4513f;
+  background: #a4513f;
+  color: white;
+}
+.canvas-block > .canvas-remove-block:focus-visible { outline: 2px solid #853e2e; outline-offset: 2px; }
 .canvas-block [contenteditable="true"][data-part] {
   pointer-events: auto;
   cursor: text;
@@ -1011,6 +1034,53 @@ body{font-size:18px}
   flex-direction: column;
   gap: 14px;
   padding: 14px;
+}
+
+.editor-view .workspace {
+  grid-template-columns: minmax(210px,270px) minmax(0,1fr);
+}
+.canvas-controls #boardTextTools { gap: 5px; }
+.canvas-controls #boardTextTools button {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 32px;
+  padding: 0 6px;
+}
+.canvas-controls #boardTextTools button[aria-pressed="true"] {
+  border-color: #91bf65;
+  color: #d8f5bd;
+  background: #354b2c;
+}
+.canvas-controls :is(#boardTextTools button,#openBoardSettings):disabled {
+  opacity: .4;
+  cursor: default;
+}
+.canvas-controls #openBoardSettings { min-height: 32px; padding: 0 10px; white-space: nowrap; }
+.alignment-icon { position: relative; display: block; width: 15px; height: 12px; border-block: 2px solid currentColor; }
+.alignment-icon::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 9px;
+  height: 2px;
+  background: currentColor;
+}
+[data-text-format="center"] .alignment-icon::after { left: 3px; }
+[data-text-format="right"] .alignment-icon::after { left: auto; right: 0; }
+.source-page-render .text-left { text-align: left; }
+.source-page-render .text-center { text-align: center; }
+.source-page-render .text-right { text-align: right; }
+.board-settings {
+  width: min(480px,calc(100vw - 30px));
+  max-height: calc(100dvh - 44px);
+}
+.board-settings .dialog-head { align-items: center; padding: 16px 22px; border-bottom: 1px solid #3f4c40; }
+.board-settings .inspector { padding: 0 22px 22px; }
+.board-settings .inspector textarea { width: 100%; height: auto; margin: 0; }
+@media (max-width: 760px) {
+  .editor-view .workspace { grid-template-columns: 1fr; }
 }
 .template-reference-panel .blank-start-button { gap: 8px; min-height: 48px; }
 
