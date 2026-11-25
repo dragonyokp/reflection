@@ -17,7 +17,8 @@
   const ARTBOARD_WIDTH = 1000;
   const ARTBOARD_PADDING = 96;
   const CONTENT_WIDTH = ARTBOARD_WIDTH - ARTBOARD_PADDING * 2;
-  const TEMPLATES_PER_PAGE = 10;
+  // Three rows on wide screens, four on tablets, and six on phones.
+  const TEMPLATES_PER_PAGE = 12;
   let templatePage = 1;
 
   const starterTemplates = [
@@ -271,13 +272,12 @@
   }
   function sourceThumbMarkup(markup) {
     return cleanSourceMarkup(markup,true)
-      .replace(/<audio\b[^>]*>[\s\S]*?<\/audio\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
-      .replace(/<audio\b[^>]*\/?\s*>/gi,'<div class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></div>')
+      .replace(/<audio\b[^>]*>[\s\S]*?<\/audio\s*>|<audio\b[^>]*\/?\s*>/gi,'<span class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></span>')
       .replace(/<img\b([^>]*)>/gi,(_,attrs)=>{
         const width=Number((attrs.match(/\bwidth="(\d+)"/i)||[])[1]||0);
         const fullWidth=/\bw-100\b/.test(attrs);
         const sizing=width&&!fullWidth?` style="width:${width}px;max-width:100%"`:'';
-        return `<div class="source-thumb-image shape-${escapeHtml((attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide')} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"${sizing}></div>`;
+        return `<span class="source-thumb-image shape-${escapeHtml((attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide')} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"${sizing}></span>`;
       });
   }
   function renderResizeHandles(element) {
@@ -344,7 +344,12 @@
       </article>`).join('');
     const pagination=$('#templatePagination');
     pagination.hidden=pageCount<=1;
-    $('#templatePageLabel').textContent=`หน้า ${templatePage} / ${pageCount}`;
+    $('#templatePageLabel').textContent=`แสดง ${start+1}–${start+visibleTemplates.length} จาก ${templates.length} แบบ`;
+    $('#templatePageNumbers').innerHTML = Array.from({length:pageCount},(_,index) => {
+      const page = index + 1;
+      const current = page === templatePage ? ' aria-current="page"' : '';
+      return `<button type="button" data-template-page="${page}" aria-label="หน้า ${page}"${current}>${page}</button>`;
+    }).join('');
     $('#templatePrev').disabled=templatePage===1;
     $('#templateNext').disabled=templatePage===pageCount;
     fitFullTemplatePreviews();
@@ -1513,8 +1518,21 @@
     }
   }
 
-  $('#templatePrev').addEventListener('click',()=>{if(templatePage>1){templatePage--;renderGallery();$('#templates').scrollIntoView({behavior:'smooth',block:'start'});}});
-  $('#templateNext').addEventListener('click',()=>{const pageCount=Math.ceil(templates.length/TEMPLATES_PER_PAGE);if(templatePage<pageCount){templatePage++;renderGallery();$('#templates').scrollIntoView({behavior:'smooth',block:'start'});}});
+  function goToTemplatePage(page) {
+    if (page === templatePage || page < 1 || page > Math.ceil(templates.length / TEMPLATES_PER_PAGE)) return;
+    templatePage = page;
+    renderGallery();
+    const section = $('#templates');
+    section.focus({preventScroll:true});
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    section.scrollIntoView({behavior:reduceMotion ? 'instant' : 'smooth',block:'start'});
+  }
+  $('#templatePrev').addEventListener('click', () => goToTemplatePage(templatePage - 1));
+  $('#templateNext').addEventListener('click', () => goToTemplatePage(templatePage + 1));
+  $('#templatePageNumbers').addEventListener('click', event => {
+    const button = event.target.closest('[data-template-page]');
+    if (button) goToTemplatePage(Number(button.dataset.templatePage));
+  });
   $('#studioModes').addEventListener('click',event => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
