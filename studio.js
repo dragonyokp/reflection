@@ -54,6 +54,7 @@
   let redoStack = [];
   let draggedId = null;
   let draggedType = null;
+  let draggedNested = null;
   let sourceImageSelection = null;
   let sourceTextSelection = null;
   let activeTextField = null;
@@ -347,20 +348,37 @@
       node.setAttribute('contenteditable','true');
       node.setAttribute('spellcheck','false');
     });
+    $$('[data-studio-nest]',fragment.content).forEach(node => {
+      const bar = document.createElement('div');
+      bar.className = 'nested-tool-bar';
+      bar.draggable = true;
+      bar.setAttribute('data-template-preview-only','');
+      const title = document.createElement('b');
+      title.textContent = node.dataset.studioName || 'องค์ประกอบ';
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.dataset.removeNested = node.dataset.studioNest;
+      remove.setAttribute('aria-label',`ลบ ${title.textContent}`);
+      remove.textContent = '×';
+      bar.append(title,remove);
+      node.prepend(bar);
+    });
     return fragment.innerHTML;
   }
-  function sourceHtmlFromPreview(root) {
+  function sourceHtmlFromPreview(root, keepHints) {
     const copy=root.cloneNode(true);
     const current=elements.find(item=>item.id===root.closest('[data-id]')?.dataset.id);
     copy.querySelectorAll('[data-template-preview-only]').forEach(node=>node.remove());
     copy.querySelectorAll('[data-source-text-selected]').forEach(node=>node.removeAttribute('data-source-text-selected'));
+    copy.querySelectorAll('[data-nested-drop]').forEach(node=>node.removeAttribute('data-nested-drop'));
+    copy.classList.remove('nested-drop-root');
     copy.querySelectorAll('[data-source-edit]').forEach(node=>node.removeAttribute('spellcheck'));
     copy.querySelectorAll('.source-image-frame').forEach(frame => {
       const image = frame.querySelector('img');
       if (image) frame.replaceWith(image);
       else frame.remove();
     });
-    return cleanSourceMarkup(copy.innerHTML,Boolean(current?.visualTemplate)).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
+    return cleanSourceMarkup(copy.innerHTML,keepHints ?? Boolean(current?.visualTemplate)).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
   }
   function sourceThumbMarkup(markup) {
     return cleanSourceMarkup(markup,true)
@@ -909,10 +927,12 @@
         </div>
       </div>`;
       fields += `<div class="inspector-group"><details class="source-code-details"><summary>ดูหรือแก้ HTML ต้นฉบับ</summary><textarea class="source-html-input" data-prop="markup" spellcheck="false">${escapeHtml(element.markup||'')}</textarea></details></div>`;
-      const audio = element.markup.match(/<audio\b[^>]*>/i);
-      if (audio) {
-        const src = audio[0].match(/\bsrc="([^"]*)"/i)?.[1] || '';
-        fields += `<div class="inspector-group"><h3>เสียง</h3>${field('ที่อยู่ไฟล์เสียง',`<input type="text" data-prop="templateAudioSrc" value="${escapeHtml(src)}" placeholder="/storage/newsroom/.../Reflection.mp4">`)}</div>`;
+      const audioTags = element.markup.match(/<audio\b[^>]*>/gi) || [];
+      if (audioTags.length) {
+        fields += '<div class="inspector-group"><h3>เสียง</h3>' + audioTags.map((tag,index) => {
+          const src = tag.match(/\bsrc=(["'])(.*?)\1/i)?.[2] || '';
+          return field(`ที่อยู่ไฟล์เสียง ${index+1}`,`<input type="text" data-prop="templateAudioSrc" data-audio-index="${index}" value="${escapeHtml(src)}" placeholder="/storage/newsroom/.../Reflection.mp4">`);
+        }).join('') + '</div>';
       }
       if (sourceImageSelection?.elementId===element.id) {
         const index=sourceImageSelection.index;
@@ -1007,15 +1027,18 @@
     setElements(next,item.id);
   }
 
-  function addLegacyBlock(legacyType,index) {
-    if (!legacyBlockMap.has(legacyType)) return;
-    const defaults = {
+  function legacyBlockDefaults(legacyType) {
+    return {
       legacyType,
       text:['subtitle','subtitleAudio'].includes(legacyType)?'Lorem....':'',
       variant:legacyType==='contentMedia'?'1':legacyType==='contentSpeakers'?'2':'left',
       audioSrc:'',src:'',alt:'',width:legacyDefaultWidth(legacyType),title:'หัวข้อเรื่องราว',text2:'เพิ่มรายละเอียดของเรื่องราวในย่อหน้าที่สอง',caption:legacyType.startsWith('highlight')?'เขียนข้อความประกอบรูปภาพที่นี่':'คำบรรยายรูปภาพที่หนึ่ง\nคำบรรยายรูปภาพที่สอง',label:'อ่านข้อมูลเพิ่มเติม',quote:'เพิ่มคำพูดสำคัญที่ต้องการเน้น',author:'ชื่อผู้พูด',media1Title:'หัวข้อประกอบไอคอน',media1Text:'เพิ่มข้อความอธิบายรายละเอียด',media2Title:'อีกหนึ่งประเด็นสำคัญ',media2Text:'เพิ่มข้อความอธิบายรายละเอียด',text:legacyType==='subtitle'||legacyType==='subtitleAudio'?'หัวข้อเรื่องราวของคุณ':legacyType==='contentText'?'เขียนรายละเอียดเรื่องราวของคุณที่นี่':legacyType==='contentBlockquote'?'เพิ่มข้อความอ้างอิงที่ต้องการเน้น':legacyType==='contentModal'?'เพิ่มรายละเอียดเพิ่มเติมสำหรับหน้าต่าง Popup':'ข้อความประกอบเรื่องราวของคุณ',speakers:[{quote:'เพิ่มคำพูดของผู้พูดคนที่หนึ่ง',name:'ชื่อผู้พูดคนที่หนึ่ง'},{quote:'เพิ่มคำพูดของผู้พูดคนที่สอง',name:'ชื่อผู้พูดคนที่สอง'},{quote:'เพิ่มคำพูดของผู้พูดคนที่สาม',name:'ชื่อผู้พูดคนที่สาม'}]
     };
-    insertBlock('legacy',index,defaults);
+  }
+
+  function addLegacyBlock(legacyType,index) {
+    if (!legacyBlockMap.has(legacyType)) return;
+    insertBlock('legacy',index,legacyBlockDefaults(legacyType));
   }
 
   function dropPhotoKind(key) {
@@ -1305,6 +1328,10 @@
       return;
     }
     const scale = board.width / artboard.offsetWidth;
+    const label = inlineRemoveTarget.matches('audio,.mock-player') ? 'ลบเสียงส่วนนี้' :
+      inlineRemoveTarget.matches('[contenteditable="true"]') ? 'ลบข้อความส่วนนี้' : 'ลบรูปส่วนนี้';
+    inlineRemove.setAttribute('aria-label',label);
+    inlineRemove.title = label;
     inlineRemove.style.left = `${Math.min(artboard.clientWidth-14,(rect.right-board.left)/scale)}px`;
     inlineRemove.style.top = `${(rect.top-board.top)/scale}px`;
     inlineRemove.hidden = false;
@@ -1345,13 +1372,7 @@
     focusNewText(currentBoardText());
   }
 
-  const sourceTextTools = {
-    text:'p', heading:'h4', quote:'blockquote',
-    'legacy:contentText':'p', 'legacy:contentHeading':'h4', 'legacy:subtitle':'h3',
-    'legacy:contentBlockquote':'blockquote'
-  };
-
-  function editCompositeText(item, anchor, action, tag, before) {
+  function removeCompositeText(item, anchor) {
     const block = anchor.closest('[data-id]');
     if (document.activeElement === anchor) anchor.blur();
     const marked = clone(item);
@@ -1359,7 +1380,6 @@
     const speaker = anchor.dataset.boardSpeaker;
     const fields = speaker === undefined ? marked : marked.speakers?.[speaker];
     if (!fields || !part) return;
-    const oldText = fields[part] || '';
     const marker = 'REFLECTION_EDIT_' + Date.now().toString(36);
     fields[part] = marker;
     const doc = document.createElement('template');
@@ -1372,17 +1392,7 @@
     if (!token) return;
     const unit = token.parentElement.closest('a,.font-italic,h1,h2,h3,h4,h5,h6,p,blockquote,figcaption');
     if (!unit) return;
-    let inserted;
-    if (action === 'remove') {
-      unit.remove();
-    } else {
-      const copy = document.createElement('template');
-      copy.innerHTML = textHtml(oldText);
-      token.replaceWith(copy.content);
-      inserted = makeDroppedText(tag);
-      if (before) unit.before(inserted);
-      else unit.after(inserted);
-    }
+    unit.remove();
     const originals = $$('img',doc.content).map(img => img.outerHTML);
     const uploads = $$(boardImageFrame,block).map(frame => frame.querySelector('img')).filter(Boolean);
     $$('img',doc.content).forEach((img,index) => {
@@ -1391,7 +1401,6 @@
       img.setAttribute('src',uploads[index].getAttribute('src'));
       img.setAttribute('alt',uploads[index].alt);
     });
-    const textIndex = inserted ? sourceTextNodes(doc.content).indexOf(inserted) : -1;
     const replacement = {
       ...item,type:'sourcePage',sourcePath:[],sourceKind:'composite',visualTemplate:true,
       title:$('.board-section-header b',block).textContent,markup:doc.innerHTML,originalImages:originals,
@@ -1401,7 +1410,6 @@
     sourceTextSelection = null;
     sourceImageSelection = null;
     setElements(elements.map(value => value.id === item.id ? replacement : value),item.id);
-    if (textIndex >= 0) focusNewText($(`.board-section[data-id="${item.id}"] [data-source-edit="${textIndex}"]`,artboard));
   }
 
   function makeDroppedText(tag) {
@@ -1427,26 +1435,314 @@
         removeBoardElement(item.id);
       } else changeSourceText(root,anchor,'remove');
     } else if (!allowsNestedText(item)) removeBoardElement(item.id);
-    else editCompositeText(item,anchor,'remove');
+    else removeCompositeText(item,anchor);
     updateBoardTextTools();
   }
 
-  function sourceDropPoint(event) {
-    const anchor = event.target.closest('[contenteditable="true"]');
-    const element = elements.find(item => item.id === anchor?.closest('[data-id]')?.dataset.id);
-    if (!element || !allowsNestedText(element)) return null;
-    return {element,root:anchor.closest('[data-source-render]'),anchor,before:!isAfterBlock(event,anchor)};
+  const nestedColumn = ':is(div,section,article)[class*="col-"]';
+  const legacyColumn = '.split-quote-preview-copy,.split-quote-preview-image,.split-copy,.split-image,.columns-block > div,.example-media-column,.example-quote-body,.example-portrait';
+  const singleColumnTools = new Set(['subtitle','subtitleAudio','audio','contentHeading','contentText','contentBlockquote','contentQuoteImage']);
+
+  function nestedTool(key) {
+    const template = key?.match(/^template-tool:(\w+)$/);
+    if (template) return templateToolRecipes.has(template[1]) ? {recipe:templateToolRecipes.get(template[1])} : null;
+    const legacy = key?.match(/^legacy:(\w+)$/);
+    if (legacy) return legacyBlockMap.has(legacy[1]) ? {type:'legacy',...legacyBlockDefaults(legacy[1])} : null;
+    const free = key?.match(/^(?:insert:)?(heading|text|image|quote|split|divider|banner|button|columns|spacer)(?:\|(normal|highlight|green|greenText))?$/);
+    return free ? {type:free[1],...imageInsertOptions(free[2])} : null;
   }
 
-  function clearSourceDropHint() {
-    $$('.source-text-drop-before,.source-text-drop-after',artboard).forEach(node => {
-      node.classList.remove('source-text-drop-before','source-text-drop-after');
+  function nestedDropPoint(event) {
+    const block = event.target.closest('.board-section[data-id]');
+    if (!block || event.target.closest('.board-section-header,[data-remove-nested]')) return null;
+    const root = block.querySelector('[data-source-render]');
+    const item = elements.find(record => record.id === block.dataset.id);
+    if (!item) return null;
+    const closestColumn = event.target.closest(root ? nestedColumn : legacyColumn);
+    const column = closestColumn && (root || block).contains(closestColumn) ? closestColumn : null;
+    const wrapper = event.target.closest('[data-studio-nest]');
+    const bar = event.target.closest('.nested-tool-bar');
+    const anchor = event.target.closest('[contenteditable="true"]') || (bar ? wrapper : null);
+    const zone = (bar && wrapper?.parentElement) || column || wrapper || root || block.lastElementChild;
+    const rect = zone.getBoundingClientRect();
+    if (!column && !anchor && !wrapper && (event.clientY < rect.top+10 || event.clientY > rect.bottom-10)) return null;
+    return {block,item,root,column,zone,anchor,wrapper,x:event.clientX,y:event.clientY};
+  }
+
+  function originalImageTags(item) {
+    return item.originalImages || templates.find(template => template.id === item.sourceId)?.markup?.match(/<img\b[^>]*>/gi) || [];
+  }
+
+  function snapshotNestedSource(item, liveRoot) {
+    const root = liveRoot ? liveRoot.cloneNode(true) : document.createElement('div');
+    const images = new Map();
+    if (!liveRoot) {
+      const greenStyle = item.type === 'image' && ['green','greenText'].includes(item.imageStyle);
+      root.innerHTML = item.type === 'sourcePage' ? wrapTemplateFragment(item.markup,item.sourcePath || []) :
+        greenStyle ? legacyPatterns.generateHtml([{...item,type:item.imageStyle === 'greenText'?'highlightGreenText':'highlightGreenEmpty',src:''}]) :
+          buildExport([item]);
+    }
+    const originals = originalImageTags(item);
+    $$('img',root).forEach((img,index) => {
+      if (!liveRoot && item.type !== 'sourcePage') {
+        const width = Number(img.getAttribute('width'));
+        img.dataset.templatePlaceholder = width && width <= 60 ? 'square' : 'wide';
+        const path = img.getAttribute('src')?.replace(/\/quote-\d+\.webp$/,`/quote-${item.id}-${index+1}.webp`);
+        if (path) img.setAttribute('src',path);
+      }
+      const original = item.type === 'sourcePage' ? originals[index] : img.outerHTML;
+      images.set(img,{original,width:item.imageWidths?.[index],crop:item.imageCropRatios?.[index] ?? (index === 0 ? item.cropRatio : undefined)});
+      if (!liveRoot && index === 0 && item.src && item.type !== 'sourcePage') {
+        img.setAttribute('src',item.src);
+        img.setAttribute('alt',item.alt || '');
+      }
     });
+    return {root,images};
+  }
+
+  function sourceBlockFromSnapshot(item,snapshot,title) {
+    $$('[data-studio-photo-row]',snapshot.root).forEach(row => {
+      for (const cell of [...row.children]) if (!cell.children.length) cell.remove();
+      const count = row.children.length;
+      if (count < 2) row.replaceWith(...(row.firstElementChild?.childNodes || []));
+      else for (const cell of row.children) cell.className = {2:'col-md-6',3:'col-md-4',4:'col-md-3'}[count];
+    });
+    const records = $$('img',snapshot.root).map(img => snapshot.images.get(img) || {});
+    const settings = key => Object.fromEntries(records.flatMap((record,index) => record[key] === undefined ? [] : [[index,record[key]]]));
+    return {
+      ...item,type:'sourcePage',sourceKind:'composite',visualTemplate:true,title,
+      sourcePath:item.type === 'sourcePage' ? item.sourcePath || [] : [],studioRowId:undefined,
+      markup:sourceHtmlFromPreview(snapshot.root,true),
+      originalImages:records.map(record => record.original || null),imageCount:records.length,
+      imageWidths:settings('width'),imageCropRatios:settings('crop')
+    };
+  }
+
+  function counterpart(node,liveRoot,copyRoot) {
+    const steps = [];
+    while (node && node !== liveRoot) {
+      const parent = node.parentElement;
+      if (!parent) return null;
+      steps.unshift([...parent.children].indexOf(node));
+      node = parent;
+    }
+    return node === liveRoot ? steps.reduce((parent,index) => parent?.children[index],copyRoot) : null;
+  }
+
+  function convertedDropColumn(point,root) {
+    const rows = $$('.row',root).map(row => [...row.children].filter(child => child.matches(nestedColumn)));
+    const columns = rows.find(items => items.length > 1) || rows.find(items => items.length);
+    if (!columns) return root;
+    const media = columns.filter(col => col.querySelector('img'));
+    if (media.length === 1 && point.column) {
+      if (point.column.matches('.split-quote-preview-image,.split-image,.example-portrait')) return media[0];
+      if (point.column.matches('.split-quote-preview-copy,.split-copy,.example-quote-body')) return columns.find(col => col !== media[0]) || columns[0];
+    }
+    const rect = point.block.getBoundingClientRect();
+    const index = Math.max(0,Math.min(columns.length-1,Math.floor((point.x-rect.left)/Math.max(1,rect.width)*columns.length)));
+    return columns[index];
+  }
+
+  function nestedInsertionAnchor(point,zone) {
+    const liveZone = point.zone;
+    if (!liveZone) return null;
+    let live = point.anchor;
+    if (!liveZone.contains(live)) live = null;
+    while (live && live !== liveZone && live.parentElement !== liveZone) live = live.parentElement;
+    if (point.root && live && live !== liveZone) return {node:counterpart(live,liveZone,zone),before:point.y < live.getBoundingClientRect().top+live.getBoundingClientRect().height/2};
+    const candidates = [...liveZone.children].filter(node => !node.matches('[data-template-preview-only]'));
+    const index = candidates.findIndex(node => {
+      const rect = node.getBoundingClientRect();
+      return point.y < rect.top + rect.height/2;
+    });
+    return index >= 0 ? {node:zone.children[index],before:true} : null;
+  }
+
+  function materializeNestedTool(item) {
+    const snapshot = snapshotNestedSource(item);
+    if (item.type === 'legacy' && singleColumnTools.has(item.legacyType)) {
+      let column = snapshot.root;
+      while (column.children.length === 1 && column.firstElementChild.matches(`.container,.row,${nestedColumn}`)) column = column.firstElementChild;
+      return {snapshot,content:column};
+    }
+    return {snapshot,content:snapshot.root};
+  }
+
+  function isNestedPhoto(wrapper) {
+    return wrapper && $$('img',wrapper).length === 1 && !wrapper.querySelector('[data-studio-nest],audio,video') &&
+      ![...wrapper.childNodes].some(node => node.nodeType === Node.TEXT_NODE
+        ? node.textContent.trim()
+        : node.nodeType === Node.ELEMENT_NODE && !node.matches('[data-template-preview-only],.source-image-frame') &&
+          node.textContent.trim() && !node.querySelector('.source-image-frame'));
+  }
+
+  function nestedPhotoDrop(event,key,movingId) {
+    const frame = event.target.closest('.source-image-frame');
+    const wrapper = frame?.closest('[data-studio-nest]');
+    if (!isNestedPhoto(wrapper)) return null;
+    const moving = draggedNested && $(`[data-studio-nest="${CSS.escape(draggedNested.id)}"]`,artboard);
+    if (moving === wrapper || (!dropPhotoKind(key) && !isRowPhoto(elements.find(item => item.id === movingId)) && !isNestedPhoto(moving))) return null;
+    const row = wrapper.parentElement.closest('[data-studio-photo-row]');
+    const rect = frame.getBoundingClientRect();
+    return {wrapper,full:row?.children.length >= photoRowLimit && !row.contains(moving),after:event.clientX >= rect.left+rect.width/2};
+  }
+
+  function putNestedPhotoBeside(target,wrapper,after) {
+    let row = target.parentElement.closest('[data-studio-photo-row]');
+    let cell = target.parentElement;
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'row';
+      row.setAttribute('data-studio-photo-row','');
+      cell = document.createElement('div');
+      target.before(row);
+      cell.append(target);
+      row.append(cell);
+    }
+    const added = document.createElement('div');
+    added.append(wrapper);
+    if (after) cell.after(added);
+    else cell.before(added);
+  }
+
+  function insertNestedTool(point,definition,movingId,photo) {
+    const moving = elements.find(item => item.id === movingId);
+    if (!definition && !moving || moving?.id === point.item.id) return;
+    if (photo?.full) { showToast('หนึ่งแถวใส่ได้สูงสุด 4 รูป'); return; }
+    if (point.block.contains(document.activeElement)) document.activeElement.blur();
+    const recipe = definition?.recipe;
+    const item = moving || (recipe
+      ? makeElement('sourcePage',{...clone(recipe),sourcePath:[],markup:wrapTemplateFragment(recipe.markup,recipe.sourcePath)})
+      : makeElement(definition.type,definition));
+    const {snapshot:material,content} = materializeNestedTool(item);
+    const snapshot = snapshotNestedSource(point.item,point.root);
+    const zone = point.root ? counterpart(point.zone,point.root,snapshot.root) || snapshot.root : convertedDropColumn(point,snapshot.root);
+    const anchor = nestedInsertionAnchor(point,zone);
+    const wrapper = document.createElement('div');
+    wrapper.dataset.studioNest = item.id;
+    wrapper.dataset.studioName = item.type === 'legacy' ? shelfLabels[item.legacyType] || legacyElementName(item) : item.title && item.type === 'sourcePage' ? item.title : item.type === 'image' ? imageStyleName(item.imageStyle) : titleFor(item.type);
+    wrapper.append(...content.childNodes);
+    if (photo) {
+      putNestedPhotoBeside(counterpart(photo.wrapper,point.root,snapshot.root),wrapper,photo.after);
+    } else if (anchor?.node?.parentElement === zone) {
+      if (anchor.before) anchor.node.before(wrapper);
+      else anchor.node.after(wrapper);
+    } else zone.append(wrapper);
+    for (const [img,record] of material.images) snapshot.images.set(img,record);
+    const replacement = sourceBlockFromSnapshot(point.item,snapshot,$('.board-section-header b',point.block).textContent);
+    activeTextField = null;
+    sourceTextSelection = null;
+    sourceImageSelection = null;
+    setElements(elements.filter(value => value.id !== moving?.id).map(value => value.id === point.item.id ? replacement : value),point.item.id);
+    focusNewText($(`[data-studio-nest="${CSS.escape(item.id)}"] [contenteditable="true"]`,artboard));
+  }
+
+  function removeNestedTool(button) {
+    const wrapper = button.closest('[data-studio-nest]');
+    const block = wrapper?.closest('[data-id]');
+    const root = wrapper?.closest('[data-source-render]');
+    const item = elements.find(value => value.id === block?.dataset.id);
+    if (!root || !item) return;
+    if (root.contains(document.activeElement)) document.activeElement.blur();
+    const snapshot = snapshotNestedSource(item,root);
+    counterpart(wrapper,root,snapshot.root)?.remove();
+    const replacement = sourceBlockFromSnapshot(item,snapshot,item.title);
+    activeTextField = null;
+    sourceTextSelection = null;
+    sourceImageSelection = null;
+    setElements(elements.map(value => value.id === item.id ? replacement : value),item.id);
+  }
+
+  function removeBoardMedia(target) {
+    const block = target.closest('.board-section[data-id]');
+    const item = elements.find(value => value.id === block?.dataset.id);
+    if (!item) return;
+    const audio = target.matches('audio,.mock-player');
+    const nested = target.closest('[data-studio-nest]');
+    if (!audio && isNestedPhoto(nested)) {
+      removeNestedTool(nested.querySelector(':scope > .nested-tool-bar [data-remove-nested]'));
+      return;
+    }
+    if (isRowPhoto(item) || item.type === 'image' && item.imageStyle !== 'greenText' ||
+      item.type === 'legacy' && item.legacyType === 'audio' ||
+      item.type === 'sourcePage' && item.sourceKind === 'audio' && !target.closest('[data-studio-nest]') &&
+        !target.closest('[data-source-render]')?.querySelector('[data-source-edit]')) {
+      removeBoardElement(item.id);
+      return;
+    }
+    const live = block.querySelector('[data-source-render]');
+    const snapshot = snapshotNestedSource(item,live);
+    const candidates = audio ? 'audio,.mock-player' : boardImageFrame;
+    const index = $$(candidates,block).indexOf(target);
+    const asset = audio ? $$('audio',snapshot.root)[index] :
+      live ? counterpart(target,live,snapshot.root) : $$('img',snapshot.root)[index];
+    if (!asset) return;
+    const figure = asset.closest('figure');
+    asset.remove();
+    if (figure && !figure.textContent.trim() && !figure.querySelector('img,audio,video')) figure.remove();
+    const replacement = sourceBlockFromSnapshot(item,snapshot,$('.board-section-header b',block).textContent);
+    activeTextField = null;
+    sourceTextSelection = null;
+    sourceImageSelection = null;
+    setElements(elements.map(value => value.id === item.id ? replacement : value),item.id);
+  }
+
+  function moveNestedTool(point, index, photo) {
+    const host = elements.find(item => item.id === draggedNested?.hostId);
+    const live = host && $(`.board-section[data-id="${CSS.escape(host.id)}"] [data-source-render]`,artboard);
+    const picked = live && $(`[data-studio-nest="${CSS.escape(draggedNested.id)}"]`,live);
+    if (!picked || (point && (picked.contains(point.zone) || point.anchor === picked))) return;
+    if (photo?.full) { showToast('หนึ่งแถวใส่ได้สูงสุด 4 รูป'); return; }
+    const source = snapshotNestedSource(host,live);
+    const wrapper = counterpart(picked,live,source.root);
+    const sameHost = point?.item.id === host.id;
+    const destination = point ? sameHost ? source : snapshotNestedSource(point.item,point.root) : null;
+    const zone = point && (point.root
+      ? counterpart(point.zone,point.root,destination.root)
+      : convertedDropColumn(point,destination.root));
+    if (point && !zone) return;
+    const anchor = point && nestedInsertionAnchor(point,zone);
+    const photoTarget = photo && counterpart(photo.wrapper,point.root,destination.root);
+    wrapper.remove();
+    const next = elements.slice();
+    let selected = host.id;
+    if (point) {
+      if (photoTarget) {
+        putNestedPhotoBeside(photoTarget,wrapper,photo.after);
+      } else if (anchor?.node?.parentElement === zone) {
+        if (anchor.before) anchor.node.before(wrapper);
+        else anchor.node.after(wrapper);
+      } else zone.append(wrapper);
+      for (const [img,record] of source.images) destination.images.set(img,record);
+      const targetIndex = next.findIndex(item => item.id === point.item.id);
+      next[targetIndex] = sourceBlockFromSnapshot(point.item,destination,$('.board-section-header b',point.block).textContent);
+      selected = point.item.id;
+    } else {
+      const title = wrapper.dataset.studioName || 'องค์ประกอบ';
+      const promoted = sourceBlockFromSnapshot({id:draggedNested.id,type:'sourcePage'},{root:wrapper,images:source.images},title);
+      next.splice(index,0,promoted);
+      selected = promoted.id;
+    }
+    if (!sameHost) next[next.findIndex(item => item.id === host.id)] = sourceBlockFromSnapshot(host,source,host.title);
+    activeTextField = null;
+    sourceTextSelection = null;
+    sourceImageSelection = null;
+    setElements(next,selected);
+  }
+
+  function stripNestedWrappers(markup) {
+    if (!markup.includes('data-studio-nest') && !markup.includes('data-studio-photo-row')) return markup;
+    const fragment = document.createElement('template');
+    fragment.innerHTML = markup;
+    $$('[data-studio-nest]',fragment.content).forEach(node => node.replaceWith(...node.childNodes));
+    $$('[data-studio-photo-row]',fragment.content).forEach(node => node.removeAttribute('data-studio-photo-row'));
+    return fragment.innerHTML;
   }
 
   let blockDropTarget = null;
   function clearBlockDropHint() {
     blockDropTarget?.removeAttribute('data-block-drop');
+    blockDropTarget?.removeAttribute('data-nested-drop');
     blockDropTarget = null;
   }
 
@@ -1685,12 +1981,12 @@
         const originalTemplate = templates.find(template => template.id === element.sourceId);
         const originalImages = element.originalImages || originalTemplate?.markup?.match(/<img\b[^>]*>/gi) || [];
         let imageIndex = 0;
-        const markup = cleanSourceMarkup(element.markup).replace(/<img\b[^>]*>/gi,tag => {
+        const markup = stripNestedWrappers(cleanSourceMarkup(element.markup).replace(/<img\b[^>]*>/gi,tag => {
           const original = originalImages[imageIndex++];
           const localImage = /\bsrc=(["'])(?:data:image\/|blob:)[^"']*\1/i;
           if (!localImage.test(tag)) return tag;
           return original ? cleanSourceMarkup(original) : tag.replace(localImage,'src="#"');
-        });
+        }));
         if (markup) {
           const nextPath = element.sourcePath || [];
           let shared = 0;
@@ -2249,17 +2545,21 @@
   inlineRemove.addEventListener('mousedown',event => event.preventDefault());
   inlineRemove.addEventListener('click',event => {
     event.stopPropagation();
-    removeBoardText(inlineRemoveTarget);
+    const target = inlineRemoveTarget;
+    if (target?.matches('[contenteditable="true"]')) removeBoardText(target);
+    else if (target) removeBoardMedia(target);
   });
   artboard.addEventListener('pointerover',event => {
     if (event.target === inlineRemove) return;
-    placeInlineRemove(event.target.closest('[contenteditable="true"]') || currentBoardText());
+    placeInlineRemove(event.target.closest(`[contenteditable="true"],${boardImageFrame},audio,.mock-player`) || currentBoardText());
   });
   artboard.addEventListener('pointerleave',() => placeInlineRemove(currentBoardText()));
   artboard.addEventListener('input',() => placeInlineRemove(currentBoardText()));
   window.addEventListener('resize',() => placeInlineRemove(inlineRemoveTarget));
 
   artboard.addEventListener('click',event => {
+    const nestedRemove = event.target.closest('[data-remove-nested]');
+    if (nestedRemove) { removeNestedTool(nestedRemove); return; }
     const remove = event.target.closest('[data-canvas-remove]');
     if (remove) {
       removeBoardElement(remove.dataset.canvasRemove);
@@ -2267,7 +2567,7 @@
     }
     const emptyAction=event.target.closest('[data-empty-add]');
     if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
-    if (event.target.closest('.button-block a')) event.preventDefault();
+    if (event.target.closest('.button-block a,.source-page-render a')) event.preventDefault();
     if (event.target.closest('[contenteditable="true"],audio,video')) return;
     const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
     const sourceImage=sourceFrame?.querySelector('[data-source-image]');
@@ -2381,9 +2681,16 @@
     $('#redoBtn').disabled = !redoStack.length;
   });
   artboard.addEventListener('dragstart',event => {
-    if (event.target.closest('[data-resize-handle],[data-canvas-remove],[contenteditable="true"]')) {event.preventDefault();return}
+    if (event.target.closest('[data-resize-handle],[data-canvas-remove],[data-remove-nested],[contenteditable="true"]')) {event.preventDefault();return}
     const block = event.target.closest('[data-id]');
     if (!block) return;
+    const bar = event.target.closest('.nested-tool-bar');
+    if (bar) {
+      draggedNested = {hostId:block.dataset.id,id:bar.closest('[data-studio-nest]').dataset.studioNest};
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain',`nested:${draggedNested.id}`);
+      return;
+    }
     draggedId = block.dataset.id;
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain',draggedId);
@@ -2391,9 +2698,9 @@
   });
   document.addEventListener('dragend',() => {
     clearBlockDropHint();
-    clearSourceDropHint();
     draggedId = null;
     draggedType = null;
+    draggedNested = null;
   });
   artboard.addEventListener('dragend',event => event.target.closest('[data-id]')?.classList.remove('dragging'));
   artboard.addEventListener('dragover',event => {
@@ -2404,11 +2711,10 @@
       event.dataTransfer.dropEffect='copy';
       return;
     }
-    if (!draggedId && !draggedType) return;
+    if (!draggedId && !draggedType && !draggedNested) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = draggedType ? 'copy' : 'move';
     clearBlockDropHint();
-    clearSourceDropHint();
     const target = event.target.closest('.canvas-block[data-id]');
     const photo = photoDrop(event,draggedType,draggedId);
     if (photo && target) {
@@ -2416,13 +2722,13 @@
       target.dataset.blockDrop = photo.full ? 'full' : photo.after ? 'photo-after' : 'photo-before';
       return;
     }
-    if (sourceTextTools[draggedType]) {
-      clearSourceDropHint();
-      const point = sourceDropPoint(event);
-      if (point?.anchor) {
-        point.anchor.classList.add(point.before?'source-text-drop-before':'source-text-drop-after');
-        return;
-      }
+    const point = target?.dataset.id !== draggedId && nestedDropPoint(event);
+    if (point) {
+      const photoSlot = nestedPhotoDrop(event,draggedType,draggedId);
+      blockDropTarget = photoSlot?.wrapper || point.zone;
+      if (photoSlot) blockDropTarget.setAttribute('data-block-drop',photoSlot.full ? 'full' : photoSlot.after ? 'photo-after' : 'photo-before');
+      else blockDropTarget.setAttribute('data-nested-drop','');
+      return;
     }
     if (target && target.dataset.id !== draggedId) {
       blockDropTarget = target;
@@ -2433,13 +2739,11 @@
     const imageBox = event.target.closest('.image-placeholder,.preview-image-placeholder,.source-image-frame');
     if (imageBox && !imageBox.contains(event.relatedTarget)) imageBox.classList.remove('drop-target');
     if (!artboard.contains(event.relatedTarget)) {
-      clearSourceDropHint();
       clearBlockDropHint();
     }
   });
   artboard.addEventListener('drop',async event => {
     event.preventDefault();
-    clearSourceDropHint();
     clearBlockDropHint();
     artboard.querySelectorAll('.drop-target').forEach(node => node.classList.remove('drop-target'));
     const target = event.target.closest('[data-id]');
@@ -2453,25 +2757,29 @@
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
-    const photo = photoDrop(event,source,draggedId);
-    if (photo) { joinPhotoRow(photo); return; }
     const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
     const after = target ? isAfterBlock(event,target) : false;
     const row = photoRowAt(elements,targetIndex);
     const insertAt = targetIndex < 0 ? elements.length : after ? row.end : row.start;
+    const nested = nestedDropPoint(event);
+    if (draggedNested) {
+      moveNestedTool(nested,insertAt,nested && nestedPhotoDrop(event,source,draggedId));
+      draggedNested = null;
+      return;
+    }
+    const photo = photoDrop(event,source,draggedId);
+    if (photo) { joinPhotoRow(photo); return; }
+    const definition = nestedTool(source);
+    if (nested && nested.item.id !== draggedId && (definition || draggedId)) {
+      insertNestedTool(nested,definition,draggedId,nestedPhotoDrop(event,source,draggedId));
+      draggedType = null;
+      draggedId = null;
+      return;
+    }
     const templateTool = source?.match(/^template-tool:([A-Za-z0-9]+)$/);
     if (templateTool) {
       insertTemplateTool(templateTool[1],insertAt);
       draggedType = null;
-      return;
-    }
-    const toolKey = source?.replace(/^insert:/,'');
-    const textTool = Object.hasOwn(sourceTextTools,toolKey) ? sourceTextTools[toolKey] : null;
-    const point = textTool && sourceDropPoint(event);
-    if (point) {
-      draggedType = null;
-      if (point.root) changeSourceText(point.root,point.anchor,'add',textTool,point.before);
-      else editCompositeText(point.element,point.anchor,'add',textTool,point.before);
       return;
     }
     const legacyInsertMatch = source?.match(/^legacy:([A-Za-z0-9]+)$/);
@@ -2518,7 +2826,10 @@
       if (!element) return;
       const value = event.target.value.trim();
       const src = value ? safeHref(value) : '';
-      element.markup = element.markup.replace(/<audio\b[^>]*>/i,tag => {
+      const audioIndex = Number(event.target.dataset.audioIndex);
+      let index = 0;
+      element.markup = element.markup.replace(/<audio\b[^>]*>/gi,tag => {
+        if (index++ !== audioIndex) return tag;
         const clean = tag.replace(/\s+src=(?:"[^"]*"|'[^']*')/i,'');
         return clean.slice(0,-1) + (src ? ` src="${escapeHtml(src)}"` : '') + '>';
       });

@@ -1727,5 +1727,56 @@ body{font-size:18px}
   background: #a4513f;
   color: #fff;
 }
+.board-section .legacy-pattern-preview.block-preview { pointer-events: auto; }
+.board-section .source-page-render [class*="col-"],
+.board-section :is(.split-quote-preview-copy,.split-copy,.columns-block > div) {
+  min-height: 48px;
+}
+.board-section [data-nested-drop] {
+  outline: 2px dashed #568c3b;
+  outline-offset: -3px;
+  background-color: #eaf4de;
+}
+.source-page-render [data-studio-nest] {
+  position: relative;
+  min-width: 0;
+  margin-block: 10px;
+  padding: 0 10px 8px;
+  background: #fff;
+  color: #29332b;
+  border: 1px solid #c7d7bd;
+  border-radius: 5px;
+}
+.source-page-render .nested-tool-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin: 0 -10px 8px;
+  padding: 3px 6px 3px 10px;
+  background: #f2f6ef;
+  color: #495b43;
+  cursor: grab;
+}
+.source-page-render .nested-tool-bar button {
+  flex: 0 0 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #d8b9af;
+  border-radius: 5px;
+  background: #fff7f3;
+  color: #853e2e;
+  cursor: pointer;
+}
+.source-page-render .nested-tool-bar button:hover { background: #853e2e; color: #fff; }
+.source-page-render [data-studio-nest] > .container { padding-inline: 8px; }
+.source-page-render [data-studio-nest] > p:last-child { margin-bottom: 0; }
+.source-page-render [data-studio-photo-row] { margin-inline: -4px; }
+.source-page-render [data-studio-photo-row] > div { min-width: 0; padding-inline: 4px; }
+.source-page-render [data-studio-photo-row] [data-studio-nest] { padding-inline: 4px; }
+.source-page-render [data-studio-photo-row] .nested-tool-bar { margin-inline: -4px; }
+.source-page-render [data-studio-photo-row] figure { margin: 0; }
+.source-page-render [data-studio-nest][data-block-drop^="photo-"] { outline: 2px solid #568c3b; }
+.source-page-render [data-studio-nest][data-block-drop="full"] { outline: 2px solid #bd5521; }
 .board-section .source-text-drop-before { box-shadow: 0 -4px #76a34e; }
 .board-section .source-text-drop-after { box-shadow: 0 4px #76a34e; }
