@@ -57,6 +57,9 @@
   let draggedNested = null;
   let nestedDragGrip = null;
   let sourceImageSelection = null;
+  let activeImage = null;
+  let imageMove = null;
+  let suppressImageClick = false;
   let sourceTextSelection = null;
   let activeTextField = null;
   const boardTextTools = $('#boardTextTools');
@@ -590,7 +593,7 @@
           markup:nodes.map(item => item.outerHTML).join('\n'), visualTemplate:source.visualTemplate,
           imageCount, originalImages:originalImages.slice(imageOffset,imageOffset+imageCount),
           imageWidths:localImageSettings('imageWidths'), imageCropRatios:localImageSettings('imageCropRatios'),
-          imageOffsets:localImageSettings('imageOffsets')
+          imageOffsets:localImageSettings('imageOffsets'),imageOffsetsY:localImageSettings('imageOffsetsY')
         });
         imageOffset += imageCount;
       }
@@ -641,6 +644,7 @@
   function enterEditor(title, blocks) {
     editorDocumentVersion += 1;
     activeTextField = null;
+    activeImage = null;
     sourceTextSelection = null;
     sourceImageSelection = null;
     nextId = Math.max(1,...blocks.map(block => (Number(String(block.id).split('-').pop()) || 0) + 1));
@@ -781,6 +785,8 @@
       if (Number.isFinite(ratio) && ratio > 0) applyCropFrame(frame,ratio);
       const offset = source ? element.imageOffsets?.[index] : element.imageOffset;
       if (Number.isFinite(offset) && offset) frame.style.setProperty('--board-image-offset',`${offset}%`);
+      const offsetY = source ? element.imageOffsetsY?.[index] : element.imageOffsetY;
+      if (Number.isFinite(offsetY) && offsetY) frame.style.setProperty('--board-image-offset-y',`${offsetY}px`);
     }
   }
 
@@ -818,7 +824,7 @@
 
   function renderArtboard() {
     artboard.innerHTML = elements.length ? renderBoardBlocks() : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><b>เริ่มออกแบบ Reflection ของคุณ</b><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
-    artboard.append(inlineRemove);
+    artboard.append(inlineRemove,imageGuides);
     if (legacyPatterns) {
       for (const element of elements.filter(item=>item.type==='legacy')) {
         const slot = artboard.querySelector(`.legacy-pattern-slot[data-for="${element.id}"]`) || [...artboard.querySelectorAll('.legacy-pattern-slot')].find(node=>node.closest('[data-id]')?.dataset.id===element.id);
@@ -1160,6 +1166,8 @@
       selectedId = element.id;
       sourceImageSelection = {elementId:element.id,index:sourceIndex};
     }
+    activeImage = {elementId:element.id,sourceIndex};
+    activeTextField = null;
     const rect = imageBox.getBoundingClientRect();
     const width = rect.width / zoom;
     const startingPercent = element.type === 'sourcePage' ? sourceFrameWidthPercent(imageBox) : Number(element.width) || (element.type === 'legacy' ? legacyDefaultWidth(element.legacyType) : 100);
@@ -1170,7 +1178,8 @@
     resizeState = {
       id:element.id,handle:side,sourceIndex,startX:event.clientX,startY:event.clientY,
       startWidth:widthPercent,baseWidth:width/(widthPercent/100),frameWidth:width,frameHeight:height,
-      aspect:width/height,fixedEdge:side === 'w' ? rect.right : rect.left,parent,before:clone(elements),block
+      aspect:width/height,fixedEdge:side === 'w' ? rect.right : rect.left,parent,
+      parentBounds:imageBox.parentElement.getBoundingClientRect(),before:clone(elements),block
     };
     block.setAttribute('draggable','false');
     try { handle.setPointerCapture?.(event.pointerId); } catch {}
@@ -1191,6 +1200,182 @@
       width:Math.max(1,parent.clientWidth-paddingLeft-paddingRight)
     };
   }
+
+  const imageGuides = document.createElement('div');
+  imageGuides.className = 'board-image-guides';
+  imageGuides.setAttribute('aria-hidden','true');
+
+  function selectedBoardImage() {
+    if (activeImage?.elementId !== selectedId) return null;
+    const block = $(`.board-section[data-id="${CSS.escape(selectedId)}"]`,artboard);
+    const selector = activeImage.sourceIndex === null ? boardImageFrame : `[data-source-frame="${activeImage.sourceIndex}"]`;
+    return block?.querySelector(selector) || null;
+  }
+
+  function imagePosition(frame) {
+    const block = frame.closest('.board-section');
+    const item = elements.find(element => element.id === block?.dataset.id);
+    if (!item) return null;
+    const sourceIndex = frame.hasAttribute('data-source-frame') ? Number(frame.dataset.sourceFrame) : null;
+    const offset = sourceIndex === null ? item.imageOffset : item.imageOffsets?.[sourceIndex];
+    const offsetY = sourceIndex === null ? item.imageOffsetY : item.imageOffsetsY?.[sourceIndex];
+    return {item,block,sourceIndex,offset:offset || 0,offsetY:offsetY || 0};
+  }
+
+  function setImagePosition(item,index,x,y) {
+    if (index === null) {
+      item.imageOffset = x;
+      item.imageOffsetY = y;
+    } else {
+      item.imageOffsets ||= {};
+      item.imageOffsetsY ||= {};
+      item.imageOffsets[index] = x;
+      item.imageOffsetsY[index] = y;
+    }
+  }
+
+  function selectBoardImage(frame) {
+    const pos = imagePosition(frame);
+    if (!pos) return;
+    activeImage = {elementId:pos.item.id,sourceIndex:pos.sourceIndex};
+    activeTextField = null;
+    if (pos.sourceIndex !== null) sourceImageSelection = {elementId:pos.item.id,index:pos.sourceIndex};
+  }
+
+  function alignBoardImage(align) {
+    const frame = selectedBoardImage();
+    if (!frame) return;
+    const pos = imagePosition(frame);
+    const area = imageFrameContainer(frame);
+    const rect = frame.getBoundingClientRect();
+    const remaining = Math.max(0,area.width*zoom-rect.width);
+    const wanted = area.left + remaining * {left:0,center:.5,right:1}[align];
+    const offset = pos.offset+(wanted-rect.left)/zoom/area.width*100;
+    if (Math.abs(offset-pos.offset)<.02) return;
+    const next = clone(elements);
+    setImagePosition(next.find(item => item.id === pos.item.id),pos.sourceIndex,offset,pos.offsetY);
+    setElements(next,pos.item.id);
+  }
+
+  function paintImageGuide(axis, position, label, bounds) {
+    const board = artboard.getBoundingClientRect();
+    const line = document.createElement('div');
+    line.className = `image-guide image-guide-${axis}`;
+    line.style.setProperty('--guide-position',`${(position-(axis==='x'?board.left:board.top))/zoom}px`);
+    if (bounds) {
+      line.classList.add('image-guide-local');
+      const start = axis === 'x' ? bounds.top-board.top : bounds.left-board.left;
+      const length = axis === 'x' ? bounds.height : bounds.width;
+      line.style.setProperty('--guide-start',`${start/zoom}px`);
+      line.style.setProperty('--guide-length',`${length/zoom}px`);
+    }
+    if (label) {
+      const chip = document.createElement('span');
+      chip.textContent = label;
+      line.append(chip);
+    }
+    imageGuides.append(line);
+  }
+
+  function showResizeGuides(frame,state) {
+    imageGuides.replaceChildren();
+    const rect = frame.getBoundingClientRect();
+    const board = artboard.getBoundingClientRect();
+    const {handle,parent,parentBounds} = state;
+    const show = (axis,edge,references,labels) => {
+      const anchors = references.flatMap(([start,end]) => [start,(start+end)/2,end].map((line,index) => ({line,label:labels[index]})));
+      const nearest = anchors.sort((a,b) => Math.abs(edge-a.line)-Math.abs(edge-b.line))[0];
+      if (nearest && Math.abs(edge-nearest.line)<=8) paintImageGuide(axis,nearest.line,nearest.label);
+    };
+    if (handle.includes('w') || handle.includes('e')) {
+      show('x',handle.includes('w')?rect.left:rect.right,
+        [[parent.left,parent.left+parent.width*zoom],[board.left,board.right]],['ซ้าย','กึ่งกลาง','ขวา']);
+    }
+    if (handle.includes('n') || handle.includes('s')) {
+      show('y',handle.includes('n')?rect.top:rect.bottom,
+        [[parentBounds.top,parentBounds.bottom],[board.top,board.bottom]],['บน','กึ่งกลาง','ล่าง']);
+    }
+  }
+
+  function snapImageAxis(start,length,delta,min,max,references,labels) {
+    const bounded = Math.max(min,Math.min(max,delta));
+    let closest;
+    for (const [edge,end] of references) {
+      for (const fraction of [0,.5,1]) {
+        const line = edge+(end-edge)*fraction;
+        const aligned = line-start-length*fraction;
+        if (aligned < min-.5 || aligned > max+.5) continue;
+        const gap = Math.abs(aligned-bounded);
+        if (gap <= 8 && (!closest || gap < closest.gap)) {
+          closest = {delta:aligned,line,label:labels[fraction*2],gap};
+        }
+      }
+    }
+    return closest || {delta:bounded};
+  }
+
+  function startImageMove(event) {
+    const frame = event.target.closest(boardImageFrame);
+    if (event.button !== 0 || !frame || resizeState || event.target.closest('[data-resize-handle],.source-image-replace,.image-replace-trigger')) return;
+    const pos = imagePosition(frame);
+    if (!pos) return;
+    const rect = frame.getBoundingClientRect();
+    const area = imageFrameContainer(frame);
+    const board = artboard.getBoundingClientRect();
+    const parent = frame.parentElement.getBoundingClientRect();
+    const body = pos.block.lastElementChild.getBoundingClientRect();
+    const minY = Math.min(0,body.top-rect.top);
+    const maxY = Math.max(0,body.bottom-rect.bottom);
+    imageMove = {frame,pos,rect,area,board,parent,body,minY,maxY,pointer:event.pointerId,startX:event.clientX,startY:event.clientY};
+  }
+
+  document.addEventListener('pointermove',event => {
+    if (!imageMove || event.pointerId !== imageMove.pointer) return;
+    const m = imageMove;
+    const dx = event.clientX-m.startX, dy = event.clientY-m.startY;
+    if (!m.started && Math.hypot(dx,dy)<5) return;
+    if (!m.started) {
+      m.started = true;
+      m.frame.setPointerCapture?.(event.pointerId);
+      m.frame.classList.add('image-moving');
+      inlineRemove.hidden = true;
+    }
+    event.preventDefault();
+    const right = m.area.left+m.area.width*zoom;
+    const x = snapImageAxis(m.rect.left,m.rect.width,dx,Math.min(0,m.area.left-m.rect.left),Math.max(0,right-m.rect.right),
+      [[m.area.left,right],[m.board.left,m.board.right]],['ซ้าย','กึ่งกลาง','ขวา']);
+    const y = snapImageAxis(m.rect.top,m.rect.height,dy,m.minY,m.maxY,
+      [[m.parent.top,m.parent.bottom],[m.body.top,m.body.bottom],[m.board.top,m.board.bottom]],['บน','กึ่งกลาง','ล่าง']);
+    m.x = m.pos.offset+x.delta/zoom/m.area.width*100;
+    m.y = m.pos.offsetY+y.delta/zoom;
+    m.frame.style.setProperty('--board-image-offset',`${m.x}%`);
+    m.frame.style.setProperty('--board-image-offset-y',`${m.y}px`);
+    imageGuides.replaceChildren();
+    if (x.line !== undefined) paintImageGuide('x',x.line,x.label);
+    if (y.line !== undefined) paintImageGuide('y',y.line,y.label);
+  },{passive:false});
+
+  function finishImageMove(event) {
+    if (!imageMove || event.pointerId !== imageMove.pointer) return;
+    const m = imageMove;
+    imageMove = null;
+    if (!m.started) return;
+    imageGuides.replaceChildren();
+    m.frame.classList.remove('image-moving');
+    suppressImageClick = true;
+    setTimeout(() => { suppressImageClick = false; },0);
+    selectBoardImage(m.frame);
+    if (event.type === 'pointercancel') {
+      selectedId = m.pos.item.id;
+      renderAll();
+      return;
+    }
+    const next = clone(elements);
+    setImagePosition(next.find(item => item.id === m.pos.item.id),m.pos.sourceIndex,m.x,m.y);
+    setElements(next,m.pos.item.id);
+  }
+  document.addEventListener('pointerup',finishImageMove);
+  document.addEventListener('pointercancel',finishImageMove);
 
   function sourceFrameWidthPercent(frame) {
     return frame.getBoundingClientRect().width / zoom / imageFrameContainer(frame).width * 100;
@@ -1220,6 +1405,7 @@
       resizeState.cropping = true;
       const ratio = Math.max(.25,Math.min(5,resizeState.aspect / Math.max(.01,1 + dy / resizeState.frameWidth)));
       setFrameCrop(el,imageBox,ratio);
+      showResizeGuides(imageBox,resizeState);
       return;
     }
     const delta = hasX && hasY ? (Math.abs(dx)>=Math.abs(dy)?dx:dy) : hasX ? dx : dy;
@@ -1249,6 +1435,7 @@
         el.imageOffsets[resizeState.sourceIndex] = offset;
       } else el.imageOffset = offset;
     }
+    if (imageBox) showResizeGuides(imageBox,resizeState);
     const slider = $('[data-prop="width"]',inspector);
     if (slider) slider.value = String(Math.round(width));
     const sourceSlider=$('[data-prop="sourceImageWidth"]',inspector);
@@ -1268,6 +1455,7 @@
     document.removeEventListener('mousemove',resizeImageMove);
     document.removeEventListener('mouseup',finishImageResize);
     if (!resizeState) return;
+    imageGuides.replaceChildren();
     resizeState.block.setAttribute('draggable','true');
     if (JSON.stringify(resizeState.before) !== JSON.stringify(elements)) {
       undoStack.push(resizeState.before);
@@ -1351,6 +1539,7 @@
 
   function updateBoardTextTools() {
     const node = currentBoardText();
+    const image = !node && selectedBoardImage();
     const item = elements.find(element => element.id === selectedId);
     placeInlineRemove(node);
     const source = node?.hasAttribute('data-source-edit');
@@ -1359,10 +1548,23 @@
       align:textAlignClasses.find(name => node.classList.contains(name))?.slice(5)
     } : item?.textFormats?.[activeTextField?.key];
     $$('[data-text-format]',boardTextTools).forEach(button => {
-      button.disabled = !node;
       const key = button.dataset.textFormat;
+      const isAlignment = ['left','center','right'].includes(key);
+      button.disabled = !node && !(image && isAlignment);
+      if (isAlignment) {
+        const label = `${{left:'ชิดซ้าย',center:'กึ่งกลาง',right:'ชิดขวา'}[key]}${image ? 'รูปภาพ' : ''}`;
+        button.setAttribute('aria-label',label);
+        button.title = label;
+      }
       const isPressed = key === 'bold' || key === 'italic' ? Boolean(format?.[key]) : (format?.align || 'left') === key;
-      button.setAttribute('aria-pressed',String(Boolean(node && isPressed)));
+      let imageAligned = false;
+      if (image && isAlignment) {
+        const area = imageFrameContainer(image);
+        const rect = image.getBoundingClientRect();
+        const spare = Math.max(0,area.width*zoom-rect.width);
+        imageAligned = Math.abs(rect.left-area.left-spare*{left:0,center:.5,right:1}[key]) < 2 && (spare > 2 || key === 'center');
+      }
+      button.setAttribute('aria-pressed',String(Boolean(node && isPressed || imageAligned)));
     });
   }
 
@@ -1453,7 +1655,7 @@
       ...item,type:'sourcePage',sourcePath:[],sourceKind:'composite',visualTemplate:true,
       title:$('.board-section-header b',block).textContent,markup:doc.innerHTML,originalImages:originals,
       imageCount:originals.length,imageCropRatios:item.cropRatio?{0:item.cropRatio}:{},
-      imageOffsets:item.imageOffset?{0:item.imageOffset}:{}
+      imageOffsets:item.imageOffset?{0:item.imageOffset}:{},imageOffsetsY:item.imageOffsetY?{0:item.imageOffsetY}:{}
     };
     activeTextField = null;
     sourceTextSelection = null;
@@ -1546,7 +1748,8 @@
       }
       const original = item.type === 'sourcePage' ? originals[index] : img.outerHTML;
       images.set(img,{original,width:item.imageWidths?.[index],crop:item.imageCropRatios?.[index] ?? (index === 0 ? item.cropRatio : undefined),
-        offset:item.imageOffsets?.[index] ?? (index === 0 ? item.imageOffset : undefined)});
+        offset:item.imageOffsets?.[index] ?? (index === 0 ? item.imageOffset : undefined),
+        offsetY:item.imageOffsetsY?.[index] ?? (index === 0 ? item.imageOffsetY : undefined)});
       if (!liveRoot && index === 0 && item.src && item.type !== 'sourcePage') {
         img.setAttribute('src',item.src);
         img.setAttribute('alt',item.alt || '');
@@ -1569,7 +1772,7 @@
       sourcePath:item.type === 'sourcePage' ? item.sourcePath || [] : [],studioRowId:undefined,
       markup:sourceHtmlFromPreview(snapshot.root,true),
       originalImages:records.map(record => record.original || null),imageCount:records.length,
-      imageWidths:settings('width'),imageCropRatios:settings('crop'),imageOffsets:settings('offset')
+      imageWidths:settings('width'),imageCropRatios:settings('crop'),imageOffsets:settings('offset'),imageOffsetsY:settings('offsetY')
     };
   }
 
@@ -1610,7 +1813,9 @@
       const rect = node.getBoundingClientRect();
       return point.y < rect.top + rect.height/2;
     });
-    return index >= 0 ? {node:zone.children[index],before:true} : null;
+    if (index < 0) return null;
+    const node = point.root ? counterpart(candidates[index],liveZone,zone) : zone.children[index];
+    return {node,before:true};
   }
 
   function materializeNestedTool(item) {
@@ -1798,12 +2003,56 @@
   function clearBlockDropHint() {
     blockDropTarget?.removeAttribute('data-block-drop');
     blockDropTarget?.removeAttribute('data-nested-drop');
+    blockDropTarget?.classList.remove('drop-target');
     blockDropTarget = null;
+    imageGuides.replaceChildren();
   }
 
   function isAfterBlock(event, block) {
     const rect = block.getBoundingClientRect();
     return event.clientY > rect.top + rect.height / 2;
+  }
+
+  function boardDropPlacement(event,target) {
+    if (target) return {target,after:isAfterBlock(event,target)};
+    const rows = $$(':scope > .board-section,:scope > .board-photo-row',artboard);
+    const next = rows.find(row => !isAfterBlock(event,row));
+    const row = next || rows.at(-1);
+    const block = row?.matches('.board-section') ? row :
+      next ? row?.firstElementChild : row?.lastElementChild;
+    return {target:block || null,after:!next};
+  }
+
+  function showBlockDropGuide(target,after) {
+    if (target) {
+      const bounds = (target.closest('.board-photo-row') || target).getBoundingClientRect();
+      paintImageGuide('y',after ? bounds.bottom : bounds.top,after ? 'แทรกหลัง' : 'แทรกก่อน',bounds);
+      return;
+    }
+    const blocks = $$('.board-section[data-id]',artboard);
+    const last = blocks.at(-1);
+    const region = last ? last.closest('.board-photo-row') || last : $('.editor-empty',artboard) || artboard;
+    const bounds = region.getBoundingClientRect();
+    paintImageGuide('y',last ? bounds.bottom : bounds.top+8,last ? 'เพิ่มท้ายบอร์ด' : 'เริ่มวางบนบอร์ด',bounds);
+  }
+
+  function showNestedDropGuides(point) {
+    const bounds = point.zone.getBoundingClientRect();
+    const anchor = nestedInsertionAnchor(point,point.zone);
+    const target = anchor?.node?.getBoundingClientRect();
+    const y = target ? anchor.before ? target.top : target.bottom :
+      point.zone.querySelector(':scope > :not([data-template-preview-only])') ? bounds.bottom : bounds.top+6;
+    paintImageGuide('x',bounds.left+bounds.width/2,'กึ่งกลาง',bounds);
+    paintImageGuide('y',y,point.column ? 'วางในคอลัมน์' : 'วางในบล็อก',bounds);
+  }
+
+  function showPhotoDropGuide(frame,photo) {
+    const bounds = frame.getBoundingClientRect();
+    if (photo.full) {
+      paintImageGuide('y',bounds.top,'ครบ 4 รูปแล้ว',bounds);
+      return;
+    }
+    paintImageGuide('x',photo.after ? bounds.right : bounds.left,photo.after ? 'วางรูปด้านขวา' : 'วางรูปด้านซ้าย',bounds);
   }
 
   function changeSourceText(root, anchor, action, tag = 'p', before = false) {
@@ -2310,7 +2559,7 @@
     } finally {bitmap.close?.();}
   }
 
-  async function applyFile(file) {
+  async function applyFile(file, insertAt) {
     if (!file || !file.type.startsWith('image/')) return;
     const targetId = selectedId;
     const sourceSlot = sourceImageSelection;
@@ -2321,7 +2570,9 @@
       if (documentVersion !== editorDocumentVersion) return;
       const alt = file.name.replace(/\.[^.]+$/,'');
       const current = elements.find(item => item.id === targetId);
-      if (current?.type==='sourcePage' && sourceSlot?.elementId===current.id) {
+      if (Number.isInteger(insertAt)) {
+        insertBlock('image',insertAt,{src:asset.src,alt,...(asset.aspectRatio?{aspectRatio:asset.aspectRatio}:{})});
+      } else if (current?.type==='sourcePage' && sourceSlot?.elementId===current.id) {
         const next=clone(elements);
         const target=next.find(item=>item.id===targetId);
         target.markup=replaceSourceImage(target.markup,sourceSlot.index,asset.src,alt);
@@ -2597,7 +2848,10 @@
   });
   boardTextTools.addEventListener('click',event => {
     const button = event.target.closest('[data-text-format]');
-    if (button) applyBoardTextFormat(button.dataset.textFormat);
+    if (!button) return;
+    const command = button.dataset.textFormat;
+    if (!currentBoardText() && ['left','center','right'].includes(command)) alignBoardImage(command);
+    else applyBoardTextFormat(command);
   });
   $$('.insert-grid [data-add]').forEach(button => button.addEventListener('click',() => addBlock(button.dataset.add,imageInsertOptions(button.dataset.imageStyle))));
   $$('.insert-grid [data-add]').forEach(button => button.addEventListener('dragstart',event => {
@@ -2618,13 +2872,18 @@
     else if (target) removeBoardMedia(target);
   });
   artboard.addEventListener('pointerover',event => {
-    if (event.target === inlineRemove) return;
+    if (event.target === inlineRemove || imageMove?.started) return;
     placeInlineRemove(event.target.closest(`[contenteditable="true"],${boardImageFrame},audio,.mock-player`) || currentBoardText());
   });
   artboard.addEventListener('pointerleave',() => placeInlineRemove(currentBoardText()));
   artboard.addEventListener('input',() => placeInlineRemove(currentBoardText()));
   window.addEventListener('resize',() => placeInlineRemove(inlineRemoveTarget));
 
+  artboard.addEventListener('click',event => {
+    if (!suppressImageClick) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  },true);
   artboard.addEventListener('click',event => {
     const nestedRemove = event.target.closest('[data-remove-nested]');
     if (nestedRemove) { removeNestedTool(nestedRemove); return; }
@@ -2637,6 +2896,10 @@
     if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
     if (event.target.closest('.button-block a,.source-page-render a')) event.preventDefault();
     if (event.target.closest('[contenteditable="true"],audio,video')) return;
+    if (event.target.closest('[data-resize-handle]')) return;
+    const frame = event.target.closest(boardImageFrame);
+    if (frame) selectBoardImage(frame);
+    else activeImage = null;
     const sourceFrame=event.target.closest('.source-image-frame[data-source-frame]');
     const sourceImage=sourceFrame?.querySelector('[data-source-image]');
     if(sourceImage) {
@@ -2680,6 +2943,7 @@
     imageFile.click();
   });
   artboard.addEventListener('pointerdown',startImageResize);
+  artboard.addEventListener('pointerdown',startImageMove);
   artboard.addEventListener('mousedown',startImageResize);
   artboard.addEventListener('keydown',event => {
     if (event.key === 'Enter' && !event.isComposing && event.target.closest('[contenteditable="true"]')) {
@@ -2724,6 +2988,7 @@
     const editable = event.target.closest('[contenteditable="true"]');
     const block = editable?.closest('.canvas-block[data-id]');
     if (!block) return;
+    activeImage = null;
     const sourceText = editable.matches('[data-source-edit]') ? editable : null;
     const selectionChanged = selectedId !== block.dataset.id;
     selectedId = block.dataset.id;
@@ -2761,6 +3026,7 @@
   });
   document.addEventListener('pointerup',() => { nestedDragGrip = null; });
   artboard.addEventListener('dragstart',event => {
+    if (imageMove) { event.preventDefault(); return; }
     if (event.target.closest('[data-resize-handle],[data-canvas-remove],[data-remove-nested],[contenteditable="true"]')) {event.preventDefault();return}
     const bar = event.target.closest('.nested-tool-bar') || nestedDragGrip?.closest('.nested-tool-bar');
     const block = (bar || event.target).closest('[data-id]');
@@ -2786,9 +3052,20 @@
   artboard.addEventListener('dragend',event => event.target.closest('[data-id]')?.classList.remove('dragging'));
   artboard.addEventListener('dragover',event => {
     if (event.dataTransfer?.types?.includes('Files')) {
-      const imageBox = event.target.closest('.image-placeholder,.preview-image-placeholder,.source-image-frame');
+      const imageBox = event.target.closest(boardImageFrame);
       event.preventDefault();
-      imageBox?.classList.add('drop-target');
+      clearBlockDropHint();
+      if (imageBox) {
+        blockDropTarget = imageBox;
+        imageBox.classList.add('drop-target');
+        const bounds = imageBox.getBoundingClientRect();
+        paintImageGuide('x',bounds.left+bounds.width/2,'วางไฟล์รูป',bounds);
+        paintImageGuide('y',bounds.top+bounds.height/2,'',bounds);
+      } else {
+        const block = event.target.closest('.board-section[data-id]');
+        const placement = block ? {target:block,after:true} : boardDropPlacement(event,null);
+        showBlockDropGuide(placement.target,placement.after);
+      }
       event.dataTransfer.dropEffect='copy';
       return;
     }
@@ -2801,19 +3078,27 @@
     if (photo && target) {
       blockDropTarget = target;
       target.dataset.blockDrop = photo.full ? 'full' : photo.after ? 'photo-after' : 'photo-before';
+      showPhotoDropGuide(event.target.closest(boardImageFrame),photo);
       return;
     }
     const point = target?.dataset.id !== draggedId && nestedDropPoint(event);
     if (point) {
       const photoSlot = nestedPhotoDrop(event,draggedType,draggedId);
       blockDropTarget = photoSlot?.wrapper || point.zone;
-      if (photoSlot) blockDropTarget.setAttribute('data-block-drop',photoSlot.full ? 'full' : photoSlot.after ? 'photo-after' : 'photo-before');
-      else blockDropTarget.setAttribute('data-nested-drop','');
+      if (photoSlot) {
+        blockDropTarget.setAttribute('data-block-drop',photoSlot.full ? 'full' : photoSlot.after ? 'photo-after' : 'photo-before');
+        showPhotoDropGuide(event.target.closest(boardImageFrame),photoSlot);
+      } else {
+        blockDropTarget.setAttribute('data-nested-drop','');
+        showNestedDropGuides(point);
+      }
       return;
     }
-    if (target && target.dataset.id !== draggedId) {
-      blockDropTarget = target;
-      target.dataset.blockDrop = isAfterBlock(event,target) ? 'after' : 'before';
+    const placement = boardDropPlacement(event,target);
+    if (placement.target?.dataset.id !== draggedId) {
+      blockDropTarget = placement.target;
+      if (blockDropTarget) blockDropTarget.dataset.blockDrop = placement.after ? 'after' : 'before';
+      showBlockDropGuide(placement.target,placement.after);
     }
   });
   artboard.addEventListener('dragleave',event => {
@@ -2828,20 +3113,21 @@
     clearBlockDropHint();
     artboard.querySelectorAll('.drop-target').forEach(node => node.classList.remove('drop-target'));
     const target = event.target.closest('[data-id]');
+    const placement = boardDropPlacement(event,target);
+    const targetIndex = elements.findIndex(item => item.id === placement.target?.dataset.id);
+    const after = placement.after;
+    const row = photoRowAt(elements,targetIndex);
+    const insertAt = targetIndex < 0 ? elements.length : after ? row.end : row.start;
     const droppedFile = event.dataTransfer.files?.[0];
     if (droppedFile?.type.startsWith('image/')) {
       const frame = event.target.closest('[data-source-frame]');
       sourceImageSelection = frame && target ? {elementId:target.dataset.id,index:Number(frame.dataset.sourceFrame)} : null;
       if (target) selectElement(target.dataset.id);
       else selectedId = null;
-      await applyFile(droppedFile);
+      await applyFile(droppedFile,target ? undefined : insertAt);
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
-    const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
-    const after = target ? isAfterBlock(event,target) : false;
-    const row = photoRowAt(elements,targetIndex);
-    const insertAt = targetIndex < 0 ? elements.length : after ? row.end : row.start;
     const nested = nestedDropPoint(event);
     if (draggedNested) {
       moveNestedTool(nested,insertAt,nested && nestedPhotoDrop(event,source,draggedId));
@@ -2878,7 +3164,7 @@
       return;
     }
     if (!source) return;
-    moveElement(source,target?.dataset.id || null,after);
+    moveElement(source,placement.target?.dataset.id || null,after);
     draggedId = null;
   });
 

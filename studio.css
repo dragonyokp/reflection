@@ -1156,7 +1156,43 @@ body{font-size:18px}
 .artboard .board-crop-frame{position:relative;height:auto!important;min-height:0!important;aspect-ratio:var(--board-crop-ratio)!important;overflow:hidden}
 .artboard :is(.board-crop-frame,.image-placeholder)>img{position:absolute!important;inset:0;width:100%!important;height:100%!important;max-height:none!important}
 .artboard .preview-image-placeholder.board-crop-frame > img { object-fit: cover !important; }
-.artboard :is(.source-image-frame,.preview-image-placeholder,.image-placeholder) { left: var(--board-image-offset,0%); }
+.artboard :is(.source-image-frame,.preview-image-placeholder,.image-placeholder) {
+  left: var(--board-image-offset,0%);
+  top: var(--board-image-offset-y,0px);
+  cursor: grab;
+}
+.artboard :is(.source-image-frame,.preview-image-placeholder,.image-placeholder).image-moving { cursor: grabbing; }
+.artboard .board-image-guides {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  pointer-events: none;
+}
+.board-image-guides .image-guide { position: absolute; color: #a5420d; }
+.image-guide-x { top: 0; bottom: 0; left: var(--guide-position); border-left: 1px solid #f07830; }
+.image-guide-y { left: 0; right: 0; top: var(--guide-position); border-top: 1px solid #f07830; }
+.image-guide-x.image-guide-local {
+  top: var(--guide-start);
+  bottom: auto;
+  height: var(--guide-length);
+  border-left-width: 2px;
+}
+.image-guide-y.image-guide-local {
+  left: var(--guide-start);
+  right: auto;
+  width: var(--guide-length);
+  border-top-width: 2px;
+}
+.board-image-guides .image-guide span {
+  position: absolute;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #ffe4cf;
+  font: 600 12px/1.2 var(--font);
+  white-space: nowrap;
+}
+.image-guide-x span { top: 8px; left: 5px; }
+.image-guide-y span { left: 7px; top: 4px; }
 .artboard .source-image-frame:not(:hover):not(:focus-within):not(.source-image-selected) > .resize-handle { display: none; }
 .artboard :is(.source-image-frame,.preview-image-placeholder,.board-crop-frame) > .resize-handle { transform: none; }
 .artboard :is(.source-image-frame,.preview-image-placeholder,.board-crop-frame) > :is(.handle-n,.handle-s) { transform: translateX(-50%); }
@@ -1670,17 +1706,6 @@ body{font-size:18px}
   margin: 2px 0 !important;
 }
 .template-tool-preview .source-thumb-image { min-height: 12px; }
-.canvas-block[data-block-drop]::after {
-  content: '';
-  position: absolute;
-  z-index: 12;
-  inset-inline: 0;
-  height: 3px;
-  background: #528b36;
-  pointer-events: none;
-}
-.canvas-block[data-block-drop="before"]::after { top: -5px; }
-.canvas-block[data-block-drop="after"]::after { bottom: -5px; }
 .board-photo-row {
   display: grid;
   grid-template-columns: repeat(var(--photo-count),minmax(0,1fr));
@@ -1707,13 +1732,6 @@ body{font-size:18px}
 .board-photo-row .board-section > .image-block,
 .board-photo-row .board-section .legacy-pattern-preview :is(.highlight-preview-layout,.quote-image-preview-figure) { width: 100%; }
 .board-photo-row .board-section :is(.legacy-pattern-preview.block-preview,.image-block) { padding: 12px; }
-.canvas-block[data-block-drop^="photo-"]::after {
-  inset-block: 48px 0;
-  width: 4px;
-  height: auto;
-}
-.canvas-block[data-block-drop="photo-before"]::after { inset-inline: 0 auto; }
-.canvas-block[data-block-drop="photo-after"]::after { inset-inline: auto 0; }
 .canvas-block[data-block-drop="full"] :is(.image-placeholder,.preview-image-placeholder,.source-image-frame) {
   outline: 2px solid #bd5521;
 }
@@ -1744,9 +1762,9 @@ body{font-size:18px}
   min-height: 48px;
 }
 .board-section [data-nested-drop] {
-  outline: 2px dashed #568c3b;
+  outline: 1px dashed #f07830;
   outline-offset: -3px;
-  background-color: #eaf4de;
+  background-color: #fff4e8;
 }
 .source-page-render [data-studio-nest] {
   position: relative;
@@ -1794,7 +1812,6 @@ body{font-size:18px}
 .source-page-render [data-studio-photo-row] { margin-inline: -4px; }
 .source-page-render [data-studio-photo-row] > div { min-width: 0; padding-inline: 4px; }
 .source-page-render [data-studio-photo-row] figure { margin: 0; }
-.source-page-render [data-studio-nest][data-block-drop^="photo-"] { outline: 2px solid #568c3b; }
 .source-page-render [data-studio-nest][data-block-drop="full"] { outline: 2px solid #bd5521; }
 .board-section .source-text-drop-before { box-shadow: 0 -4px #76a34e; }
 .board-section .source-text-drop-after { box-shadow: 0 4px #76a34e; }
