@@ -1155,6 +1155,15 @@ body{font-size:18px}
 
 .artboard .board-crop-frame{position:relative;height:auto!important;min-height:0!important;aspect-ratio:var(--board-crop-ratio)!important;overflow:hidden}
 .artboard :is(.board-crop-frame,.image-placeholder)>img{position:absolute!important;inset:0;width:100%!important;height:100%!important;max-height:none!important}
+.artboard .preview-image-placeholder.board-crop-frame > img { object-fit: cover !important; }
+.artboard .source-image-frame:not(:hover):not(:focus-within):not(.source-image-selected) > .resize-handle { display: none; }
+.artboard :is(.source-image-frame,.board-crop-frame) > .resize-handle { transform: none; }
+.artboard :is(.source-image-frame,.board-crop-frame) > :is(.handle-n,.handle-s) { transform: translateX(-50%); }
+.artboard :is(.source-image-frame,.board-crop-frame) > :is(.handle-e,.handle-w) { transform: translateY(-50%); }
+.artboard :is(.source-image-frame,.board-crop-frame) > :is(.handle-nw,.handle-n,.handle-ne) { top: 2px; }
+.artboard :is(.source-image-frame,.board-crop-frame) > :is(.handle-sw,.handle-s,.handle-se) { bottom: 2px; }
+.artboard :is(.source-image-frame,.board-crop-frame) > :is(.handle-nw,.handle-w,.handle-sw) { left: 2px; }
+.artboard :is(.source-image-frame,.board-crop-frame) > :is(.handle-ne,.handle-e,.handle-se) { right: 2px; }
 .crop-image-export{position:absolute;z-index:7;bottom:16px;left:50%;translate:-50% 0;min-height:36px;max-width:calc(100% - 22px);width:max-content;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 12px;border:1px solid #a1cc75;border-radius:7px;background:#19271c;color:#f0f8e9;font:600 18px var(--font);cursor:pointer}
 .crop-image-export:is(:hover,:focus-visible){background:#354f2e;border-color:#dbf5c5}
 .crop-image-export:disabled{opacity:.65;cursor:progress}

@@ -293,7 +293,7 @@
   const safeColor = value => /^#[0-9a-f]{6}$/i.test(String(value||'')) ? value : '#20271e';
   const safeHref = value => /^(https?:|mailto:|tel:|#|\/)/i.test(String(value||'')) ? String(value) : '#';
   const imageWidthBase = element => element.type === 'split' ? Math.round((CONTENT_WIDTH - 48 - 15) / 2) : element.type === 'legacy' ? ARTBOARD_WIDTH : CONTENT_WIDTH;
-  const imageMaxPercent = element => ['split','legacy'].includes(element.type) ? 100 : 120;
+  const imageMaxPercent = element => ['split','legacy','sourcePage'].includes(element.type) ? 100 : 120;
   function imageWidthPx(element) {
     const block = element.id && artboard.querySelector(`[data-id="${CSS.escape(element.id)}"]`);
     const frame = block?.querySelector('.image-placeholder,.preview-image-placeholder');
@@ -339,7 +339,7 @@
       } else if (visualTemplate && !hasUserImage && !compact) {
         imageControl = '<span class="source-template-green-label" aria-hidden="true">IMAGE</span>';
       }
-      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${compact?' compact-preview-image':''}${isSelected?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${marked}${imageControl}${isSelected?renderResizeHandles({id:selectedId}):''}</span>`;
+      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${compact?' compact-preview-image':''}${isSelected?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${marked}${imageControl}${editing?renderResizeHandles(element,true):''}</span>`;
     });
     const preview = clean.replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
     if (!editing) return preview;
@@ -401,8 +401,8 @@
         return `<span class="source-thumb-image shape-${escapeHtml(shape)}${compact} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"${sizing}></span>`;
       });
   }
-  function renderResizeHandles(element) {
-    if (element.id !== selectedId) return '';
+  function renderResizeHandles(element, always = false) {
+    if (!always && element.id !== selectedId) return '';
     return `<span class="resize-handle handle-nw" data-resize-handle="nw" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-n" data-resize-handle="n" title="ลากเพื่อครอปความสูงของรูป" aria-hidden="true"></span><span class="resize-handle handle-ne" data-resize-handle="ne" aria-hidden="true"></span><span class="resize-handle handle-e" data-resize-handle="e" aria-hidden="true"></span><span class="resize-handle handle-se" data-resize-handle="se" role="button" tabindex="0" aria-label="ปรับขนาดรูปภาพ"></span><span class="resize-handle handle-s" data-resize-handle="s" title="ลากเพื่อครอปความสูงของรูป" aria-hidden="true"></span><span class="resize-handle handle-sw" data-resize-handle="sw" aria-hidden="true"></span><span class="resize-handle handle-w" data-resize-handle="w" aria-hidden="true"></span>`;
   }
 
@@ -774,8 +774,6 @@
 
   function applyImageCrops(block, element) {
     for (const frame of block.querySelectorAll(boardImageFrame)) {
-      const image = frame.querySelector('img');
-      if (!image) continue;
       const source = frame.hasAttribute('data-source-frame');
       const index = frame.dataset.sourceFrame;
       const ratio = source ? element.imageCropRatios?.[index] : element.cropRatio;
@@ -1155,12 +1153,13 @@
     if (!element || (!['image','split'].includes(element.type) && !legacyHasImage(element) && element.type!=='sourcePage') || !imageBox || (element.type==='sourcePage'&&!Number.isInteger(sourceIndex))) return;
     event.preventDefault();
     event.stopPropagation();
+    if (element.type === 'sourcePage') {
+      selectedId = element.id;
+      sourceImageSelection = {elementId:element.id,index:sourceIndex};
+    }
     const rect = imageBox.getBoundingClientRect();
     const width = rect.width / zoom;
-    const parent = imageBox.parentElement;
-    const style = getComputedStyle(parent);
-    const parentWidth = parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const startingPercent = element.type === 'sourcePage' ? width / Math.max(1,parentWidth) * 100 : Number(element.width) || (element.type === 'legacy' ? legacyDefaultWidth(element.legacyType) : 100);
+    const startingPercent = element.type === 'sourcePage' ? sourceFrameWidthPercent(imageBox) : Number(element.width) || (element.type === 'legacy' ? legacyDefaultWidth(element.legacyType) : 100);
     const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),startingPercent));
     const height = Math.max(1,rect.height / zoom);
     resizeState = {id:element.id,handle:handle.dataset.resizeHandle,sourceIndex,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),frameWidth:width,aspect:width/height,before:clone(elements),block};
@@ -1171,6 +1170,13 @@
     document.addEventListener('pointercancel',finishImageResize,{once:true});
     document.addEventListener('mousemove',resizeImageMove);
     document.addEventListener('mouseup',finishImageResize,{once:true});
+  }
+
+  function sourceFrameWidthPercent(frame) {
+    const parent = frame.parentElement;
+    const style = getComputedStyle(parent);
+    const padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+    return frame.getBoundingClientRect().width / zoom / Math.max(1,parent.clientWidth-padding) * 100;
   }
 
   function resizeImageMove(event) {
@@ -1184,7 +1190,7 @@
     const dy = (event.clientY-resizeState.startY) / zoom * (handle.includes('n') ? -1 : 1) * resizeState.aspect;
     const block = artboard.querySelector(`[data-id="${el.id}"]`);
     const imageBox = el.type==='sourcePage' ? block?.querySelector(`[data-source-frame="${resizeState.sourceIndex}"]`) : block?.querySelector(boardImageFrame);
-    if (hasY && !hasX && imageBox?.querySelector('img')) {
+    if (hasY && !hasX && imageBox) {
       if (Math.abs(dy) < 1 && !resizeState.cropping) return;
       resizeState.cropping = true;
       const ratio = Math.max(.25,Math.min(5,resizeState.aspect / Math.max(.01,1 + dy / resizeState.frameWidth)));
@@ -1333,12 +1339,13 @@
       return;
     }
     const scale = board.width / artboard.offsetWidth;
+    const text = inlineRemoveTarget.matches('[contenteditable="true"]');
     const label = inlineRemoveTarget.matches('audio,.mock-player') ? 'ลบเสียงส่วนนี้' :
-      inlineRemoveTarget.matches('[contenteditable="true"]') ? 'ลบข้อความส่วนนี้' : 'ลบรูปส่วนนี้';
+      text ? 'ลบข้อความส่วนนี้' : 'ลบรูปส่วนนี้';
     inlineRemove.setAttribute('aria-label',label);
     inlineRemove.title = label;
     inlineRemove.style.left = `${Math.min(artboard.clientWidth-14,(rect.right-board.left)/scale)}px`;
-    inlineRemove.style.top = `${(rect.top-board.top)/scale}px`;
+    inlineRemove.style.top = `${(rect.top-board.top)/scale - (text ? 0 : 8)}px`;
     inlineRemove.hidden = false;
   }
 
@@ -2061,23 +2068,32 @@
     return fragment.innerHTML;
   }
 
-  async function createCroppedWebp(image) {
-    await image.decode();
+  function measureExportImage(image) {
     const frame = image.closest(boardImageFrame);
-    const boxWidth = image.clientWidth;
-    const boxHeight = image.clientHeight;
-    if (!frame || !boxWidth || !boxHeight) throw new Error('ไม่พบกรอบรูปบนบอร์ด');
+    const boxWidth = frame?.clientWidth;
+    const boxHeight = frame?.clientHeight;
+    if (!boxWidth || !boxHeight) return null;
+    const style = getComputedStyle(image);
+    return {
+      boxWidth,boxHeight,fit:style.objectFit,
+      radii:['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
+        .map(property => parseFloat(style[property]) || 0)
+    };
+  }
+
+  async function createCroppedWebp(image, measurement) {
+    await image.decode();
+    const crop = measurement || measureExportImage(image);
+    if (!crop) throw new Error('ไม่พบกรอบรูปบนบอร์ด');
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1000,boxWidth);
-    canvas.height = Math.round(canvas.width * boxHeight / boxWidth);
+    canvas.width = 1000;
+    canvas.height = Math.max(1,Math.round(canvas.width * crop.boxHeight / crop.boxWidth));
     const context = canvas.getContext('2d');
     if (!context) throw new Error('เบราว์เซอร์นี้สร้างไฟล์ภาพไม่ได้');
-    const style = getComputedStyle(image);
-    const scale = (style.objectFit === 'contain' ? Math.min : Math.max)(canvas.width/image.naturalWidth,canvas.height/image.naturalHeight);
+    const scale = (crop.fit === 'contain' ? Math.min : Math.max)(canvas.width/image.naturalWidth,canvas.height/image.naturalHeight);
     const width = image.naturalWidth * scale;
     const height = image.naturalHeight * scale;
-    const radii = ['borderTopLeftRadius','borderTopRightRadius','borderBottomRightRadius','borderBottomLeftRadius']
-      .map(property => (parseFloat(style[property]) || 0)*canvas.width/boxWidth);
+    const radii = crop.radii.map(radius => radius*canvas.width/crop.boxWidth);
     if (radii.some(Boolean) && context.roundRect) {
       context.beginPath();
       context.roundRect(0,0,canvas.width,canvas.height,radii);
@@ -2098,6 +2114,7 @@
     setTimeout(() => URL.revokeObjectURL(url),5000);
   }
 
+  let exportMeasurements = new Map();
   async function exportDesignImage() {
     const button = $('#openImageExport');
     const images = [...artboard.querySelectorAll('img[src]')].filter(image => {
@@ -2123,7 +2140,7 @@
       for (const [index,image] of images.entries()) {
         button.textContent = `กำลังส่งออกรูป ${index+1}/${images.length}…`;
         try {
-          const {blob} = await createCroppedWebp(image);
+          const {blob} = await createCroppedWebp(image,exportMeasurements.get(image));
           const label = (image.alt || 'image').replace(/[\\/:*?"<>|]+/g,'-').trim() || 'image';
           let filename = `${fileTitle}-${String(index+1).padStart(2,'0')}-${label}`;
           let unique = filename;
@@ -2479,7 +2496,10 @@
   $('#backToGallery').addEventListener('click',() => {
     showMode('gallery');
   });
-  $('#editorExport').addEventListener('click',() => showMode('export'));
+  $('#editorExport').addEventListener('click',() => {
+    exportMeasurements = new Map($$('img[src]',artboard).map(image => [image,measureExportImage(image)]));
+    showMode('export');
+  });
   $('#backToEditor').addEventListener('click',() => showMode('editor'));
   $('#openImageExport').addEventListener('click',exportDesignImage);
   $('#openHtmlExport').addEventListener('click',openExport);
@@ -2591,7 +2611,7 @@
       if (sourceBlock?.dataset.id) {
         const alreadySelected = selectedId === sourceBlock.dataset.id;
         selectElement(sourceBlock.dataset.id);
-        if (alreadySelected && !openPicker) renderArtboard();
+        if (alreadySelected) renderArtboard();
       }
       if (openPicker) {
         imageFile.value = '';
@@ -2644,8 +2664,17 @@
     if (!element) return;
     const before = clone(elements);
     const step = event.shiftKey ? 5 : 1;
-    element.width = Math.max(10,Math.min(imageMaxPercent(element),Number(element.width||100) + (['ArrowRight','ArrowDown'].includes(event.key)?step:-step)));
+    const delta = ['ArrowRight','ArrowDown'].includes(event.key) ? step : -step;
+    const clamp = width => Math.max(10,Math.min(imageMaxPercent(element),width));
+    const sourceIndex = Number(handle.parentElement.dataset.sourceFrame);
+    if (element.type === 'sourcePage' && Number.isInteger(sourceIndex)) {
+      selectedId = element.id;
+      sourceImageSelection = {elementId:element.id,index:sourceIndex};
+      element.imageWidths ||= {};
+      element.imageWidths[sourceIndex] = clamp(sourceFrameWidthPercent(handle.parentElement)+delta);
+    } else element.width = clamp(Number(element.width || 100)+delta);
     undoStack.push(before); redoStack=[]; renderAll(); scheduleSave();
+    if (element.type === 'sourcePage') $(`.source-image-selected [data-resize-handle="${handle.dataset.resizeHandle}"]`,artboard)?.focus({preventScroll:true});
   });
   artboard.addEventListener('input',onInlineEdit);
   artboard.addEventListener('paste',event => {
@@ -2669,7 +2698,6 @@
       sourceImageSelection = null;
       $$('.source-image-selected',block).forEach(frame => {
         frame.classList.remove('source-image-selected');
-        $$('.resize-handle',frame).forEach(handle => handle.remove());
       });
       $('[data-source-text-selected]',artboard)?.removeAttribute('data-source-text-selected');
       sourceText.setAttribute('data-source-text-selected','');
