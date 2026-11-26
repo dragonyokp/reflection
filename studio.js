@@ -60,6 +60,8 @@
   let activeImage = null;
   let selectedFreeBox = null;
   let freeGesture = null;
+  let freeDrawKind = null;
+  let freeDraw = null;
   let freeUpload = null;
   let imageMove = null;
   let suppressImageClick = false;
@@ -650,6 +652,7 @@
     activeTextField = null;
     activeImage = null;
     selectedFreeBox = null;
+    freeDrawKind = null;
     sourceTextSelection = null;
     sourceImageSelection = null;
     nextId = Math.max(1,...blocks.map(block => (Number(String(block.id).split('-').pop()) || 0) + 1));
@@ -670,6 +673,7 @@
     showMode('editor');
     setActiveMode('create');
     renderAll();
+    setFreeDrawTool(null);
     fitCanvasToView();
     window.scrollTo(0,0);
   }
@@ -780,7 +784,9 @@
   const boardImageFrame = '.image-placeholder,.preview-image-placeholder,.source-image-frame,.free-image-frame';
 
   const freeTools = {
-    rect:{label:'สี่เหลี่ยมสี',width:240,height:170,background:'#a6d965'},
+    rect:{label:'สี่เหลี่ยม',width:240,height:170,background:'#a6d965'},
+    ellipse:{label:'วงรี',width:200,height:150,background:'#a6d965'},
+    line:{label:'เส้น',width:200,height:44,background:'#315a38',stroke:4,flat:true},
     image:{label:'กล่องรูปภาพ',width:300,height:220,background:'#d1e7bf'},
     text:{label:'กล่องข้อความ',width:270,height:120,background:'#f0f5e8',text:'พิมพ์ข้อความของคุณ',color:'#203524',fontSize:24}
   };
@@ -789,16 +795,26 @@
   const bound = (n,min,max) => Math.min(Math.max(n,min),Math.max(min,max));
 
   function freeBoxStyle(box) {
-    return `left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;background:${safeColor(box.background)};border-radius:${bound(box.radius||0,0,80)}px`;
+    return `left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;background:${box.kind==='line'?'transparent':safeColor(box.background)};border-radius:${box.kind==='ellipse'?'50%':bound(box.radius||0,0,80)+'px'}`;
+  }
+
+  function freeLineEnds(box) {
+    if (box.vertical) return [.5,0,.5,1];
+    if (box.flat) return [0,.5,1,.5];
+    return box.invert ? [0,1,1,0] : [0,0,1,1];
   }
 
   function renderFreeLayout(layout) {
-    return `<div class="free-stage" data-free-stage style="height:${freeStageHeight(layout)}px">${layout.boxes.map(box => {
+    return `<div class="free-stage${freeDrawKind?' free-stage-draw':''}" data-free-stage style="height:${freeStageHeight(layout)}px">${layout.boxes.map(box => {
       const selected = selectedId === layout.id && selectedFreeBox === box.id;
       const info = freeTools[box.kind];
       const body = box.kind === 'image'
         ? `<div class="free-image-frame">${box.src ? `<img src="${escapeHtml(box.src)}" alt="${escapeHtml(box.alt || '')}" draggable="false">` : '<button type="button" class="free-image-pick" data-free-upload>＋ เพิ่มรูปภาพ</button>'}</div>`
-        : box.kind === 'text' ? `<div class="free-copy" style="color:${safeColor(box.color)};font-size:${box.fontSize}px">${textHtml(box.text)}</div>` : '';
+        : box.kind === 'text' ? `<div class="free-copy" style="color:${safeColor(box.color)};font-size:${box.fontSize}px">${textHtml(box.text)}</div>`
+        : box.kind === 'line' ? (() => {
+          const [x1,y1,x2,y2] = freeLineEnds(box);
+          return `<svg class="free-line" width="100%" height="100%" aria-hidden="true"><line x1="${100*x1}%" y1="${100*y1}%" x2="${100*x2}%" y2="${100*y2}%" stroke-width="${box.stroke}" stroke="${safeColor(box.background)}" stroke-linecap="round"/></svg>`;
+        })() : '';
       return `<div class="free-box${selected?' selected':''}" data-free-box="${box.id}" data-kind="${box.kind}" aria-label="${info.label}" tabindex="0" style="${freeBoxStyle(box)}">${body}
         <button type="button" class="free-box-remove" data-free-remove aria-label="ลบ${info.label}">×</button>
         ${box.kind==='image' && box.src ? '<button type="button" class="free-box-replace" data-free-upload>เปลี่ยนรูป</button>' : ''}
@@ -823,17 +839,21 @@
   const horizontalAlign = {left:0,center:.5,right:1};
 
   function renderFreeProperties() {
-    const {box} = currentFreeBox();
+    const {layout,box} = currentFreeBox();
     const root = $('#freeProperties');
-    if (!box) { root.innerHTML = ''; return; }
+    if (!layout) { root.innerHTML = ''; return; }
+    const layers = layout.boxes.length ? `<section class="free-properties free-layers"><h3>เลเยอร์</h3>
+      ${layout.boxes.slice().reverse().map(item => `<button type="button" data-free-layer="${item.id}" aria-pressed="${item.id===box?.id}"><i style="background:${safeColor(item.background)}" aria-hidden="true"></i><span>${escapeHtml(item.kind==='text' ? (item.text.trim().slice(0,42) || freeTools[item.kind].label) : item.alt || freeTools[item.kind].label)}</span></button>`).join('')}
+      </section>` : '';
+    if (!box) { root.innerHTML = layers; return; }
     const number = (key,label,min,max) => `<label>${label}<input type="number" min="${min}" max="${max}" data-free-prop="${key}" value="${Math.round(box[key] || 0)}"></label>`;
     const color = (key,label) => `<label>${label}<input type="color" data-free-prop="${key}" value="${safeColor(box[key])}"></label>`;
     root.innerHTML = `<section class="free-properties"><h3>${freeTools[box.kind].label}</h3>
-      <div class="free-property-grid">${color('background','สีพื้น')}${number('radius','มุมโค้ง',0,80)}
+      <div class="free-property-grid">${color('background',box.kind==='line'?'สีเส้น':'สีพื้น')}${box.kind==='line'?number('stroke','ความหนา',1,32):box.kind==='ellipse'?'':number('radius','มุมโค้ง',0,80)}
       ${box.kind==='text' ? color('color','สีข้อความ')+number('fontSize','ขนาดตัวอักษร',14,96) : ''}
       ${number('x','ซ้าย',0,ARTBOARD_WIDTH-box.width)}${number('y','บน',0,1400)}
       ${number('width','กว้าง',freeMinSize,ARTBOARD_WIDTH-box.x)}${number('height','สูง',freeMinSize,1000)}</div>
-      <div class="free-property-actions"><button type="button" data-free-order="back">ส่งไปหลัง</button><button type="button" data-free-order="front">นำมาหน้า</button></div></section>`;
+      <div class="free-property-actions"><button type="button" data-free-order="back">ส่งไปหลัง</button><button type="button" data-free-order="front">นำมาหน้า</button><button type="button" data-free-duplicate>ทำสำเนา</button></div></section>${layers}`;
   }
 
   function switchShelf(free) {
@@ -844,6 +864,20 @@
       $('#'+panel).hidden = !active;
     }
     if (free) renderFreeProperties();
+    else setFreeDrawTool(null);
+  }
+
+  function setFreeDrawTool(kind) {
+    freeDrawKind = Object.hasOwn(freeTools,kind) ? kind : null;
+    $('[data-free-select-tool]').setAttribute('aria-pressed',String(!freeDrawKind));
+    $$('[data-free-tool]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.freeTool === freeDrawKind)));
+    if (freeDrawKind && !currentFreeBox().layout) {
+      selectedFreeBox = null;
+      insertBlock('freeLayout');
+    }
+    const stage = currentFreeBox().layout && $(`[data-id="${CSS.escape(selectedId)}"] [data-free-stage]`,artboard);
+    $$('[data-free-stage]',artboard).forEach(canvas => canvas.classList.toggle('free-stage-draw',Boolean(freeDrawKind)));
+    if (freeDrawKind && stage) stage.scrollIntoView({block:'nearest'});
   }
 
   function addFreeBox(kind,event) {
@@ -880,6 +914,7 @@
     activeTextField = null;
     setElements(next,layout.id);
     switchShelf(true);
+    setFreeDrawTool(null);
   }
 
   function changeFreeBox(layout,box,update) {
@@ -910,7 +945,102 @@
     text.focus();
   }
 
+  function startFreeDraw(event,stage) {
+    const {layout} = freeSelection(stage);
+    if (!layout) return;
+    event.preventDefault();
+    const bounds = stage.getBoundingClientRect();
+    const draft = document.createElement('div');
+    draft.className = `free-draw-preview is-${freeDrawKind}`;
+    stage.append(draft);
+    freeDraw = {layout,stage,bounds,draft,kind:freeDrawKind,pointer:event.pointerId,
+      x:bound((event.clientX-bounds.left)/zoom,0,ARTBOARD_WIDTH),
+      y:bound((event.clientY-bounds.top)/zoom,0,bounds.height/zoom)};
+    stage.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveFreeDraw(event) {
+    const s = freeDraw;
+    if (event.pointerId !== s.pointer) return;
+    event.preventDefault();
+    const stageHeight = s.bounds.height/zoom;
+    const rawX = bound((event.clientX-s.bounds.left)/zoom,0,ARTBOARD_WIDTH);
+    const rawY = bound((event.clientY-s.bounds.top)/zoom,0,stageHeight);
+    if (!s.moved && Math.hypot(rawX-s.x,rawY-s.y)*zoom<5) return;
+    s.moved = true;
+    const snap = (value,limit) => [0,limit/2,limit].find(edge => Math.abs(edge-value)*zoom<8) ?? value;
+    let x = snap(rawX,ARTBOARD_WIDTH), y = snap(rawY,stageHeight);
+    if (event.shiftKey && ['rect','ellipse'].includes(s.kind)) {
+      const signX = Math.sign(x-s.x) || 1, signY = Math.sign(y-s.y) || 1;
+      const size = Math.min(Math.max(Math.abs(x-s.x),Math.abs(y-s.y)),
+        signX < 0 ? s.x : ARTBOARD_WIDTH-s.x,signY < 0 ? s.y : stageHeight-s.y);
+      x = s.x+signX*size;
+      y = s.y+signY*size;
+    }
+    const width = Math.min(ARTBOARD_WIDTH,Math.max(freeMinSize,Math.abs(x-s.x)));
+    const height = Math.min(stageHeight,Math.max(freeMinSize,Math.abs(y-s.y)));
+    const flat = s.kind === 'line' && Math.abs(y-s.y)*zoom < 5;
+    const vertical = s.kind === 'line' && Math.abs(x-s.x)*zoom < 5 && !flat;
+    s.geometry = {
+      x:bound(Math.min(s.x,x)-(vertical?width/2:0),0,ARTBOARD_WIDTH-width),
+      y:bound(Math.min(s.y,y)-(flat?height/2:0),0,stageHeight-height),
+      width,height,flat,vertical,invert:(x-s.x)*(y-s.y)<0
+    };
+    const g = s.geometry;
+    s.draft.style.cssText = `left:${g.x}px;top:${g.y}px;width:${g.width}px;height:${g.height}px`;
+    if (s.kind === 'line') {
+      const [x1,y1,x2,y2] = freeLineEnds(g);
+      s.draft.innerHTML = `<svg width="100%" height="100%"><line x1="${100*x1}%" y1="${100*y1}%" x2="${100*x2}%" y2="${100*y2}%"/></svg>`;
+    }
+    imageGuides.replaceChildren();
+    if ([0,ARTBOARD_WIDTH/2,ARTBOARD_WIDTH].includes(x)) {
+      paintImageGuide('x',s.bounds.left+x*zoom,x===0?'ซ้าย':x===ARTBOARD_WIDTH?'ขวา':'กึ่งกลาง',s.bounds);
+    }
+    if ([0,stageHeight/2,stageHeight].includes(y)) {
+      paintImageGuide('y',s.bounds.top+y*zoom,y===0?'บน':y===stageHeight?'ล่าง':'กึ่งกลาง',s.bounds);
+    }
+  }
+
+  function finishFreeDraw(event) {
+    const s = freeDraw;
+    if (s.pointer !== event.pointerId) return;
+    freeDraw = null;
+    s.draft.remove();
+    imageGuides.replaceChildren();
+    if (event.type === 'pointercancel') return;
+    const next = clone(elements);
+    const layout = next.find(item => item.id === s.layout.id);
+    if (!layout) return;
+    const tool = freeTools[s.kind];
+    const geometry = s.geometry || {
+      x:bound(s.x,0,ARTBOARD_WIDTH-tool.width),
+      y:bound(s.y,0,s.bounds.height/zoom-tool.height)
+    };
+    const box = {id:uid(),kind:s.kind,...tool,radius:0,...geometry};
+    layout.boxes.push(box);
+    selectedFreeBox = box.id;
+    activeImage = activeTextField = null;
+    suppressImageClick = true;
+    setTimeout(() => { suppressImageClick = false; },0);
+    setFreeDrawTool(null);
+    setElements(next,layout.id);
+  }
+
+  function duplicateFreeBox() {
+    const {layout,box} = currentFreeBox();
+    if (!box) return;
+    const next = clone(elements);
+    const stage = next.find(item => item.id === layout.id);
+    const duplicate = {...box,id:uid(),x:bound(box.x+18,0,ARTBOARD_WIDTH-box.width),
+      y:bound(box.y+18,0,freeStageHeight(layout)-box.height)};
+    stage.boxes.push(duplicate);
+    selectedFreeBox = duplicate.id;
+    setElements(next,layout.id);
+  }
+
   function startFreeGesture(event) {
+    const surface = event.target.closest('[data-free-stage]');
+    if (event.button === 0 && surface && freeDrawKind) { startFreeDraw(event,surface); return; }
     if (event.button !== 0 || event.target.closest('button,[contenteditable]')) return;
     const {layout,box,tile} = freeSelection(event.target);
     if (!box) return;
@@ -923,6 +1053,7 @@
   }
 
   function moveFreeGesture(event) {
+    if (freeDraw) { moveFreeDraw(event); return; }
     const s = freeGesture;
     if (!s || s.pointer !== event.pointerId) return;
     const dx = event.clientX-s.startX, dy = event.clientY-s.startY;
@@ -961,6 +1092,7 @@
   }
 
   function finishFreeGesture(event) {
+    if (freeDraw) { finishFreeDraw(event); return; }
     const s = freeGesture;
     if (!s || s.pointer !== event.pointerId) return;
     freeGesture = null;
@@ -1023,6 +1155,11 @@
       const geometry = `x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}"`;
       const rectangle = `<rect ${geometry} rx="${round}" fill="${safeColor(box.background)}"/>`;
       if (box.kind === 'rect') return rectangle;
+      if (box.kind === 'ellipse') return `<ellipse cx="${box.x+box.width/2}" cy="${box.y+box.height/2}" rx="${box.width/2}" ry="${box.height/2}" fill="${safeColor(box.background)}"/>`;
+      if (box.kind === 'line') {
+        const [x1,y1,x2,y2] = freeLineEnds(box);
+        return `<line x1="${box.x+x1*box.width}" x2="${box.x+x2*box.width}" y1="${box.y+y1*box.height}" y2="${box.y+y2*box.height}" stroke="${safeColor(box.background)}" stroke-width="${box.stroke}" stroke-linecap="round"/>`;
+      }
       const clipId = `free-${escapeHtml(layout.id)}-${escapeHtml(box.id)}`;
       const clip = `<defs><clipPath id="${clipId}"><rect ${geometry} rx="${round}"/></clipPath></defs>`;
       if (box.kind === 'image') {
@@ -3148,12 +3285,35 @@
     $(free ? '#freeTab' : '#componentsTab').focus();
   });
   $$('[data-free-tool]').forEach(button => {
-    button.addEventListener('click',() => addFreeBox(button.dataset.freeTool));
+    button.addEventListener('click',() => setFreeDrawTool(button.dataset.freeTool));
     button.addEventListener('dragstart',event => {
+      setFreeDrawTool(null);
       draggedType = `free:${button.dataset.freeTool}`;
       event.dataTransfer.effectAllowed = 'copy';
       event.dataTransfer.setData('text/plain',draggedType);
     });
+  });
+  $('[data-free-select-tool]').addEventListener('click',() => setFreeDrawTool(null));
+  document.addEventListener('keydown',event => {
+    if (editorView.hidden || $('#freeShelf').hidden || exportDialog.open || boardSettings.open ||
+      event.target.closest?.('input,textarea,select,[contenteditable]')) return;
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && key === 'd' && currentFreeBox().box) {
+      event.preventDefault();
+      duplicateFreeBox();
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const shortcuts = {r:'rect',o:'ellipse',l:'line',i:'image',t:'text',v:null,escape:null};
+    if (!Object.hasOwn(shortcuts,key)) return;
+    event.preventDefault();
+    if (key === 'escape' && freeDraw) {
+      freeDraw.draft.remove();
+      if (freeDraw.stage.hasPointerCapture?.(freeDraw.pointer)) freeDraw.stage.releasePointerCapture(freeDraw.pointer);
+      freeDraw = null;
+      imageGuides.replaceChildren();
+    }
+    setFreeDrawTool(shortcuts[key]);
   });
   $('#freeProperties').addEventListener('change',event => {
     const key = event.target.dataset.freeProp;
@@ -3165,6 +3325,19 @@
     changeFreeBox(layout,box,item => { item[key] = value; });
   });
   $('#freeProperties').addEventListener('click',event => {
+    if (event.target.closest('[data-free-duplicate]')) { duplicateFreeBox(); return; }
+    const layer = event.target.closest('[data-free-layer]')?.dataset.freeLayer;
+    if (layer) {
+      const tile = $(`[data-free-box="${CSS.escape(layer)}"]`,artboard);
+      const {layout,box} = freeSelection(tile);
+      if (box) {
+        setFreeDrawTool(null);
+        selectFreeBox(layout,box,tile);
+        tile.scrollIntoView({block:'nearest'});
+        $(`[data-free-layer="${CSS.escape(layer)}"]`,$('#freeProperties'))?.focus({preventScroll:true});
+      }
+      return;
+    }
     const action = event.target.closest('[data-free-order]')?.dataset.freeOrder;
     const layout = elements.find(item => item.id === selectedId && item.type === 'freeLayout');
     const box = layout?.boxes.find(item => item.id === selectedFreeBox);
@@ -3394,7 +3567,7 @@
   });
   document.addEventListener('pointerup',() => { nestedDragGrip = null; });
   artboard.addEventListener('dragstart',event => {
-    if (imageMove || freeGesture || event.target.closest('[data-free-box]')) { event.preventDefault(); return; }
+    if (imageMove || freeGesture || freeDraw || event.target.closest('[data-free-box]')) { event.preventDefault(); return; }
     if (event.target.closest('[data-resize-handle],[data-canvas-remove],[data-remove-nested],[contenteditable="true"]')) {event.preventDefault();return}
     const bar = event.target.closest('.nested-tool-bar') || nestedDragGrip?.closest('.nested-tool-bar');
     const block = (bar || event.target).closest('[data-id]');
@@ -3514,8 +3687,9 @@
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
-    if (/^free:(rect|image|text)$/.test(source)) {
-      addFreeBox(source.slice(5),event);
+    const freeKind = source?.startsWith('free:') ? source.slice(5) : null;
+    if (Object.hasOwn(freeTools,freeKind)) {
+      addFreeBox(freeKind,event);
       return;
     }
     const nested = nestedDropPoint(event);

@@ -1184,6 +1184,10 @@ body{font-size:18px}
   cursor: grab;
 }
 .free-tool-grid button:hover { border-color: #a6d965; background: #354533; }
+.free-tool-grid button[aria-pressed="true"] {
+  border-color: #a6d965;
+  background: #3a4f32;
+}
 .free-tool-sample {
   display: grid;
   place-items: center;
@@ -1193,7 +1197,7 @@ body{font-size:18px}
   color: #405b35;
   font: 700 25px/1 var(--display);
 }
-.free-sample-rect::before {
+.free-sample-rect::before,.free-sample-ellipse::before,.free-sample-line::before {
   content: '';
   width: 45%;
   height: 52%;
@@ -1201,6 +1205,8 @@ body{font-size:18px}
   background: #a6d965;
   border: 1px solid #6a9b37;
 }
+.free-sample-ellipse::before { border-radius: 50%; }
+.free-sample-line::before { height: 3px; background: #59834c; transform: rotate(-24deg); }
 .free-properties { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--orange); }
 .free-properties h3 { margin: 0 0 10px; font-size: 18px; }
 .free-property-grid,.free-property-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
@@ -1218,6 +1224,24 @@ body{font-size:18px}
 .free-property-grid input[type="color"],.free-property-actions button { cursor: pointer; }
 .free-property-actions { margin-top: 12px; }
 .free-property-actions button:hover { border-color: #a6d965; }
+.free-property-actions [data-free-duplicate] { grid-column: 1/-1; }
+.free-layers button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: #263329;
+  color: #eff4eb;
+  text-align: start;
+  cursor: pointer;
+}
+.free-layers button[aria-pressed="true"] { border-color: #87ac6e; background: #384b33; }
+.free-layers button i { flex: 0 0 12px; height: 12px; border-radius: 3px; }
+.free-layers button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .free-stage {
   position: relative;
   width: 100%;
@@ -1226,6 +1250,20 @@ body{font-size:18px}
   background-image: radial-gradient(#dce5d8 1px,transparent 1px);
   background-size: 20px 20px;
 }
+.free-stage-draw { cursor: crosshair; touch-action: none; }
+.free-stage-draw .free-box { pointer-events: none; }
+.free-draw-preview {
+  position: absolute;
+  box-sizing: border-box;
+  z-index: 10;
+  outline: 1px dashed #77aa51;
+  background: #b8da9855;
+  pointer-events: none;
+}
+.free-draw-preview.is-ellipse { border-radius: 50%; }
+.free-draw-preview.is-line { outline: 0; background: transparent; }
+.free-draw-preview line { stroke: #77aa51; stroke-width: 2; }
+.free-line { display: block; overflow: visible; pointer-events: none; }
 .free-box {
   position: absolute;
   touch-action: none;

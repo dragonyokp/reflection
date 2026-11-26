@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=3">
-  <link rel="stylesheet" href="studio.css?v=83">
+  <link rel="stylesheet" href="studio.css?v=84">
   <script src="article-templates.js?v=9" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=5" defer></script>
-  <script src="studio.js?v=71" defer></script>
+  <script src="studio.js?v=72" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -126,9 +126,12 @@
             </div>
             <div class="rail-scroll free-shelf" id="freeShelf" role="tabpanel" aria-labelledby="freeTab" hidden>
               <div class="free-tool-grid">
-                <button type="button" draggable="true" data-free-tool="rect"><span class="free-tool-sample free-sample-rect" aria-hidden="true"></span>สี่เหลี่ยมสี</button>
-                <button type="button" draggable="true" data-free-tool="image"><span class="free-tool-sample free-sample-image" aria-hidden="true">▧</span>กล่องรูปภาพ</button>
-                <button type="button" draggable="true" data-free-tool="text"><span class="free-tool-sample free-sample-text" aria-hidden="true">Aa</span>กล่องข้อความ</button>
+                <button type="button" data-free-select-tool aria-pressed="true" title="เลือก (V)"><span class="free-tool-sample" aria-hidden="true">↖</span>เลือก</button>
+                <button type="button" draggable="true" data-free-tool="rect" aria-pressed="false" title="สี่เหลี่ยม (R)"><span class="free-tool-sample free-sample-rect" aria-hidden="true"></span>สี่เหลี่ยม</button>
+                <button type="button" draggable="true" data-free-tool="ellipse" aria-pressed="false" title="วงรี (O)"><span class="free-tool-sample free-sample-ellipse" aria-hidden="true"></span>วงรี</button>
+                <button type="button" draggable="true" data-free-tool="line" aria-pressed="false" title="เส้น (L)"><span class="free-tool-sample free-sample-line" aria-hidden="true"></span>เส้น</button>
+                <button type="button" draggable="true" data-free-tool="image" aria-pressed="false" title="กล่องรูปภาพ (I)"><span class="free-tool-sample free-sample-image" aria-hidden="true">▧</span>กล่องรูปภาพ</button>
+                <button type="button" draggable="true" data-free-tool="text" aria-pressed="false" title="กล่องข้อความ (T)"><span class="free-tool-sample free-sample-text" aria-hidden="true">Aa</span>กล่องข้อความ</button>
               </div>
               <div id="freeProperties"></div>
             </div>
