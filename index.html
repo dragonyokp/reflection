@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=3">
-  <link rel="stylesheet" href="studio.css?v=82">
+  <link rel="stylesheet" href="studio.css?v=83">
   <script src="article-templates.js?v=9" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=5" defer></script>
-  <script src="studio.js?v=70" defer></script>
+  <script src="studio.js?v=71" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -101,10 +101,14 @@
         </div>
         <div class="workspace">
           <aside class="left-rail">
-            <div class="rail-head"><h2>องค์ประกอบ</h2></div>
-            <div class="rail-scroll">
+            <div class="rail-head"><h2>เครื่องมือ</h2></div>
+            <div class="shelf-tabs" role="tablist" aria-label="เครื่องมือออกแบบ">
+              <button type="button" role="tab" id="componentsTab" aria-selected="true" aria-controls="componentsShelf">องค์ประกอบ</button>
+              <button type="button" role="tab" id="freeTab" aria-selected="false" aria-controls="freeShelf" tabindex="-1">ออกแบบอิสระ</button>
+            </div>
+            <div class="rail-scroll" id="componentsShelf" role="tabpanel" aria-labelledby="componentsTab">
               <div id="legacyToolGroups"></div>
-              <section class="tool-category" aria-labelledby="toolsFreeTitle"><h3 class="tool-category-title" id="toolsFreeTitle"><span>04</span> เครื่องมืออิสระ</h3><div class="insert-grid">
+              <section class="tool-category" aria-labelledby="toolsFreeTitle"><h3 class="tool-category-title" id="toolsFreeTitle">องค์ประกอบพื้นฐาน</h3><div class="insert-grid">
                 <button data-add="heading" draggable="true" type="button"><span class="insert-glyph">T<span>t</span></span><b>หัวข้อ</b></button>
                 <button data-add="text" draggable="true" type="button"><span class="insert-glyph text-glyph">¶</span><b>ข้อความ</b></button>
                 <button data-add="quote" draggable="true" type="button"><span class="insert-glyph quote-glyph">“</span><b>คำพูด</b></button>
@@ -119,6 +123,14 @@
                 <button data-add="columns" draggable="true" type="button"><span class="insert-glyph columns-glyph">▥</span><b>สองคอลัมน์</b></button>
                 <button data-add="spacer" draggable="true" type="button"><span class="insert-glyph spacer-glyph">↕</span><b>ช่องว่าง</b></button>
               </div></section>
+            </div>
+            <div class="rail-scroll free-shelf" id="freeShelf" role="tabpanel" aria-labelledby="freeTab" hidden>
+              <div class="free-tool-grid">
+                <button type="button" draggable="true" data-free-tool="rect"><span class="free-tool-sample free-sample-rect" aria-hidden="true"></span>สี่เหลี่ยมสี</button>
+                <button type="button" draggable="true" data-free-tool="image"><span class="free-tool-sample free-sample-image" aria-hidden="true">▧</span>กล่องรูปภาพ</button>
+                <button type="button" draggable="true" data-free-tool="text"><span class="free-tool-sample free-sample-text" aria-hidden="true">Aa</span>กล่องข้อความ</button>
+              </div>
+              <div id="freeProperties"></div>
             </div>
           </aside>
           <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
@@ -162,6 +174,7 @@
     </dialog>
     <dialog id="exportDialog" class="export-dialog"><div class="dialog-head"><div><p class="eyebrow">YOUR REFLECTION</p><h2>ส่งออก HTML</h2></div><button id="closeExport" class="close-dialog" type="button" aria-label="ปิด">×</button></div><p class="dialog-copy">คัดลอกหรือดาวน์โหลดโค้ดสำหรับวางในช่อง HTML ของ CMS</p><p id="exportAssetStatus" class="export-asset-status" role="status" hidden></p><textarea id="exportCode" spellcheck="false" aria-label="โค้ด HTML ที่ส่งออก"></textarea><div class="dialog-actions"><p id="exportFeedback" class="export-feedback" role="status"></p><button id="downloadHtml" class="dialog-secondary" type="button">ดาวน์โหลด .html</button><button id="copyHtml" class="editor-export" type="button">คัดลอกโค้ด <span>↗</span></button></div></dialog>
     <input id="imageFile" type="file" accept="image/*" hidden>
+    <input id="freeImageFile" type="file" accept="image/*" hidden>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
 </body>

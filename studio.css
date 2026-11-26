@@ -1149,6 +1149,125 @@ body{font-size:18px}
   .template-preview-canvas .source-template-preview .row > [class*="col-"] { width: 100%; }
 }
 
+.shelf-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 14px;
+  padding: 4px;
+  border: 1px solid #414e42;
+  border-radius: 8px;
+  background: #151d17;
+}
+.shelf-tabs button {
+  padding: 7px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #c4d0c2;
+  cursor: pointer;
+}
+.shelf-tabs button[aria-selected="true"] { background: #a6d965; color: #192717; font-weight: 700; }
+.shelf-tabs button:focus-visible,.free-tool-grid button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.free-tool-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.free-tool-grid button {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid #495849;
+  border-radius: 6px;
+  background: #29352a;
+  color: #eff4eb;
+  line-height: 1.32;
+  text-align: start;
+  cursor: grab;
+}
+.free-tool-grid button:hover { border-color: #a6d965; background: #354533; }
+.free-tool-sample {
+  display: grid;
+  place-items: center;
+  height: 51px;
+  border-radius: 4px;
+  background: #f3f7ef;
+  color: #405b35;
+  font: 700 25px/1 var(--display);
+}
+.free-sample-rect::before {
+  content: '';
+  width: 45%;
+  height: 52%;
+  border-radius: 3px;
+  background: #a6d965;
+  border: 1px solid #6a9b37;
+}
+.free-properties { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--orange); }
+.free-properties h3 { margin: 0 0 10px; font-size: 18px; }
+.free-property-grid,.free-property-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.free-property-grid label { display: grid; gap: 4px; color: #c5d0c3; }
+.free-property-grid input,.free-property-actions button {
+  width: 100%;
+  min-width: 0;
+  min-height: 37px;
+  padding: 5px 7px;
+  border: 1px solid #4b584a;
+  border-radius: 5px;
+  background: #232e25;
+  color: #eff4eb;
+}
+.free-property-grid input[type="color"],.free-property-actions button { cursor: pointer; }
+.free-property-actions { margin-top: 12px; }
+.free-property-actions button:hover { border-color: #a6d965; }
+.free-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  background-image: radial-gradient(#dce5d8 1px,transparent 1px);
+  background-size: 20px 20px;
+}
+.free-box {
+  position: absolute;
+  touch-action: none;
+  cursor: grab;
+}
+.free-box:active { cursor: grabbing; }
+.free-box.selected,.free-box:focus-visible { outline: 1px solid #5f9a3c; outline-offset: 1px; }
+.free-copy,.free-image-frame {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.free-copy {
+  padding: 14px;
+  font-family: "IBM Plex Sans Thai",Arial,sans-serif;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.free-copy[contenteditable] { cursor: text; outline: 0; user-select: text; touch-action: auto; }
+.free-image-frame { display: grid; place-items: center; }
+.free-image-frame img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; }
+.free-image-pick,.free-box-replace,.free-box-remove {
+  border: 1px solid #92aa84;
+  border-radius: 5px;
+  background: #f3f7ef;
+  color: #263e2a;
+  cursor: pointer;
+}
+.free-image-pick,.free-box-replace { padding: 5px 10px; }
+.free-box-replace,.free-box-remove,.free-size { position: absolute; z-index: 2; display: none; }
+.free-box.selected :is(.free-box-replace,.free-box-remove,.free-size),.free-box:focus-within :is(.free-box-replace,.free-box-remove) { display: block; }
+.free-box-replace { bottom: 8px; right: 8px; }
+.free-box-remove { top: 8px; right: 8px; width: 25px; height: 25px; padding: 0; background: #fff7f3; color: #853e2e; }
+.free-size { width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: #74ab4d; }
+.free-size-nw { inset: 1px auto auto 1px; cursor: nwse-resize; }
+.free-size-ne { inset: 1px 1px auto auto; cursor: nesw-resize; }
+.free-size-sw { inset: auto auto 1px 1px; cursor: nesw-resize; }
+.free-size-se { inset: auto 1px 1px auto; cursor: nwse-resize; }
+
 .export-asset-status{margin:0 22px 1rem;padding:.75rem 1rem;border:1px solid #80603b;border-radius:8px;background:#302719;color:#ffdfad;font-size:18px;line-height:1.5}
 
 #exportDialog .dialog-actions{align-items:center;flex-wrap:wrap}.export-feedback{color:#d1ebba;font-size:18px;margin:0 auto 0 0}.export-feedback:empty{display:none}
