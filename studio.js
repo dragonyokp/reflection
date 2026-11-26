@@ -59,9 +59,11 @@
   let sourceImageSelection = null;
   let activeImage = null;
   let selectedFreeBox = null;
+  const freeMulti = new Set();
   let freeGesture = null;
   let freeDrawKind = null;
   let freeDraw = null;
+  let freeMarquee = null;
   let freeUpload = null;
   let imageMove = null;
   let suppressImageClick = false;
@@ -651,7 +653,7 @@
     editorDocumentVersion += 1;
     activeTextField = null;
     activeImage = null;
-    selectedFreeBox = null;
+    selectOnlyFreeBox(null);
     freeDrawKind = null;
     sourceTextSelection = null;
     sourceImageSelection = null;
@@ -787,6 +789,9 @@
     rect:{label:'สี่เหลี่ยม',width:240,height:170,background:'#a6d965'},
     ellipse:{label:'วงรี',width:200,height:150,background:'#a6d965'},
     line:{label:'เส้น',width:200,height:44,background:'#315a38',stroke:4,flat:true},
+    triangle:{label:'สามเหลี่ยม',width:170,height:155,background:'#a6d965'},
+    diamond:{label:'สี่เหลี่ยมข้าวหลามตัด',width:175,height:155,background:'#a6d965'},
+    arrow:{label:'ลูกศร',width:210,height:88,background:'#315a38'},
     image:{label:'กล่องรูปภาพ',width:300,height:220,background:'#d1e7bf'},
     text:{label:'กล่องข้อความ',width:270,height:120,background:'#f0f5e8',text:'พิมพ์ข้อความของคุณ',color:'#203524',fontSize:24}
   };
@@ -795,8 +800,16 @@
   const bound = (n,min,max) => Math.min(Math.max(n,min),Math.max(min,max));
 
   function freeBoxStyle(box) {
-    return `left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;background:${box.kind==='line'?'transparent':safeColor(box.background)};border-radius:${box.kind==='ellipse'?'50%':bound(box.radius||0,0,80)+'px'}`;
+    return `left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--free-rotation:${box.rotation||0}deg;--free-opacity:${freeOpacity(box)}`;
   }
+
+  const freeOpacity = box => bound(box.opacity ?? 100,0,100)/100;
+  const freeFont = box => ({arial:'Arial, sans-serif',georgia:'Georgia, Tahoma, sans-serif',tahoma:'Tahoma, Arial, sans-serif'}[box.font] || 'Tahoma, Arial, sans-serif');
+  const freeShapePoints = {
+    triangle:[[.5,0],[1,1],[0,1]],
+    diamond:[[.5,0],[1,.5],[.5,1],[0,.5]],
+    arrow:[[0,.3],[.66,.3],[.66,0],[1,.5],[.66,1],[.66,.7],[0,.7]]
+  };
 
   function freeLineEnds(box) {
     if (box.vertical) return [.5,0,.5,1];
@@ -805,22 +818,29 @@
   }
 
   function renderFreeLayout(layout) {
-    return `<div class="free-stage${freeDrawKind?' free-stage-draw':''}" data-free-stage style="height:${freeStageHeight(layout)}px">${layout.boxes.map(box => {
-      const selected = selectedId === layout.id && selectedFreeBox === box.id;
+    return `<div class="free-stage${freeDrawKind?' free-stage-draw':''}${selectedId===layout.id && editableFreeSelection(layout).length>1?' free-multiple':''}" data-free-stage style="height:${freeStageHeight(layout)}px">${layout.boxes.filter(box => !box.hidden).map(box => {
+      const selected = selectedId === layout.id && isFreeSelected(box.id);
       const info = freeTools[box.kind];
-      const body = box.kind === 'image'
-        ? `<div class="free-image-frame">${box.src ? `<img src="${escapeHtml(box.src)}" alt="${escapeHtml(box.alt || '')}" draggable="false">` : '<button type="button" class="free-image-pick" data-free-upload>＋ เพิ่มรูปภาพ</button>'}</div>`
-        : box.kind === 'text' ? `<div class="free-copy" style="color:${safeColor(box.color)};font-size:${box.fontSize}px">${textHtml(box.text)}</div>`
-        : box.kind === 'line' ? (() => {
-          const [x1,y1,x2,y2] = freeLineEnds(box);
-          return `<svg class="free-line" width="100%" height="100%" aria-hidden="true"><line x1="${100*x1}%" y1="${100*y1}%" x2="${100*x2}%" y2="${100*y2}%" stroke-width="${box.stroke}" stroke="${safeColor(box.background)}" stroke-linecap="round"/></svg>`;
-        })() : '';
-      return `<div class="free-box${selected?' selected':''}" data-free-box="${box.id}" data-kind="${box.kind}" aria-label="${info.label}" tabindex="0" style="${freeBoxStyle(box)}">${body}
+      const locked = Boolean(box.locked);
+      return `<div class="free-box${selected?' selected':''}${locked?' free-locked':''}" data-free-box="${box.id}" data-kind="${box.kind}" aria-label="${escapeHtml(box.name || info.label)}" tabindex="0" style="${freeBoxStyle(box)}">${renderFreeArtwork(box)}
         <button type="button" class="free-box-remove" data-free-remove aria-label="ลบ${info.label}">×</button>
         ${box.kind==='image' && box.src ? '<button type="button" class="free-box-replace" data-free-upload>เปลี่ยนรูป</button>' : ''}
         ${['nw','ne','sw','se'].map(handle => `<span class="free-size free-size-${handle}" data-free-size="${handle}" aria-hidden="true"></span>`).join('')}
         </div>`;
     }).join('')}</div>`;
+  }
+
+  function renderFreeArtwork(box) {
+    const local = {...box,x:0,y:0,rotation:0,opacity:100};
+    const round = bound(box.radius||0,0,Math.min(80,box.width/2,box.height/2));
+    if (box.kind === 'image') {
+      const media = box.src ? `<img src="${escapeHtml(box.src)}" alt="${escapeHtml(box.alt || '')}" draggable="false">` :
+        '<button type="button" class="free-image-pick" data-free-upload>＋ เพิ่มรูปภาพ</button>';
+      return `<div class="free-artwork free-image-frame" style="border-radius:${round}px;background:${safeColor(box.background)}">${media}</div>`;
+    }
+    const art = `<svg class="free-vector" width="100%" height="100%" viewBox="0 0 ${box.width} ${box.height}" aria-hidden="true">${freeVectorMarkup(local,`board-${box.id}`)}</svg>`;
+    const text = box.kind === 'text' ? `<div class="free-copy" style="background:${safeColor(box.background)};color:${safeColor(box.color)};font:${box.italic?'italic ':''}${box.bold?'700 ':''}${box.fontSize}px/1.4 ${freeFont(box)};text-align:${box.textAlign || 'left'}">${textHtml(box.text)}</div>` : '';
+    return `<div class="free-artwork">${art}${text}</div>`;
   }
 
   function freeSelection(node) {
@@ -836,24 +856,68 @@
     return {layout,box:layout?.boxes.find(item => item.id === selectedFreeBox)};
   }
 
+  function selectOnlyFreeBox(id) {
+    freeMulti.clear();
+    selectedFreeBox = id;
+  }
+
+  function setFreeSelectionIds(ids) {
+    freeMulti.clear();
+    for (const id of ids) freeMulti.add(id);
+    selectedFreeBox = [...freeMulti].at(-1) || null;
+  }
+
+  function isFreeSelected(id) {
+    return id === selectedFreeBox || freeMulti.has(id);
+  }
+
+  function editableFreeSelection(layout) {
+    return layout?.boxes.filter(box => isFreeSelected(box.id) && !box.hidden && !box.locked) || [];
+  }
+
   const horizontalAlign = {left:0,center:.5,right:1};
 
   function renderFreeProperties() {
     const {layout,box} = currentFreeBox();
     const root = $('#freeProperties');
     if (!layout) { root.innerHTML = ''; return; }
+    const selection = editableFreeSelection(layout);
     const layers = layout.boxes.length ? `<section class="free-properties free-layers"><h3>เลเยอร์</h3>
-      ${layout.boxes.slice().reverse().map(item => `<button type="button" data-free-layer="${item.id}" aria-pressed="${item.id===box?.id}"><i style="background:${safeColor(item.background)}" aria-hidden="true"></i><span>${escapeHtml(item.kind==='text' ? (item.text.trim().slice(0,42) || freeTools[item.kind].label) : item.alt || freeTools[item.kind].label)}</span></button>`).join('')}
+      ${layout.boxes.slice().reverse().map(item => {
+        const name = item.name || (item.kind==='text' ? item.text.trim().slice(0,42) : item.alt) || freeTools[item.kind].label;
+        return `<div class="free-layer-row">
+          <button type="button" data-free-layer="${item.id}" aria-pressed="${isFreeSelected(item.id)}"><i style="background:${safeColor(item.background)}" aria-hidden="true"></i><span>${escapeHtml(name)}</span></button>
+          <button type="button" data-free-layer-toggle="hidden" data-free-layer-id="${item.id}" aria-label="${item.hidden?'แสดง':'ซ่อน'}เลเยอร์" title="${item.hidden?'แสดง':'ซ่อน'}เลเยอร์">${item.hidden?'◌':'◉'}</button>
+          <button type="button" data-free-layer-toggle="locked" data-free-layer-id="${item.id}" aria-label="${item.locked?'ปลดล็อก':'ล็อก'}เลเยอร์" title="${item.locked?'ปลดล็อก':'ล็อก'}เลเยอร์">${item.locked?'🔒':'🔓'}</button>
+        </div>`;
+      }).join('')}
       </section>` : '';
+    const arrangements = `<div class="free-property-actions">
+      <button type="button" data-free-arrange="top">ชิดบน</button><button type="button" data-free-arrange="middle">กึ่งกลางแนวตั้ง</button>
+      <button type="button" data-free-arrange="bottom">ชิดล่าง</button>
+      ${selection.length>=3?'<button type="button" data-free-arrange="spread-x">เว้นระยะซ้าย–ขวา</button><button type="button" data-free-arrange="spread-y">เว้นระยะบน–ล่าง</button>':''}
+      <button type="button" data-free-duplicate>ทำสำเนา</button></div>`;
+    if (selection.length > 1) {
+      root.innerHTML = `<section class="free-properties"><h3>เลือก ${selection.length} ชิ้น</h3>${arrangements}</section>${layers}`;
+      return;
+    }
     if (!box) { root.innerHTML = layers; return; }
-    const number = (key,label,min,max) => `<label>${label}<input type="number" min="${min}" max="${max}" data-free-prop="${key}" value="${Math.round(box[key] || 0)}"></label>`;
+    const number = (key,label,min,max) => `<label>${label}<input type="number" min="${min}" max="${max}" data-free-prop="${key}" value="${Math.round(box[key] ?? (key==='opacity'?100:0))}"></label>`;
     const color = (key,label) => `<label>${label}<input type="color" data-free-prop="${key}" value="${safeColor(box[key])}"></label>`;
     root.innerHTML = `<section class="free-properties"><h3>${freeTools[box.kind].label}</h3>
-      <div class="free-property-grid">${color('background',box.kind==='line'?'สีเส้น':'สีพื้น')}${box.kind==='line'?number('stroke','ความหนา',1,32):box.kind==='ellipse'?'':number('radius','มุมโค้ง',0,80)}
+      <label class="free-layer-name">ชื่อเลเยอร์<input type="text" data-free-prop="name" value="${escapeHtml(box.name || '')}" placeholder="${freeTools[box.kind].label}"></label>
+      ${box.locked || box.hidden ? '' : `
+      <div class="free-property-grid">${color('background',box.kind==='line'?'สีเส้น':'สีพื้น')}${box.kind==='line'?number('stroke','ความหนา',1,32):['rect','text','image'].includes(box.kind)?number('radius','มุมโค้ง',0,80):''}
       ${box.kind==='text' ? color('color','สีข้อความ')+number('fontSize','ขนาดตัวอักษร',14,96) : ''}
+      ${number('opacity','ความทึบ %',0,100)}${number('rotation','หมุน °',-180,180)}
       ${number('x','ซ้าย',0,ARTBOARD_WIDTH-box.width)}${number('y','บน',0,1400)}
       ${number('width','กว้าง',freeMinSize,ARTBOARD_WIDTH-box.x)}${number('height','สูง',freeMinSize,1000)}</div>
-      <div class="free-property-actions"><button type="button" data-free-order="back">ส่งไปหลัง</button><button type="button" data-free-order="front">นำมาหน้า</button><button type="button" data-free-duplicate>ทำสำเนา</button></div></section>${layers}`;
+      ${box.kind==='text' ? `<div class="free-property-grid free-type-controls">
+        <label>ฟอนต์<select data-free-prop="font">${[['tahoma','Tahoma'],['arial','Arial'],['georgia','Georgia']].map(([k,v]) => `<option value="${k}"${k===(box.font||'tahoma')?' selected':''}>${v}</option>`).join('')}</select></label>
+        <label>แนวข้อความ<select data-free-prop="textAlign">${[['left','ซ้าย'],['center','กลาง'],['right','ขวา']].map(([k,v]) => `<option value="${k}"${k===(box.textAlign||'left')?' selected':''}>${v}</option>`).join('')}</select></label>
+        <label><input type="checkbox" data-free-prop="bold"${box.bold?' checked':''}> ตัวหนา</label><label><input type="checkbox" data-free-prop="italic"${box.italic?' checked':''}> ตัวเอียง</label>
+      </div>` : ''}
+      <div class="free-property-actions"><button type="button" data-free-order="back">ส่งไปหลัง</button><button type="button" data-free-order="front">นำมาหน้า</button></div>${arrangements}`}</section>${layers}`;
   }
 
   function switchShelf(free) {
@@ -872,7 +936,7 @@
     $('[data-free-select-tool]').setAttribute('aria-pressed',String(!freeDrawKind));
     $$('[data-free-tool]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.freeTool === freeDrawKind)));
     if (freeDrawKind && !currentFreeBox().layout) {
-      selectedFreeBox = null;
+      selectOnlyFreeBox(null);
       insertBlock('freeLayout');
     }
     const stage = currentFreeBox().layout && $(`[data-id="${CSS.escape(selectedId)}"] [data-free-stage]`,artboard);
@@ -909,7 +973,7 @@
       box.y = prev ? bound(prev.y+24,0,freeStageHeight(layout)-box.height) : 44;
     }
     layout.boxes.push(box);
-    selectedFreeBox = box.id;
+    selectOnlyFreeBox(box.id);
     activeImage = null;
     activeTextField = null;
     setElements(next,layout.id);
@@ -926,19 +990,74 @@
     setElements(next,layout.id);
   }
 
-  function selectFreeBox(layout,box,tile) {
+  function selectFreeBox(layout,box,tile,toggle = false,keep = false) {
+    const sameStage = selectedId === layout.id;
     selectedId = layout.id;
-    selectedFreeBox = box.id;
+    if (toggle && sameStage && !box.locked && !box.hidden) {
+      const ids = new Set(layout.boxes.filter(item => isFreeSelected(item.id)).map(item => item.id));
+      if (ids.has(box.id)) ids.delete(box.id);
+      else ids.add(box.id);
+      setFreeSelectionIds(ids);
+    } else if (!(keep && sameStage && isFreeSelected(box.id))) selectOnlyFreeBox(box.id);
+    refreshFreeSelection(layout);
+  }
+
+  function refreshFreeSelection(layout) {
     activeTextField = null;
     activeImage = null;
     $$('.board-section.selected,.free-box.selected',artboard).forEach(node => node.classList.remove('selected'));
-    tile.closest('.board-section').classList.add('selected');
-    tile.classList.add('selected');
+    const host = $(`.board-section[data-id="${CSS.escape(layout.id)}"]`,artboard);
+    host?.classList.add('selected');
+    host?.querySelector('[data-free-stage]')?.classList.toggle('free-multiple',editableFreeSelection(layout).length > 1);
+    if (host) $$('[data-free-box]',host).forEach(node => node.classList.toggle('selected',isFreeSelected(node.dataset.freeBox)));
     updateBoardTextTools();
     switchShelf(true);
   }
 
+  function startFreeMarquee(event,surface,layout) {
+    event.preventDefault();
+    const keep = event.shiftKey && selectedId === layout.id ? editableFreeSelection(layout).map(box => box.id) : [];
+    const draft = document.createElement('div');
+    draft.className = 'free-marquee';
+    surface.append(draft);
+    freeMarquee = {layout,surface,draft,keep,pointer:event.pointerId,x:event.clientX,y:event.clientY};
+    surface.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveFreeMarquee(event) {
+    const s = freeMarquee;
+    if (event.pointerId !== s.pointer) return;
+    event.preventDefault();
+    if (!s.moved && Math.hypot(event.clientX-s.x,event.clientY-s.y)<5) return;
+    s.moved = true;
+    const bounds = s.surface.getBoundingClientRect();
+    const left = Math.max(bounds.left,Math.min(s.x,event.clientX));
+    const top = Math.max(bounds.top,Math.min(s.y,event.clientY));
+    const right = Math.min(bounds.right,Math.max(s.x,event.clientX));
+    const bottom = Math.min(bounds.bottom,Math.max(s.y,event.clientY));
+    s.draft.style.cssText = `left:${(left-bounds.left)/zoom}px;top:${(top-bounds.top)/zoom}px;width:${(right-left)/zoom}px;height:${(bottom-top)/zoom}px`;
+    s.ids = new Set(s.keep);
+    $$('.free-box:not(.free-locked)',s.surface).forEach(node => {
+      const rect = node.getBoundingClientRect();
+      if (rect.left<right && rect.right>left && rect.top<bottom && rect.bottom>top) s.ids.add(node.dataset.freeBox);
+    });
+  }
+
+  function finishFreeMarquee(event) {
+    const s = freeMarquee;
+    if (event.pointerId !== s.pointer) return;
+    freeMarquee = null;
+    s.draft.remove();
+    if (event.type === 'pointercancel') return;
+    selectedId = s.layout.id;
+    setFreeSelectionIds(s.ids || s.keep);
+    refreshFreeSelection(s.layout);
+    suppressImageClick = true;
+    setTimeout(() => { suppressImageClick = false; },0);
+  }
+
   function editFreeCopy(tile) {
+    if (tile.classList.contains('free-locked')) return;
     const text = $('.free-copy',tile);
     if (!text) return;
     text.setAttribute('contenteditable','plaintext-only');
@@ -1018,7 +1137,7 @@
     };
     const box = {id:uid(),kind:s.kind,...tool,radius:0,...geometry};
     layout.boxes.push(box);
-    selectedFreeBox = box.id;
+    selectOnlyFreeBox(box.id);
     activeImage = activeTextField = null;
     suppressImageClick = true;
     setTimeout(() => { suppressImageClick = false; },0);
@@ -1027,14 +1146,57 @@
   }
 
   function duplicateFreeBox() {
-    const {layout,box} = currentFreeBox();
-    if (!box) return;
+    const {layout} = currentFreeBox();
+    const boxes = editableFreeSelection(layout);
+    if (!boxes.length) return;
     const next = clone(elements);
     const stage = next.find(item => item.id === layout.id);
-    const duplicate = {...box,id:uid(),x:bound(box.x+18,0,ARTBOARD_WIDTH-box.width),
-      y:bound(box.y+18,0,freeStageHeight(layout)-box.height)};
-    stage.boxes.push(duplicate);
-    selectedFreeBox = duplicate.id;
+    const dx = Math.max(0,Math.min(18,ARTBOARD_WIDTH-Math.max(...boxes.map(box => box.x+box.width))));
+    const dy = Math.max(0,Math.min(18,freeStageHeight(layout)-Math.max(...boxes.map(box => box.y+box.height))));
+    const duplicates = boxes.map(box => ({...box,id:uid(),x:box.x+dx,y:box.y+dy}));
+    stage.boxes.push(...duplicates);
+    setFreeSelectionIds(duplicates.map(box => box.id));
+    setElements(next,layout.id);
+  }
+
+  function arrangeFreeBoxes(command) {
+    const {layout} = currentFreeBox();
+    const selection = editableFreeSelection(layout);
+    if (!selection.length) return;
+    const ids = new Set(selection.map(box => box.id));
+    const next = clone(elements);
+    const boxes = next.find(item => item.id === layout.id).boxes.filter(box => ids.has(box.id));
+    const vertical = ['top','middle','bottom','spread-y'].includes(command);
+    const axis = vertical ? 'y' : 'x';
+    const size = vertical ? 'height' : 'width';
+    const start = boxes.length>1 ? Math.min(...boxes.map(box => box[axis])) : 0;
+    const end = boxes.length>1 ? Math.max(...boxes.map(box => box[axis]+box[size])) : vertical ? freeStageHeight(layout) : ARTBOARD_WIDTH;
+    if (command.startsWith('spread-')) {
+      if (boxes.length<3) return;
+      boxes.sort((a,b) => a[axis]-b[axis]);
+      const gap = (end-start-boxes.reduce((sum,box)=>sum+box[size],0))/(boxes.length-1);
+      let position = start;
+      for (const box of boxes) { box[axis] = position; position += box[size]+gap; }
+    } else {
+      const ratio = {...horizontalAlign,top:0,middle:.5,bottom:1}[command];
+      if (ratio === undefined) return;
+      for (const box of boxes) box[axis] = start+(end-start-box[size])*ratio;
+    }
+    setElements(next,layout.id);
+  }
+
+  function nudgeFreeBoxes(dx,dy) {
+    const {layout} = currentFreeBox();
+    const boxes = editableFreeSelection(layout);
+    if (!boxes.length) return;
+    const ids = new Set(boxes.map(box => box.id));
+    const x = bound(dx,-Math.min(...boxes.map(box => box.x)),ARTBOARD_WIDTH-Math.max(...boxes.map(box => box.x+box.width)));
+    const y = bound(dy,-Math.min(...boxes.map(box => box.y)),freeStageHeight(layout)-Math.max(...boxes.map(box => box.y+box.height)));
+    if (!x && !y) return;
+    const next = clone(elements);
+    for (const box of next.find(item => item.id === layout.id).boxes) {
+      if (ids.has(box.id)) { box.x += x; box.y += y; }
+    }
     setElements(next,layout.id);
   }
 
@@ -1043,17 +1205,28 @@
     if (event.button === 0 && surface && freeDrawKind) { startFreeDraw(event,surface); return; }
     if (event.button !== 0 || event.target.closest('button,[contenteditable]')) return;
     const {layout,box,tile} = freeSelection(event.target);
-    if (!box) return;
-    selectFreeBox(layout,box,tile);
+    if (!box) {
+      if (layout && surface) startFreeMarquee(event,surface,layout);
+      return;
+    }
+    if (event.shiftKey) return;
+    selectFreeBox(layout,box,tile,false,true);
+    if (box.locked || box.hidden) return;
     const stage = tile.parentElement.getBoundingClientRect();
-    const rect = tile.getBoundingClientRect();
-    const neighbors = $$('.free-box',tile.parentElement).filter(node => node !== tile).map(node => node.getBoundingClientRect());
-    freeGesture = {layout,box,tile,stage,rect,neighbors,handle:event.target.dataset.freeSize,
+    const boxes = editableFreeSelection(layout);
+    const targets = $$('.free-box.selected',tile.parentElement).filter(node => boxes.some(item => item.id === node.dataset.freeBox));
+    const rects = targets.map(node => node.getBoundingClientRect());
+    const left = Math.min(...rects.map(rect => rect.left)), right = Math.max(...rects.map(rect => rect.right));
+    const top = Math.min(...rects.map(rect => rect.top)), bottom = Math.max(...rects.map(rect => rect.bottom));
+    const rect = {left,right,top,bottom,width:right-left,height:bottom-top};
+    const neighbors = $$('.free-box',tile.parentElement).filter(node => !targets.includes(node)).map(node => node.getBoundingClientRect());
+    freeGesture = {layout,box,boxes,targets,tile,stage,rect,neighbors,handle:boxes.length === 1 ? event.target.dataset.freeSize : null,
       pointer:event.pointerId,startX:event.clientX,startY:event.clientY};
   }
 
   function moveFreeGesture(event) {
     if (freeDraw) { moveFreeDraw(event); return; }
+    if (freeMarquee) { moveFreeMarquee(event); return; }
     const s = freeGesture;
     if (!s || s.pointer !== event.pointerId) return;
     const dx = event.clientX-s.startX, dy = event.clientY-s.startY;
@@ -1081,18 +1254,25 @@
         guides.map(r => [r.left,r.right]),['ซ้าย','กึ่งกลาง','ขวา']);
       const y = snapImageAxis(s.rect.top,s.rect.height,dy,s.stage.top-s.rect.top,s.stage.bottom-s.rect.bottom,
         guides.map(r => [r.top,r.bottom]),['บน','กึ่งกลาง','ล่าง']);
-      box.x += x.delta/zoom;
-      box.y += y.delta/zoom;
+      s.positions = new Map(s.boxes.map(item => [item.id,{x:item.x+x.delta/zoom,y:item.y+y.delta/zoom}]));
+      for (const node of s.targets) {
+        const pos = s.positions.get(node.dataset.freeBox);
+        node.style.left = `${pos.x}px`;
+        node.style.top = `${pos.y}px`;
+      }
       if (x.line !== undefined) paintImageGuide('x',x.line,x.label,s.stage);
       if (y.line !== undefined) paintImageGuide('y',y.line,y.label,s.stage);
+      return;
     }
     s.next = box;
     s.tile.style.cssText = freeBoxStyle(box);
+    if (s.handle && box.kind !== 'image') $('.free-artwork',s.tile).outerHTML = renderFreeArtwork(box);
     if (s.handle) showResizeGuides(s.tile,{handle:s.handle,parent:{left:s.stage.left,width:ARTBOARD_WIDTH},parentBounds:s.stage});
   }
 
   function finishFreeGesture(event) {
     if (freeDraw) { finishFreeDraw(event); return; }
+    if (freeMarquee) { finishFreeMarquee(event); return; }
     const s = freeGesture;
     if (!s || s.pointer !== event.pointerId) return;
     freeGesture = null;
@@ -1101,7 +1281,15 @@
     suppressImageClick = true;
     setTimeout(() => { suppressImageClick = false; },0);
     if (event.type === 'pointercancel') {
-      s.tile.style.cssText = freeBoxStyle(s.box);
+      renderArtboard();
+      return;
+    }
+    if (s.positions) {
+      const next = clone(elements);
+      for (const box of next.find(item => item.id === s.layout.id).boxes) {
+        if (s.positions.has(box.id)) Object.assign(box,s.positions.get(box.id));
+      }
+      setElements(next,s.layout.id);
       return;
     }
     changeFreeBox(s.layout,s.box,item => Object.assign(item,s.next));
@@ -1114,8 +1302,8 @@
       if (version !== editorDocumentVersion) return;
       const layout = elements.find(item => item.id === layoutId && item.type === 'freeLayout');
       const box = layout?.boxes.find(item => item.id === boxId && item.kind === 'image');
-      if (!box) return;
-      selectedFreeBox = box.id;
+      if (!box || box.locked) return;
+      selectOnlyFreeBox(box.id);
       changeFreeBox(layout,box,item => {
         item.src = asset.src;
         item.alt = file.name.replace(/\.[^.]+$/,'');
@@ -1125,11 +1313,11 @@
     }
   }
 
-  function wrapFreeText(text,width,fontSize) {
+  function wrapFreeText(box,width) {
     const context = document.createElement('canvas').getContext('2d');
-    context.font = `${fontSize}px "IBM Plex Sans Thai", Arial, sans-serif`;
+    context.font = `${box.italic?'italic ':''}${box.bold?'700 ':''}${box.fontSize}px ${freeFont(box)}`;
     const segmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter('th',{granularity:'word'}) : null;
-    return String(text || '').split('\n').flatMap(paragraph => {
+    return String(box.text || '').split('\n').flatMap(paragraph => {
       const lines = [];
       let line = '';
       const segments = segmenter ? segmenter.segment(paragraph) : Array.from(paragraph,segment => ({segment}));
@@ -1149,29 +1337,45 @@
     });
   }
 
-  function exportFreeLayout(layout) {
-    const parts = layout.boxes.map(box => {
-      const round = bound(box.radius || 0,0,80);
+  function freeVectorMarkup(box,id) {
+      const round = bound(box.radius || 0,0,Math.min(80,box.width/2,box.height/2));
       const geometry = `x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}"`;
       const rectangle = `<rect ${geometry} rx="${round}" fill="${safeColor(box.background)}"/>`;
       if (box.kind === 'rect') return rectangle;
       if (box.kind === 'ellipse') return `<ellipse cx="${box.x+box.width/2}" cy="${box.y+box.height/2}" rx="${box.width/2}" ry="${box.height/2}" fill="${safeColor(box.background)}"/>`;
+      if (freeShapePoints[box.kind]) {
+        const points = freeShapePoints[box.kind].map(([x,y]) => `${box.x+x*box.width},${box.y+y*box.height}`).join(' ');
+        return `<polygon points="${points}" fill="${safeColor(box.background)}"/>`;
+      }
       if (box.kind === 'line') {
         const [x1,y1,x2,y2] = freeLineEnds(box);
         return `<line x1="${box.x+x1*box.width}" x2="${box.x+x2*box.width}" y1="${box.y+y1*box.height}" y2="${box.y+y2*box.height}" stroke="${safeColor(box.background)}" stroke-width="${box.stroke}" stroke-linecap="round"/>`;
       }
-      const clipId = `free-${escapeHtml(layout.id)}-${escapeHtml(box.id)}`;
+      const clipId = escapeHtml(id);
       const clip = `<defs><clipPath id="${clipId}"><rect ${geometry} rx="${round}"/></clipPath></defs>`;
       if (box.kind === 'image') {
-        return rectangle + clip + `<image ${geometry} href="#" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"><title>${escapeHtml(box.alt || 'รูปภาพ')}</title></image>`;
+        const source = /^(?:\/[^/]|https?:\/\/|data:image\/[\w.+-]+;base64,)/i.test(box.src || '') ? box.src : '';
+        if (!source) return rectangle;
+        return rectangle + clip + `<image ${geometry} href="${escapeHtml(source)}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"><title>${escapeHtml(box.alt || 'รูปภาพ')}</title></image>`;
       }
-      const x = box.x+14, lineHeight = box.fontSize*1.4;
-      const text = wrapFreeText(box.text,Math.max(1,box.width-28),box.fontSize).map((line,index) =>
+      const align = ({left:'start',center:'middle',right:'end'})[box.textAlign] || 'start';
+      const x = align === 'middle' ? box.x+box.width/2 : align === 'end' ? box.x+box.width-14 : box.x+14;
+      const lineHeight = box.fontSize*1.4;
+      const text = wrapFreeText(box,Math.max(1,box.width-28)).map((line,index) =>
         `<tspan x="${x}" y="${box.y+14+box.fontSize+lineHeight*index}">${escapeHtml(line)}</tspan>`).join('');
-      return rectangle + clip + `<text font-family="IBM Plex Sans Thai, Arial, sans-serif" font-size="${box.fontSize}" fill="${safeColor(box.color)}" clip-path="url(#${clipId})">${text}</text>`;
-    });
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${ARTBOARD_WIDTH} ${freeStageHeight(layout)}" role="img"><title>พื้นที่ออกแบบอิสระ</title>\n${parts.join('\n')}\n</svg>`;
+      return rectangle + clip + `<text font-family="${freeFont(box)}" font-size="${box.fontSize}" font-weight="${box.bold?700:400}" font-style="${box.italic?'italic':'normal'}" text-anchor="${align}" fill="${safeColor(box.color)}" clip-path="url(#${clipId})">${text}</text>`;
   }
+
+  function exportFreeLayout(layout) {
+    const height = Math.ceil(freeStageHeight(layout));
+    const parts = layout.boxes.filter(box => !box.hidden).map(box => {
+      const content = freeVectorMarkup(box,`free-${layout.id}-${box.id}`);
+      return `<g opacity="${freeOpacity(box)}"${box.rotation?` transform="rotate(${box.rotation} ${box.x+box.width/2} ${box.y+box.height/2})"`:''}>${content}</g>`;
+    });
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${ARTBOARD_WIDTH} ${height}" role="img"><title>พื้นที่ออกแบบอิสระ</title>\n<rect width="${ARTBOARD_WIDTH}" height="${height}" fill="#ffffff"/>\n${parts.join('\n')}\n</svg>`;
+  }
+
+  const freeWebpName = layout => `reflection-${layout.id}.webp`;
 
   function applyCropFrame(frame, ratio) {
     frame.classList.add('board-crop-frame');
@@ -2618,8 +2822,12 @@
     }
   }
 
-  function elementToLegacyMarkup(element) {
-    if (element.type === 'freeLayout') return element.boxes.length ? exportFreeLayout(element) : '';
+  function elementToLegacyMarkup(element,freeFormat = 'svg') {
+    if (element.type === 'freeLayout') {
+      if (!element.boxes.some(box => !box.hidden)) return '';
+      if (freeFormat === 'cms') return `<figure class="text-center"><img class="img-fluid" src="${freeWebpName(element)}" alt="พื้นที่ออกแบบ Reflection"></figure>`;
+      return exportFreeLayout(element);
+    }
     const heading = textHtml(element.title || '');
     const text = textHtml(element.text || '');
     const image = `<figure class="text-center"><img class="img-fluid" src="#" alt="${escapeHtml(element.alt || '')}"></figure>`;
@@ -2651,7 +2859,7 @@
     return `<div class="container">\n<div class="row justify-content-center">\n${cells.join('\n')}\n</div>\n</div>`;
   }
 
-  function buildExport(items = elements) {
+  function buildExport(items = elements,freeFormat = 'svg') {
     const contentParts=[];
     const formattedFields = new Map();
     const tokenPrefix = `REFLECTION_FORMAT_${Date.now().toString(36)}_`;
@@ -2724,7 +2932,7 @@
       if (exportElement.type === 'legacy') legacyRun.push({...exportElement,type:exportElement.legacyType,src:''});
       else {
         flushLegacy();
-        const markup=elementToLegacyMarkup(exportElement);
+        const markup=elementToLegacyMarkup(exportElement,freeFormat);
         if (markup) contentParts.push(markup);
       }
     }
@@ -2860,9 +3068,24 @@
     }
   }
 
-  function openExport() {
-    try {
-      exportCode.value = buildExport();
+  const freeLayoutsForExport = () => elements.filter(item => item.type === 'freeLayout' && item.boxes.some(box => !box.hidden));
+
+  function setFreeExportPreview(show) {
+    const view = $('#freeExportPreview');
+    view.hidden = !show;
+    exportCode.hidden = show;
+    $('#toggleFreePreview').setAttribute('aria-pressed',String(show));
+    $('#toggleFreePreview').textContent = show ? 'ดูโค้ด' : 'ดูตัวอย่างงานออกแบบ';
+    view.srcdoc = show ? '<!doctype html><meta charset="utf-8"><body marginwidth="0" marginheight="0">' +
+      freeLayoutsForExport().map(exportFreeLayout).join('\n') : '';
+  }
+
+  function updateExportCode() {
+      const freeLayouts = freeLayoutsForExport();
+      const format = $('#freeExportFormat').value;
+      $('#freeExportOptions').hidden = !freeLayouts.length;
+      $('#downloadFreeWebps').hidden = format !== 'cms' || !freeLayouts.length;
+      exportCode.value = buildExport(elements,format);
       $('#exportFeedback').textContent = '';
       const fragment = document.createElement('template');
       fragment.innerHTML = exportCode.value;
@@ -2873,16 +3096,53 @@
         if (node.matches('audio,video') && !path && node.querySelector('source')) return false;
         return !path || path === '#' || path.includes('#####');
       }).length;
-      const embedded = assets.filter(node => node.getAttribute('src')?.startsWith('data:')).length;
+      const embedded = assets.filter(node => (node.getAttribute('src') || node.getAttribute('href'))?.startsWith('data:')).length;
       const notes = [];
+      if (freeLayouts.length && format === 'cms') notes.push('ดาวน์โหลด WebP แล้วอัปโหลดไฟล์ใน CMS โดยใช้ชื่อไฟล์ตามโค้ด');
       if (missing) notes.push(`มีไฟล์สื่อ ${missing} รายการที่ต้องใส่พาธจริงหลังอัปโหลดเข้า CMS`);
       if (embedded) notes.push(`มีไฟล์ฝังในโค้ด ${embedded} รายการ หาก CMS ตัดออก ให้อัปโหลดไฟล์ใน CMS แล้วใช้พาธของไฟล์`);
       const status = $('#exportAssetStatus');
       status.textContent = notes.join(' · ');
       status.hidden = !notes.length;
+  }
+
+  function openExport() {
+    try {
+      setFreeExportPreview(false);
+      updateExportCode();
       exportDialog.showModal();
     } catch {
       showToast('เตรียม HTML ไม่สำเร็จ กรุณาลองอีกครั้ง');
+    }
+  }
+
+  async function downloadFreeLayouts(button) {
+    button.disabled = true;
+    let count = 0;
+    try {
+      for (const layout of freeLayoutsForExport()) {
+        const height = Math.ceil(freeStageHeight(layout));
+        const markup = exportFreeLayout(layout).replace('width="100%"',`width="${ARTBOARD_WIDTH}" height="${height}"`);
+        const url = URL.createObjectURL(new Blob([markup],{type:'image/svg+xml;charset=utf-8'}));
+        try {
+          const image = new Image();
+          image.src = url;
+          await image.decode();
+          const canvas = document.createElement('canvas');
+          canvas.width = ARTBOARD_WIDTH;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(image,0,0);
+          const blob = await canvasToBlob(canvas,'image/webp',.94);
+          if (blob?.type !== 'image/webp') throw new Error('WebP encode failed');
+          downloadWebp(blob,freeWebpName(layout));
+          count++;
+        } finally { URL.revokeObjectURL(url); }
+      }
+      $('#exportFeedback').textContent = `สร้าง WebP แล้ว ${count} ไฟล์`;
+    } catch {
+      $('#exportFeedback').textContent = count ? `สร้างได้ ${count} ไฟล์ · ยังส่งออกไม่ครบ` : 'สร้าง WebP ของพื้นที่ออกแบบไม่สำเร็จ';
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -2890,7 +3150,7 @@
     if (!undoStack.length) return;
     redoStack.push(clone(elements));
     elements = undoStack.pop();
-    selectedId = elements[0]?.id || null;
+    if (!elements.some(item => item.id === selectedId)) selectedId = elements[0]?.id || null;
     renderAll();
     scheduleSave();
   }
@@ -2899,7 +3159,7 @@
     if (!redoStack.length) return;
     undoStack.push(clone(elements));
     elements = redoStack.pop();
-    selectedId = elements[0]?.id || null;
+    if (!elements.some(item => item.id === selectedId)) selectedId = elements[0]?.id || null;
     renderAll();
     scheduleSave();
   }
@@ -3198,13 +3458,18 @@
   $('#backToEditor').addEventListener('click',() => showMode('editor'));
   $('#openImageExport').addEventListener('click',exportDesignImage);
   $('#openHtmlExport').addEventListener('click',openExport);
+  $('#freeExportFormat').addEventListener('change',updateExportCode);
+  $('#toggleFreePreview').addEventListener('click',() => setFreeExportPreview($('#freeExportPreview').hidden));
+  $('#downloadFreeWebps').addEventListener('click',event => downloadFreeLayouts(event.currentTarget));
   $('#closeExport').addEventListener('click',() => exportDialog.close());
+  exportDialog.addEventListener('close',() => setFreeExportPreview(false));
   $('#copyHtml').addEventListener('click', async () => {
     let copied = false;
     try {
       await navigator.clipboard.writeText(exportCode.value);
       copied = true;
     } catch {
+      setFreeExportPreview(false);
       exportCode.focus();
       exportCode.select();
       try { copied = document.execCommand('copy'); } catch {}
@@ -3256,9 +3521,9 @@
     const button = event.target.closest('[data-text-format]');
     if (!button) return;
     const command = button.dataset.textFormat;
-    const {layout,box} = currentFreeBox();
+    const {box} = currentFreeBox();
     if (box && Object.hasOwn(horizontalAlign,command)) {
-      changeFreeBox(layout,box,item => { item.x = (ARTBOARD_WIDTH-item.width)*horizontalAlign[command]; });
+      arrangeFreeBoxes(command);
       return;
     }
     if (!currentBoardText() && ['left','center','right'].includes(command)) alignBoardImage(command);
@@ -3298,12 +3563,34 @@
     if (editorView.hidden || $('#freeShelf').hidden || exportDialog.open || boardSettings.open ||
       event.target.closest?.('input,textarea,select,[contenteditable]')) return;
     const key = event.key.toLowerCase();
-    if ((event.ctrlKey || event.metaKey) && key === 'd' && currentFreeBox().box) {
+    const {layout} = currentFreeBox();
+    const selected = editableFreeSelection(layout);
+    if ((event.ctrlKey || event.metaKey) && key === 'd' && selected.length) {
       event.preventDefault();
       duplicateFreeBox();
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const direction = {arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]}[key];
+    if (direction && selected.length && (event.target === document.body || artboard.contains(event.target))) {
+      event.preventDefault();
+      const step = event.shiftKey ? 10 : 1;
+      nudgeFreeBoxes(direction[0]*step,direction[1]*step);
+      return;
+    }
+    if (['delete','backspace'].includes(key) && layout && (event.target === document.body || artboard.contains(event.target))) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (selected.length) {
+        const ids = new Set(selected.map(box => box.id));
+        const next = clone(elements);
+        const stage = next.find(item => item.id === layout.id);
+        stage.boxes = stage.boxes.filter(box => !ids.has(box.id));
+        selectOnlyFreeBox(null);
+        setElements(next,layout.id);
+      }
+      return;
+    }
     const shortcuts = {r:'rect',o:'ellipse',l:'line',i:'image',t:'text',v:null,escape:null};
     if (!Object.hasOwn(shortcuts,key)) return;
     event.preventDefault();
@@ -3319,21 +3606,35 @@
     const key = event.target.dataset.freeProp;
     const layout = elements.find(item => item.id === selectedId && item.type === 'freeLayout');
     const box = layout?.boxes.find(item => item.id === selectedFreeBox);
-    if (!key || !box) return;
-    const value = event.target.type === 'color' ? safeColor(event.target.value) :
+    if (!key || !box || (box.locked || box.hidden) && key !== 'name') return;
+    const input = event.target;
+    const value = key === 'name' ? input.value.trim().slice(0,80) :
+      input.type === 'checkbox' ? input.checked : input.matches('select') ? input.value :
+      input.type === 'color' ? safeColor(input.value) :
       bound(Number(event.target.value) || 0,Number(event.target.min),Number(event.target.max));
     changeFreeBox(layout,box,item => { item[key] = value; });
   });
   $('#freeProperties').addEventListener('click',event => {
     if (event.target.closest('[data-free-duplicate]')) { duplicateFreeBox(); return; }
+    const arrange = event.target.closest('[data-free-arrange]')?.dataset.freeArrange;
+    if (arrange) { arrangeFreeBoxes(arrange); return; }
+    const toggle = event.target.closest('[data-free-layer-toggle]');
+    if (toggle) {
+      const {layout} = currentFreeBox();
+      const box = layout?.boxes.find(item => item.id === toggle.dataset.freeLayerId);
+      const prop = toggle.dataset.freeLayerToggle;
+      if (box && ['hidden','locked'].includes(prop)) changeFreeBox(layout,box,item => { item[prop] = !item[prop]; });
+      return;
+    }
     const layer = event.target.closest('[data-free-layer]')?.dataset.freeLayer;
     if (layer) {
       const tile = $(`[data-free-box="${CSS.escape(layer)}"]`,artboard);
-      const {layout,box} = freeSelection(tile);
+      const {layout} = currentFreeBox();
+      const box = layout?.boxes.find(item => item.id === layer);
       if (box) {
         setFreeDrawTool(null);
-        selectFreeBox(layout,box,tile);
-        tile.scrollIntoView({block:'nearest'});
+        selectFreeBox(layout,box,tile,event.shiftKey);
+        tile?.scrollIntoView({block:'nearest'});
         $(`[data-free-layer="${CSS.escape(layer)}"]`,$('#freeProperties'))?.focus({preventScroll:true});
       }
       return;
@@ -3341,7 +3642,7 @@
     const action = event.target.closest('[data-free-order]')?.dataset.freeOrder;
     const layout = elements.find(item => item.id === selectedId && item.type === 'freeLayout');
     const box = layout?.boxes.find(item => item.id === selectedFreeBox);
-    if (!action || !box) return;
+    if (!action || !box || box.locked || box.hidden) return;
     changeFreeBox(layout,box,(item,stage) => {
       stage.boxes.splice(stage.boxes.indexOf(item),1);
       if (action === 'front') stage.boxes.push(item);
@@ -3366,21 +3667,18 @@
       selectFreeBox(layout,box,tile);
       editFreeCopy(tile);
     }
-    if (['Delete','Backspace'].includes(event.key)) {
-      event.preventDefault();
-      event.stopPropagation();
-      selectedFreeBox = null;
-      changeFreeBox(layout,box,(item,stage) => { stage.boxes.splice(stage.boxes.indexOf(item),1); });
-    }
   });
   artboard.addEventListener('focusout',event => {
     if (!event.target.matches('.free-copy[contenteditable]')) return;
-    const {box} = freeSelection(event.target);
+    const {box,tile} = freeSelection(event.target);
+    const value = event.target.innerText;
     event.target.removeAttribute('contenteditable');
-    if (!box || box.text === event.target.innerText) return;
+    if (!box || box.text === value) return;
     undoStack.push(clone(elements));
     redoStack = [];
-    box.text = event.target.innerText;
+    box.text = value;
+    $('.free-artwork',tile).outerHTML = renderFreeArtwork(box);
+    renderFreeProperties();
     $('#undoBtn').disabled = false;
     $('#redoBtn').disabled = true;
     scheduleSave();
@@ -3407,11 +3705,13 @@
     if (free.box) {
       const {layout,box,tile} = free;
       if (event.target.closest('[data-free-remove]')) {
-        selectedFreeBox = null;
+        if (box.locked) return;
+        selectOnlyFreeBox(null);
         changeFreeBox(layout,box,(item,stage) => { stage.boxes.splice(stage.boxes.indexOf(item),1); });
       } else {
-        selectFreeBox(layout,box,tile);
-        if (event.target.closest('[data-free-upload]')) {
+        if (event.target.closest('[contenteditable]')) return;
+        selectFreeBox(layout,box,tile,event.shiftKey);
+        if (!box.locked && event.target.closest('[data-free-upload]')) {
           freeUpload = {layout:layout.id,box:box.id,version:editorDocumentVersion};
           $('#freeImageFile').value = '';
           $('#freeImageFile').click();
@@ -3567,7 +3867,7 @@
   });
   document.addEventListener('pointerup',() => { nestedDragGrip = null; });
   artboard.addEventListener('dragstart',event => {
-    if (imageMove || freeGesture || freeDraw || event.target.closest('[data-free-box]')) { event.preventDefault(); return; }
+    if (imageMove || freeGesture || freeDraw || freeMarquee || event.target.closest('[data-free-box]')) { event.preventDefault(); return; }
     if (event.target.closest('[data-resize-handle],[data-canvas-remove],[data-remove-nested],[contenteditable="true"]')) {event.preventDefault();return}
     const bar = event.target.closest('.nested-tool-bar') || nestedDragGrip?.closest('.nested-tool-bar');
     const block = (bar || event.target).closest('[data-id]');
