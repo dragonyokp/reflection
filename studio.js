@@ -142,7 +142,7 @@
 
   function legacyElementName(element) { return legacyBlockMap.get(element.legacyType)?.name || 'รูปแบบ Reflection'; }
   const shelfLabels = {
-    contentHeading:'หัวข้อ H4', contentText:'ย่อหน้า', contentBlockquote:'คำพูดอ้างอิง',
+    contentHeading:'หัวข้อ H4', contentText:'ข้อความ', contentBlockquote:'คำพูดอ้างอิง',
     contentSplitQuoteLeft:'Quote รูปซ้าย', contentSplitQuoteRight:'Quote รูปขวา',
     contentSplitImageLeft:'รูปซ้าย ครึ่งเขียว', contentSplitImageRight:'รูปขวา ครึ่งเขียว',
     contentPortraitQuote:'รูปคู่คำพูด', contentModal:'ปุ่ม Popup', contentSpeakers:'คำพูดหลายคน'
@@ -359,7 +359,6 @@
       grip.draggable = true;
       grip.title = 'ลากเพื่อย้าย';
       grip.setAttribute('aria-hidden','true');
-      grip.textContent = '⠿';
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.dataset.removeNested = node.dataset.studioNest;
