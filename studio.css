@@ -1169,6 +1169,54 @@ body{font-size:18px}
 }
 .shelf-tabs button[aria-selected="true"] { background: #a6d965; color: #192717; font-weight: 700; }
 .shelf-tabs button:focus-visible,.free-tool-grid button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+#cmsComposer > .tool-category + .tool-category { border-top: 1px solid var(--orange); padding-top: 14px; }
+#cmsComposer .cms-layout-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.cms-layout-grid .legacy-tool-card { min-width: 0; min-height: 0; padding: 6px; }
+.cms-layout-grid .legacy-tool-card b { font-size: 13px; }
+.cms-layout-mini {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 4px;
+  height: 34px;
+  padding: 6px;
+  border-radius: 5px;
+  background: #f2f6ed;
+}
+.cms-layout-mini i { flex: 1; border: 1px solid #91ad7c; border-radius: 2px; background: #d4e4c8; }
+.cms-mini-body i { flex: 0 0 58%; }
+.cms-mini-wide i { flex: 0 0 86%; }
+.cms-mini-left i:last-child,.cms-mini-right i:first-child { flex: 1.4; }
+.cms-section-controls {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #222c23;
+}
+.cms-section-controls[hidden],.graphic-tools[hidden] { display: none; }
+.cms-section-controls label { display: grid; gap: 4px; color: #ecf1e8; font-size: 13px; }
+.cms-section-controls :is(select,input) { width: 100%; min-width: 0; padding: 6px 8px; color: #f3f7ee; background: #19221a; border: 1px solid #60705c; border-radius: 4px; font: inherit; }
+.graphic-tools summary { margin-block: 12px; cursor: pointer; }
+.source-page-render [data-cms-row] { padding-block: 16px; }
+.source-page-render [data-cms-column] { min-height: 72px; min-width: 0; padding-block: 8px; overflow-wrap: anywhere; }
+.source-page-render [data-cms-column].col-lg-7 { width: 58.3333%; }
+.source-page-render [data-cms-column]:empty::before {
+  content: 'วางองค์ประกอบ';
+  display: grid;
+  min-height: 54px;
+  place-items: center;
+  border: 1px dashed #8ca377;
+  border-radius: 4px;
+  color: #36512c;
+  background: #eaf2e2;
+  font-size: 14px;
+}
+.source-page-render [data-cms-active] { box-shadow: inset 0 0 0 1px #7ba350; }
+.source-page-render [data-cms-surface].text-white :is(h2,h4,p,blockquote) { color: inherit; }
 .free-tool-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
 .free-tool-grid button {
   display: grid;

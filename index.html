@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="legacy-preview.css?v=3">
-  <link rel="stylesheet" href="studio.css?v=85">
+  <link rel="stylesheet" href="studio.css?v=87">
   <script src="article-templates.js?v=9" defer></script>
   <script src="vendor/ffmpeg/ffmpeg.js" defer></script>
   <script src="app.js?v=5" defer></script>
-  <script src="studio.js?v=73" defer></script>
+  <script src="studio.js?v=75" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -125,6 +125,9 @@
               </div></section>
             </div>
             <div class="rail-scroll free-shelf" id="freeShelf" role="tabpanel" aria-labelledby="freeTab" hidden>
+              <div id="cmsComposer"></div>
+              <details class="tool-category graphic-tools" id="graphicTools" hidden>
+                <summary>งานกราฟิกจากร่างเดิม</summary>
               <div class="free-tool-grid">
                 <button type="button" data-free-select-tool aria-pressed="true" title="เลือก (V)"><span class="free-tool-sample" aria-hidden="true">↖</span>เลือก</button>
                 <button type="button" draggable="true" data-free-tool="rect" aria-pressed="false" title="สี่เหลี่ยม (R)"><span class="free-tool-sample free-sample-rect" aria-hidden="true"></span>สี่เหลี่ยม</button>
@@ -137,6 +140,7 @@
                 <button type="button" draggable="true" data-free-tool="text" aria-pressed="false" title="กล่องข้อความ (T)"><span class="free-tool-sample free-sample-text" aria-hidden="true">Aa</span>กล่องข้อความ</button>
               </div>
               <div id="freeProperties"></div>
+              </details>
             </div>
           </aside>
           <section class="canvas-workspace" aria-label="พื้นที่ออกแบบ">
@@ -181,9 +185,8 @@
     <dialog id="exportDialog" class="export-dialog">
       <div class="dialog-head"><h2>ส่งออก HTML</h2><button id="closeExport" class="close-dialog" type="button" aria-label="ปิด">×</button></div>
       <div id="freeExportOptions" class="free-export-options" hidden>
-        <label>พื้นที่ออกแบบอิสระ <select id="freeExportFormat"><option value="svg">SVG พร้อมรูป</option><option value="cms">HTML + WebP สำหรับ CMS</option></select></label>
-        <button id="toggleFreePreview" class="dialog-secondary" type="button" aria-pressed="false">ดูตัวอย่างงานออกแบบ</button>
-        <button id="downloadFreeWebps" class="dialog-secondary" type="button" hidden>ดาวน์โหลด WebP ของพื้นที่ออกแบบ</button>
+        <button id="toggleFreePreview" class="dialog-secondary" type="button" aria-pressed="false">ดูตัวอย่างงานกราฟิกเดิม</button>
+        <button id="downloadFreeWebps" class="dialog-secondary" type="button">ดาวน์โหลด WebP งานกราฟิกเดิม</button>
       </div>
       <p id="exportAssetStatus" class="export-asset-status" role="status" hidden></p>
       <textarea id="exportCode" spellcheck="false" aria-label="โค้ด HTML ที่ส่งออก"></textarea>

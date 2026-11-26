@@ -157,6 +157,143 @@
     contentSplitImageLeft:'รูปซ้าย ครึ่งเขียว', contentSplitImageRight:'รูปขวา ครึ่งเขียว',
     contentPortraitQuote:'รูปคู่คำพูด', contentModal:'ปุ่ม Popup', contentSpeakers:'คำพูดหลายคน'
   };
+  const cmsLayouts = {
+    body:{label:'เนื้อหาปกติ',columns:['col-md-10 col-xl-8 col-xxl-6']},
+    wide:{label:'เนื้อหากว้าง',columns:['col-md-12 col-xl-10 col-xxl-8']},
+    two:{label:'2 คอลัมน์',columns:['col-md-6','col-md-6']},
+    three:{label:'3 คอลัมน์',columns:Array(3).fill('col-md-4')},
+    four:{label:'4 คอลัมน์',columns:Array(4).fill('col-md-3')},
+    left:{label:'ซ้ายแคบ ขวากว้าง',columns:['col-lg-5','col-lg-7']},
+    right:{label:'ซ้ายกว้าง ขวาแคบ',columns:['col-lg-7','col-lg-5']}
+  };
+  const cmsBackgrounds = {
+    plain:{label:'ปกติ',className:''},
+    grey:{label:'เทาอ่อน',className:'container-fluid px-0 my-5 bg-light-grey'},
+    green:{label:'เขียว',className:'bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5 text-white'}
+  };
+  const cmsInlineTools = ['contentHeading','contentText','contentQuoteImage','contentBlockquote','subtitle','audio'];
+  let cmsColumnSelection;
+
+  function renderCmsComposer() {
+    const tools = (ids,key) => ids.map(id => {
+      const block = legacyBlockMap.get(id);
+      if (!block) return '';
+      return `<button type="button" class="legacy-tool-card" draggable="true" data-${key}="${id}">${block.group === 'content' ? toolPreviewMarkup(id) : legacyMiniMarkup(block.mini)}<b>${escapeHtml(shelfLabels[id] || block.name)}</b></button>`;
+    }).join('');
+    const layouts = Object.entries(cmsLayouts).map(([key,{label,columns}]) =>
+      `<button type="button" class="legacy-tool-card" draggable="true" data-cms-add-layout="${key}"><span class="cms-layout-mini cms-mini-${key}" aria-hidden="true">${columns.map(() => '<i></i>').join('')}</span><b>${label}</b></button>`
+    ).join('');
+    $('#cmsComposer').innerHTML = `
+      <div id="cmsSectionControls" class="cms-section-controls" hidden></div>
+      <section class="tool-category"><h3 class="tool-category-title">เพิ่มโครงหน้า</h3><div class="insert-grid cms-layout-grid">${layouts}</div></section>
+      <section class="tool-category"><h3 class="tool-category-title">เพิ่มในคอลัมน์</h3><div class="insert-grid">${tools(cmsInlineTools,'cms-add-content')}</div></section>
+      <section class="tool-category"><h3 class="tool-category-title">เพิ่มเต็มส่วน</h3><div class="insert-grid">${tools(['highlightImage','highlightGreenText','highlightGreenEmpty','contentSplitImageLeft','contentSplitImageRight','contentSplitQuoteLeft','contentSplitQuoteRight'],'cms-add-section')}</div></section>`;
+  }
+
+  function cmsSection() {
+    const item = elements.find(element => element.id === selectedId && element.cmsLayout);
+    if (!item) return {};
+    const block = $(`.board-section[data-id="${CSS.escape(item.id)}"]`,artboard);
+    const root = block?.querySelector('[data-source-render]');
+    const columns = root ? $$('[data-cms-column]',root) : [];
+    const index = cmsColumnSelection?.id === item.id ? Math.min(cmsColumnSelection.index,columns.length-1) : 0;
+    return {item,block,root,columns,index};
+  }
+
+  function renderCmsControls() {
+    const controls = $('#cmsSectionControls');
+    if (!controls) return;
+    const {item,columns,index} = cmsSection();
+    $('[data-cms-active]',artboard)?.removeAttribute('data-cms-active');
+    const freeShelfOpen = !$('#freeShelf').hidden;
+    if (freeShelfOpen) columns?.[index]?.setAttribute('data-cms-active','');
+    const graphics = $('#graphicTools');
+    const showGraphics = elements.some(element => element.id === selectedId && element.type === 'freeLayout');
+    if (showGraphics && graphics.hidden) graphics.open = true;
+    if (!showGraphics && !graphics.hidden) setFreeDrawTool(null);
+    graphics.hidden = !showGraphics;
+    controls.hidden = !item;
+    if (!item || !columns.length || !freeShelfOpen) return;
+    const choices = (options,value) => Object.entries(options).map(([key,option]) =>
+      `<option value="${key}"${String(value) === key ? ' selected' : ''}>${option.label}</option>`).join('');
+    const audios = $$('audio',columns[index]);
+    controls.innerHTML = `
+      <label>คอลัมน์ที่จะเพิ่ม<select data-cms-target>${choices(columns.map((_,i) => ({label:`คอลัมน์ ${i+1}`})),index)}</select></label>
+      <label>โครงที่เลือก<select data-cms-layout>${choices(cmsLayouts,item.cmsLayout)}</select></label>
+      <label>พื้นหลัง<select data-cms-background>${choices(cmsBackgrounds,item.cmsBackground)}</select></label>
+      ${audios.map((audio,i) => `<label>พาธเสียง MP4${audios.length>1 ? ' '+(i+1) : ''}<input type="text" data-cms-audio="${i}" value="${escapeHtml((audio.getAttribute('src') || '').replace('https://www.bangchak.co.th/','/'))}"></label>`).join('')}`;
+  }
+
+  function makeCmsLayout(key) {
+    const layout = cmsLayouts[key];
+    const columns = layout.columns.map(className => `<div class="${className}" data-cms-column></div>`).join('');
+    const markup = `<div data-cms-surface><div class="container"><div class="row justify-content-center" data-cms-row>${columns}</div></div></div>`;
+    return {cmsLayout:key,cmsBackground:'plain',title:layout.label,sourceKind:'composite',sourcePath:[],visualTemplate:true,markup};
+  }
+
+  function addCmsContent(type,insertAt) {
+    const definition = nestedTool(`legacy:${type}`);
+    if (!definition) return;
+    const {item,block,root,columns,index} = cmsSection();
+    const zone = columns?.[index];
+    if (zone && insertAt === undefined) {
+      const rect = zone.getBoundingClientRect();
+      insertNestedTool({item,block,root,column:zone,zone,x:rect.left+rect.width/2,y:rect.bottom+1},definition);
+      return;
+    }
+    const layout = makeElement('sourcePage',makeCmsLayout('body'));
+    const snapshot = snapshotNestedSource(layout);
+    const tool = makeElement('legacy',definition);
+    const wrapper = makeNestedWrapper(tool,snapshot);
+    $('[data-cms-column]',snapshot.root).append(wrapper);
+    insertBlock('sourcePage',insertAt,sourceBlockFromSnapshot(layout,snapshot,layout.title));
+    focusNewText($(`[data-studio-nest="${tool.id}"] [contenteditable="true"]`,artboard));
+  }
+
+  function updateCmsSection(target) {
+    const {item,root,columns,index} = cmsSection();
+    if (!item || !columns.length) return;
+    if (target.hasAttribute('data-cms-target')) {
+      cmsColumnSelection = {id:item.id,index:Number(target.value)};
+      renderCmsControls();
+      $('[data-cms-target]').focus();
+      return;
+    }
+    const snapshot = snapshotNestedSource(item,root);
+    const updated = {...item};
+    if (target.hasAttribute('data-cms-audio')) {
+      const path = target.value.trim();
+      if (path && (!/^(?:https?:\/\/|\/(?!\/))/i.test(path) || /[\u0000-\u001f]/.test(path))) {
+        showToast('ใส่พาธที่ขึ้นต้นด้วย / หรือ URL ของไฟล์เสียง');
+        target.value = $$('audio',columns[index])[Number(target.dataset.cmsAudio)].getAttribute('src') || '';
+        return;
+      }
+      $$('audio', $$('[data-cms-column]',snapshot.root)[index])[Number(target.dataset.cmsAudio)].setAttribute('src',path || '#');
+    } else if (target.hasAttribute('data-cms-layout')) {
+      const layout = cmsLayouts[target.value];
+      const cells = $$('[data-cms-column]',snapshot.root);
+      const row = $('[data-cms-row]',snapshot.root);
+      const count = layout.columns.length;
+      for (const extra of cells.slice(count)) {
+        cells[count-1].append(...extra.childNodes);
+        extra.remove();
+      }
+      layout.columns.forEach((className,i) => {
+        const cell = cells[i] || row.appendChild(document.createElement('div'));
+        cell.className = className;
+        cell.setAttribute('data-cms-column','');
+      });
+      updated.cmsLayout = target.value;
+      updated.title = layout.label;
+    } else if (target.hasAttribute('data-cms-background')) {
+      $('[data-cms-surface]',snapshot.root).className = cmsBackgrounds[target.value].className;
+      updated.cmsBackground = target.value;
+    } else return;
+    const replacement = sourceBlockFromSnapshot(updated,snapshot,updated.title);
+    setElements(elements.map(element => element.id === item.id ? replacement : element),item.id);
+    const control = [...target.attributes].find(attr => attr.name.startsWith('data-cms-'));
+    if (control && !target.hasAttribute('data-cms-audio')) $(`[${control.name}]`,$('#cmsSectionControls'))?.focus();
+  }
   function legacyHasImage(element) { return element?.type === 'legacy' && legacyImageTypes.has(element.legacyType); }
   function legacyDefaultWidth(type) {
     return ({highlightImage:100,highlightGreenText:82,highlightGreenEmpty:82,contentQuoteImage:62,contentSplitQuoteRight:100,contentSplitQuoteLeft:100,contentSplitImageLeft:100,contentSplitImageRight:100,contentPortraitQuote:100,contentModal:72}[type] || 100);
@@ -387,6 +524,7 @@
     copy.querySelectorAll('[data-template-preview-only]').forEach(node=>node.remove());
     copy.querySelectorAll('[data-source-text-selected]').forEach(node=>node.removeAttribute('data-source-text-selected'));
     copy.querySelectorAll('[data-nested-drop]').forEach(node=>node.removeAttribute('data-nested-drop'));
+    $('[data-cms-active]',copy)?.removeAttribute('data-cms-active');
     copy.classList.remove('nested-drop-root');
     copy.querySelectorAll('[data-source-edit]').forEach(node=>node.removeAttribute('spellcheck'));
     copy.querySelectorAll('.source-image-frame').forEach(frame => {
@@ -651,6 +789,7 @@
   let editorDocumentVersion = 0;
   function enterEditor(title, blocks) {
     editorDocumentVersion += 1;
+    cmsColumnSelection = null;
     activeTextField = null;
     activeImage = null;
     selectOnlyFreeBox(null);
@@ -929,6 +1068,7 @@
     }
     if (free) renderFreeProperties();
     else setFreeDrawTool(null);
+    renderCmsControls();
   }
 
   function setFreeDrawTool(kind) {
@@ -1494,6 +1634,7 @@
     const available=viewport.clientWidth-parseFloat(viewportStyle.paddingLeft||0)-parseFloat(viewportStyle.paddingRight||0);
     viewport.classList.toggle('canvas-fit',ARTBOARD_WIDTH*zoom<=available+1);
     updateBoardTextTools();
+    renderCmsControls();
   }
 
   function renderLayers() {
@@ -1660,7 +1801,7 @@
   }
 
   function dropPhotoKind(key) {
-    if (key === 'legacy:contentQuoteImage' || key === 'legacy:highlightImage') return {type:'legacy',legacyType:key.split(':')[1]};
+    if (/^(?:legacy|cms-content):(?:contentQuoteImage|highlightImage)$/.test(key || '')) return {type:'legacy',legacyType:key.split(':')[1]};
     const style = key?.match(/^(?:insert:)?image(?:\|(normal|highlight))?$/);
     return style ? {type:'image',...imageInsertOptions(style[1])} : null;
   }
@@ -1712,6 +1853,7 @@
     if (selectedId === id) {
       renderLayers();
       renderInspector();
+      renderCmsControls();
       return;
     }
     selectedId = id;
@@ -2310,7 +2452,7 @@
   function nestedTool(key) {
     const template = key?.match(/^template-tool:(\w+)$/);
     if (template) return templateToolRecipes.has(template[1]) ? {recipe:templateToolRecipes.get(template[1])} : null;
-    const legacy = key?.match(/^legacy:(\w+)$/);
+    const legacy = key?.match(/^(?:legacy|cms-content):(\w+)$/);
     if (legacy) return legacyBlockMap.has(legacy[1]) ? {type:'legacy',...legacyBlockDefaults(legacy[1])} : null;
     const free = key?.match(/^(?:insert:)?(heading|text|image|quote|split|divider|banner|button|columns|spacer)(?:\|(normal|highlight|green|greenText))?$/);
     return free ? {type:free[1],...imageInsertOptions(free[2])} : null;
@@ -2473,6 +2615,16 @@
     else cell.before(added);
   }
 
+  function makeNestedWrapper(item,snapshot) {
+    const {snapshot:material,content} = materializeNestedTool(item);
+    const wrapper = document.createElement('div');
+    wrapper.dataset.studioNest = item.id;
+    wrapper.dataset.studioName = item.type === 'legacy' ? shelfLabels[item.legacyType] || legacyElementName(item) : item.title && item.type === 'sourcePage' ? item.title : item.type === 'image' ? imageStyleName(item.imageStyle) : titleFor(item.type);
+    wrapper.append(...content.childNodes);
+    for (const [img,record] of material.images) snapshot.images.set(img,record);
+    return wrapper;
+  }
+
   function insertNestedTool(point,definition,movingId,photo) {
     const moving = elements.find(item => item.id === movingId);
     if (!definition && !moving || moving?.id === point.item.id) return;
@@ -2482,21 +2634,16 @@
     const item = moving || (recipe
       ? makeElement('sourcePage',{...clone(recipe),sourcePath:[],markup:wrapTemplateFragment(recipe.markup,recipe.sourcePath)})
       : makeElement(definition.type,definition));
-    const {snapshot:material,content} = materializeNestedTool(item);
     const snapshot = snapshotNestedSource(point.item,point.root);
     const zone = point.root ? counterpart(point.zone,point.root,snapshot.root) || snapshot.root : convertedDropColumn(point,snapshot.root);
     const anchor = nestedInsertionAnchor(point,zone);
-    const wrapper = document.createElement('div');
-    wrapper.dataset.studioNest = item.id;
-    wrapper.dataset.studioName = item.type === 'legacy' ? shelfLabels[item.legacyType] || legacyElementName(item) : item.title && item.type === 'sourcePage' ? item.title : item.type === 'image' ? imageStyleName(item.imageStyle) : titleFor(item.type);
-    wrapper.append(...content.childNodes);
+    const wrapper = makeNestedWrapper(item,snapshot);
     if (photo) {
       putNestedPhotoBeside(counterpart(photo.wrapper,point.root,snapshot.root),wrapper,photo.after);
     } else if (anchor?.node?.parentElement === zone) {
       if (anchor.before) anchor.node.before(wrapper);
       else anchor.node.after(wrapper);
     } else zone.append(wrapper);
-    for (const [img,record] of material.images) snapshot.images.set(img,record);
     const replacement = sourceBlockFromSnapshot(point.item,snapshot,$('.board-section-header b',point.block).textContent);
     activeTextField = null;
     sourceTextSelection = null;
@@ -2599,11 +2746,23 @@
   }
 
   function stripNestedWrappers(markup) {
-    if (!markup.includes('data-studio-nest') && !markup.includes('data-studio-photo-row')) return markup;
+    const hasCmsLayout = markup.includes('data-cms-surface');
+    if (!hasCmsLayout && !markup.includes('data-studio-nest') && !markup.includes('data-studio-photo-row')) return markup;
     const fragment = document.createElement('template');
     fragment.innerHTML = markup;
     $$('[data-studio-nest]',fragment.content).forEach(node => node.replaceWith(...node.childNodes));
     $$('[data-studio-photo-row]',fragment.content).forEach(node => node.removeAttribute('data-studio-photo-row'));
+    if (hasCmsLayout) {
+      $$('[data-cms-surface]',fragment.content).forEach(surface => {
+        if (!surface.querySelector('[data-cms-column]:not(:empty)')) surface.remove();
+        else if (!surface.className) surface.replaceWith(...surface.childNodes);
+        else surface.removeAttribute('data-cms-surface');
+      });
+      $$('[data-cms-column],[data-cms-row]',fragment.content).forEach(node => {
+        node.removeAttribute('data-cms-column');
+        node.removeAttribute('data-cms-row');
+      });
+    }
     return fragment.innerHTML;
   }
 
@@ -2822,11 +2981,10 @@
     }
   }
 
-  function elementToLegacyMarkup(element,freeFormat = 'svg') {
+  function elementToLegacyMarkup(element) {
     if (element.type === 'freeLayout') {
       if (!element.boxes.some(box => !box.hidden)) return '';
-      if (freeFormat === 'cms') return `<figure class="text-center"><img class="img-fluid" src="${freeWebpName(element)}" alt="พื้นที่ออกแบบ Reflection"></figure>`;
-      return exportFreeLayout(element);
+      return `<figure class="text-center"><img class="img-fluid" src="${freeWebpName(element)}" alt="พื้นที่ออกแบบ Reflection"></figure>`;
     }
     const heading = textHtml(element.title || '');
     const text = textHtml(element.text || '');
@@ -2859,7 +3017,7 @@
     return `<div class="container">\n<div class="row justify-content-center">\n${cells.join('\n')}\n</div>\n</div>`;
   }
 
-  function buildExport(items = elements,freeFormat = 'svg') {
+  function buildExport(items = elements) {
     const contentParts=[];
     const formattedFields = new Map();
     const tokenPrefix = `REFLECTION_FORMAT_${Date.now().toString(36)}_`;
@@ -2932,7 +3090,7 @@
       if (exportElement.type === 'legacy') legacyRun.push({...exportElement,type:exportElement.legacyType,src:''});
       else {
         flushLegacy();
-        const markup=elementToLegacyMarkup(exportElement,freeFormat);
+        const markup=elementToLegacyMarkup(exportElement);
         if (markup) contentParts.push(markup);
       }
     }
@@ -3075,22 +3233,19 @@
     view.hidden = !show;
     exportCode.hidden = show;
     $('#toggleFreePreview').setAttribute('aria-pressed',String(show));
-    $('#toggleFreePreview').textContent = show ? 'ดูโค้ด' : 'ดูตัวอย่างงานออกแบบ';
+    $('#toggleFreePreview').textContent = show ? 'ดูโค้ด' : 'ดูตัวอย่างงานกราฟิกเดิม';
     view.srcdoc = show ? '<!doctype html><meta charset="utf-8"><body marginwidth="0" marginheight="0">' +
       freeLayoutsForExport().map(exportFreeLayout).join('\n') : '';
   }
 
   function updateExportCode() {
       const freeLayouts = freeLayoutsForExport();
-      const format = $('#freeExportFormat').value;
       $('#freeExportOptions').hidden = !freeLayouts.length;
-      $('#downloadFreeWebps').hidden = format !== 'cms' || !freeLayouts.length;
-      exportCode.value = buildExport(elements,format);
+      exportCode.value = buildExport(elements);
       $('#exportFeedback').textContent = '';
       const fragment = document.createElement('template');
       fragment.innerHTML = exportCode.value;
       const assets = [...fragment.content.querySelectorAll('img,audio,video,source')];
-      assets.push(...fragment.content.querySelectorAll('svg image'));
       const missing = assets.filter(node => {
         const path = node.getAttribute('src') || node.getAttribute('href');
         if (node.matches('audio,video') && !path && node.querySelector('source')) return false;
@@ -3098,7 +3253,7 @@
       }).length;
       const embedded = assets.filter(node => (node.getAttribute('src') || node.getAttribute('href'))?.startsWith('data:')).length;
       const notes = [];
-      if (freeLayouts.length && format === 'cms') notes.push('ดาวน์โหลด WebP แล้วอัปโหลดไฟล์ใน CMS โดยใช้ชื่อไฟล์ตามโค้ด');
+      if (freeLayouts.length) notes.push('ดาวน์โหลด WebP ของงานกราฟิกเดิม แล้วอัปโหลดใน CMS โดยใช้ชื่อไฟล์ตามโค้ด');
       if (missing) notes.push(`มีไฟล์สื่อ ${missing} รายการที่ต้องใส่พาธจริงหลังอัปโหลดเข้า CMS`);
       if (embedded) notes.push(`มีไฟล์ฝังในโค้ด ${embedded} รายการ หาก CMS ตัดออก ให้อัปโหลดไฟล์ใน CMS แล้วใช้พาธของไฟล์`);
       const status = $('#exportAssetStatus');
@@ -3458,7 +3613,6 @@
   $('#backToEditor').addEventListener('click',() => showMode('editor'));
   $('#openImageExport').addEventListener('click',exportDesignImage);
   $('#openHtmlExport').addEventListener('click',openExport);
-  $('#freeExportFormat').addEventListener('change',updateExportCode);
   $('#toggleFreePreview').addEventListener('click',() => setFreeExportPreview($('#freeExportPreview').hidden));
   $('#downloadFreeWebps').addEventListener('click',event => downloadFreeLayouts(event.currentTarget));
   $('#closeExport').addEventListener('click',() => exportDialog.close());
@@ -3542,6 +3696,23 @@
 
   $('#componentsTab').addEventListener('click',() => switchShelf(false));
   $('#freeTab').addEventListener('click',() => switchShelf(true));
+  $('#cmsComposer').addEventListener('click',event => {
+    const card = event.target.closest('button');
+    if (!card) return;
+    const {cmsAddLayout,cmsAddContent,cmsAddSection} = card.dataset;
+    if (cmsAddLayout) insertBlock('sourcePage',undefined,makeCmsLayout(cmsAddLayout));
+    else if (cmsAddContent) addCmsContent(cmsAddContent);
+    else if (cmsAddSection) addLegacyBlock(cmsAddSection);
+  });
+  $('#cmsComposer').addEventListener('dragstart',event => {
+    const card = event.target.closest('button');
+    if (!card) return;
+    const {cmsAddLayout,cmsAddContent,cmsAddSection} = card.dataset;
+    draggedType = cmsAddLayout ? `cms-layout:${cmsAddLayout}` : cmsAddSection ? `cms-section:${cmsAddSection}` : `cms-content:${cmsAddContent}`;
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain',draggedType);
+  });
+  $('#cmsComposer').addEventListener('change',event => updateCmsSection(event.target));
   $('.shelf-tabs').addEventListener('keydown',event => {
     if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
     event.preventDefault();
@@ -3564,6 +3735,7 @@
       event.target.closest?.('input,textarea,select,[contenteditable]')) return;
     const key = event.key.toLowerCase();
     const {layout} = currentFreeBox();
+    if (!layout) return;
     const selected = editableFreeSelection(layout);
     if ((event.ctrlKey || event.metaKey) && key === 'd' && selected.length) {
       event.preventDefault();
@@ -3733,6 +3905,12 @@
     }
     const emptyAction=event.target.closest('[data-empty-add]');
     if(emptyAction) {event.preventDefault();addLegacyBlock(emptyAction.dataset.emptyAdd);return;}
+    const cmsColumn = event.target.closest('[data-cms-column]');
+    if (cmsColumn) {
+      const columns = $$('[data-cms-column]',cmsColumn.closest('[data-source-render]'));
+      cmsColumnSelection = {id:cmsColumn.closest('[data-id]').dataset.id,index:columns.indexOf(cmsColumn)};
+      renderCmsControls();
+    }
     if (event.target.closest('.button-block a,.source-page-render a')) event.preventDefault();
     if (event.target.closest('[contenteditable="true"],audio,video')) return;
     if (event.target.closest('[data-resize-handle]')) return;
@@ -3851,6 +4029,9 @@
       block.classList.add('selected');
       renderLayers();
       renderInspector();
+      const column = editable.closest('[data-cms-column]');
+      if (column) cmsColumnSelection = {id:selectedId,index:$$('[data-cms-column]',block).indexOf(column)};
+      renderCmsControls();
     }
     editBaseline = clone(elements);
   });
@@ -3915,6 +4096,11 @@
     event.dataTransfer.dropEffect = draggedType ? 'copy' : 'move';
     clearBlockDropHint();
     const target = event.target.closest('.canvas-block[data-id]');
+    if (/^cms-(?:layout|section):/.test(draggedType || '')) {
+      const placement = boardDropPlacement(event,target);
+      showBlockDropGuide(placement.target,placement.after);
+      return;
+    }
     if (draggedType?.startsWith('free:')) {
       const stage = event.target.closest('[data-free-stage]');
       if (stage) {
@@ -3987,6 +4173,16 @@
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
+    const cmsLayout = source?.match(/^cms-layout:(\w+)$/);
+    if (cmsLayout && Object.hasOwn(cmsLayouts,cmsLayout[1])) {
+      insertBlock('sourcePage',insertAt,makeCmsLayout(cmsLayout[1]));
+      return;
+    }
+    const cmsSection = source?.match(/^cms-section:(\w+)$/);
+    if (cmsSection) {
+      addLegacyBlock(cmsSection[1],insertAt);
+      return;
+    }
     const freeKind = source?.startsWith('free:') ? source.slice(5) : null;
     if (Object.hasOwn(freeTools,freeKind)) {
       addFreeBox(freeKind,event);
@@ -4002,9 +4198,16 @@
     if (photo) { joinPhotoRow(photo); return; }
     const definition = nestedTool(source);
     if (nested && nested.item.id !== draggedId && (definition || draggedId)) {
+      const cell = nested.zone.closest('[data-cms-column]');
+      if (cell) cmsColumnSelection = {id:nested.item.id,index:$$('[data-cms-column]',nested.block).indexOf(cell)};
       insertNestedTool(nested,definition,draggedId,nestedPhotoDrop(event,source,draggedId));
       draggedType = null;
       draggedId = null;
+      return;
+    }
+    const cmsContent = source?.match(/^cms-content:(\w+)$/);
+    if (cmsContent) {
+      addCmsContent(cmsContent[1],insertAt);
       return;
     }
     const templateTool = source?.match(/^template-tool:([A-Za-z0-9]+)$/);
@@ -4170,6 +4373,7 @@
   });
 
   renderLegacyTools();
+  renderCmsComposer();
   decorateIndependentTools();
   renderGallery();
 })();
