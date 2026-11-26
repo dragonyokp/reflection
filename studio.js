@@ -661,7 +661,7 @@
       const style = ['normal','highlight','green','greenText'].includes(element.imageStyle) ? element.imageStyle : 'normal';
       const fullBleed = style === 'green' || style === 'greenText' ? ' highlight-full-bleed' : '';
       const greenBand = style === 'green' ? '<div class="highlight-green-band highlight-green-empty" aria-hidden="true"></div>' : style === 'greenText' ? `<div class="highlight-green-band"><p style="${textStyle({...element,color:'#ffffff'})}" contenteditable="true" data-part="caption" spellcheck="false">${textHtml(element.caption || '')}</p></div>` : '';
-      return `<div class="board-block-content image-block image-style-${style}${fullBleed}" style="--image-width:${Math.max(10,Math.min(imageMaxPercent(element),Number(element.width)||100))}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"><div class="image-placeholder" style="width:var(--image-width);height:auto;min-height:0;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${greenBand}</div>`;
+      return `<div class="board-block-content image-block image-style-${style}${fullBleed}" style="--image-width:${imageSlotPercent(element)}%;justify-content:${element.align==='right'?'flex-end':element.align==='center'?'center':'flex-start'}"><div class="image-placeholder" style="width:var(--image-width);height:auto;min-height:0;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${greenBand}</div>`;
     }
     if (element.type === 'split') return `<div class="board-block-content split-block" style="background:${background}">${element.imageSide==='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}<div class="image-placeholder split-image" style="width:${Math.max(10,Math.min(100,Number(element.width)||100))}%;aspect-ratio:${1/imageAspectRatio(element)}">${renderImagePlaceholder(element)}</div>${element.imageSide!=='right'?`<div class="split-copy"><strong style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</strong><span style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</span></div>`:''}</div>`;
     if (element.type === 'banner') return `<section class="board-block-content banner-block" style="background:${background};color:${safeColor(element.color||'#ffffff')};text-align:${element.align||'center'};padding:${padding||36}px"><h2 style="${textStyle({...element,fontSize:Math.max(22,Number(element.fontSize)||24)})}" contenteditable="true" data-part="title">${textHtml(element.title)}</h2><p style="${textStyle(element)}" contenteditable="true" data-part="text">${textHtml(element.text)}</p></section>`;
@@ -752,8 +752,40 @@
     }
   }
 
+  const photoRowLimit = 4;
+  function isRowPhoto(element) {
+    if (element?.type === 'image') return !['green','greenText'].includes(element.imageStyle);
+    if (element?.type === 'legacy') return ['contentQuoteImage','highlightImage'].includes(element.legacyType);
+    if (element?.type !== 'sourcePage' || !['image','highlight'].includes(element.sourceKind) || element.imageCount !== 1) return false;
+    const fragment = document.createElement('template');
+    fragment.innerHTML = element.markup;
+    return !fragment.content.textContent.trim();
+  }
+
+  function photoRowAt(items, index) {
+    const key = items[index]?.studioRowId;
+    let start = index;
+    let end = index + 1;
+    if (key) {
+      while (start > 0 && items[start-1].studioRowId === key) start--;
+      while (end < items.length && items[end].studioRowId === key) end++;
+    }
+    return {start,end};
+  }
+
+  function renderBoardBlocks() {
+    const markup = [];
+    for (let index = 0; index < elements.length;) {
+      const {end} = photoRowAt(elements,index);
+      const blocks = elements.slice(index,end).map(renderBlock).join('');
+      markup.push(end-index > 1 ? `<div class="board-photo-row" style="--photo-count:${end-index}">${blocks}</div>` : blocks);
+      index = end;
+    }
+    return markup.join('');
+  }
+
   function renderArtboard() {
-    artboard.innerHTML = elements.length ? elements.map(renderBlock).join('') : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><b>เริ่มออกแบบ Reflection ของคุณ</b><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
+    artboard.innerHTML = elements.length ? renderBoardBlocks() : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><b>เริ่มออกแบบ Reflection ของคุณ</b><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
     if (legacyPatterns) {
       for (const element of elements.filter(item=>item.type==='legacy')) {
         const slot = artboard.querySelector(`.legacy-pattern-slot[data-for="${element.id}"]`) || [...artboard.querySelectorAll('.legacy-pattern-slot')].find(node=>node.closest('[data-id]')?.dataset.id===element.id);
@@ -793,8 +825,7 @@
         slot.append(preview);
       }
     }
-    for (const block of artboard.children) {
-      if (!block.classList.contains('canvas-block')) continue;
+    for (const block of $$('.board-section[data-id]',artboard)) {
       const element = elements.find(item => item.id === block.dataset.id);
       if (!element) continue;
       applyImageCrops(block,element);
@@ -938,6 +969,11 @@
     if (undoStack.length > 80) undoStack.shift();
     redoStack = [];
     elements = next;
+    for (let index = 0; index < elements.length;) {
+      const {end} = photoRowAt(elements,index);
+      if (end-index === 1) delete elements[index].studioRowId;
+      index = end;
+    }
     selectedId = selected;
     renderAll();
     scheduleSave();
@@ -948,6 +984,7 @@
     if (!element) return;
     if (sourceTextSelection?.elementId === id) sourceTextSelection = null;
     if (sourceImageSelection?.elementId === id) sourceImageSelection = null;
+    if (activeTextField?.elementId === id) activeTextField = null;
     setElements(elements.filter(item => item.id !== id),selectedId === id ? null : selectedId);
     showToast('ลบองค์ประกอบแล้ว');
   }
@@ -956,7 +993,7 @@
     const next = clone(elements);
     const item = makeElement(type,overrides);
     const selectedIndex = next.findIndex(element => element.id === selectedId);
-    const insertAt = Number.isInteger(index) ? Math.max(0,Math.min(index,next.length)) : selectedIndex >= 0 ? selectedIndex+1 : next.length;
+    const insertAt = Number.isInteger(index) ? Math.max(0,Math.min(index,next.length)) : selectedIndex >= 0 ? photoRowAt(next,selectedIndex).end : next.length;
     next.splice(insertAt, 0, item);
     setElements(next,item.id);
   }
@@ -969,17 +1006,51 @@
       variant:legacyType==='contentMedia'?'1':legacyType==='contentSpeakers'?'2':'left',
       audioSrc:'',src:'',alt:'',width:legacyDefaultWidth(legacyType),title:'หัวข้อเรื่องราว',text2:'เพิ่มรายละเอียดของเรื่องราวในย่อหน้าที่สอง',caption:legacyType.startsWith('highlight')?'เขียนข้อความประกอบรูปภาพที่นี่':'คำบรรยายรูปภาพที่หนึ่ง\nคำบรรยายรูปภาพที่สอง',label:'อ่านข้อมูลเพิ่มเติม',quote:'เพิ่มคำพูดสำคัญที่ต้องการเน้น',author:'ชื่อผู้พูด',media1Title:'หัวข้อประกอบไอคอน',media1Text:'เพิ่มข้อความอธิบายรายละเอียด',media2Title:'อีกหนึ่งประเด็นสำคัญ',media2Text:'เพิ่มข้อความอธิบายรายละเอียด',text:legacyType==='subtitle'||legacyType==='subtitleAudio'?'หัวข้อเรื่องราวของคุณ':legacyType==='contentText'?'เขียนรายละเอียดเรื่องราวของคุณที่นี่':legacyType==='contentBlockquote'?'เพิ่มข้อความอ้างอิงที่ต้องการเน้น':legacyType==='contentModal'?'เพิ่มรายละเอียดเพิ่มเติมสำหรับหน้าต่าง Popup':'ข้อความประกอบเรื่องราวของคุณ',speakers:[{quote:'เพิ่มคำพูดของผู้พูดคนที่หนึ่ง',name:'ชื่อผู้พูดคนที่หนึ่ง'},{quote:'เพิ่มคำพูดของผู้พูดคนที่สอง',name:'ชื่อผู้พูดคนที่สอง'},{quote:'เพิ่มคำพูดของผู้พูดคนที่สาม',name:'ชื่อผู้พูดคนที่สาม'}]
     };
+    insertBlock('legacy',index,defaults);
+  }
+
+  function dropPhotoKind(key) {
+    if (key === 'legacy:contentQuoteImage' || key === 'legacy:highlightImage') return {type:'legacy',legacyType:key.split(':')[1]};
+    const style = key?.match(/^(?:insert:)?image(?:\|(normal|highlight))?$/);
+    return style ? {type:'image',...imageInsertOptions(style[1])} : null;
+  }
+
+  function photoDrop(event, key, movingId) {
+    const frame = event.target.closest(boardImageFrame);
+    const targetId = frame?.closest('[data-id]')?.dataset.id;
+    const targetIndex = elements.findIndex(item => item.id === targetId);
+    const tool = dropPhotoKind(key);
+    const moving = elements.find(item => item.id === movingId);
+    if (!frame || movingId === targetId || !isRowPhoto(elements[targetIndex]) || (!tool && !isRowPhoto(moving))) return null;
+    const {start,end} = photoRowAt(elements,targetIndex);
+    const sameRow = elements.slice(start,end).includes(moving);
+    const rect = frame.getBoundingClientRect();
+    return {targetId,tool,movingId,full:end-start >= photoRowLimit && !sameRow,after:event.clientX >= rect.left+rect.width/2};
+  }
+
+  function joinPhotoRow(drop) {
+    if (drop.full) { showToast('หนึ่งแถวใส่ได้สูงสุด 4 รูป'); return; }
     const next = clone(elements);
-    const item = makeElement('legacy',defaults);
-    const selectedIndex = next.findIndex(element=>element.id===selectedId);
-    const insertAt = Number.isInteger(index)?Math.max(0,Math.min(index,next.length)):selectedIndex>=0?selectedIndex+1:next.length;
-    next.splice(insertAt,0,item);
-    setElements(next,item.id);
+    const movingIndex = next.findIndex(item => item.id === drop.movingId);
+    const photo = movingIndex >= 0 ? next.splice(movingIndex,1)[0] :
+      makeElement(drop.tool.type,{...drop.tool,...(drop.tool.type==='legacy'?{width:legacyDefaultWidth(drop.tool.legacyType)}:{})});
+    const targetIndex = next.findIndex(item => item.id === drop.targetId);
+    const {start,end} = photoRowAt(next,targetIndex);
+    const key = next[targetIndex].studioRowId || `photo-row-${uid()}`;
+    next.slice(start,end).forEach(item => { item.studioRowId = key; });
+    photo.studioRowId = key;
+    next.splice(targetIndex + Number(drop.after),0,photo);
+    setElements(next,photo.id);
   }
 
   function imageInsertOptions(style) {
     if (!style) return {};
     return {imageStyle:style,width:style==='normal'?82:100,radius:style==='normal'?6:0};
+  }
+
+  function imageSlotPercent(element) {
+    const width = Math.max(10,Math.min(imageMaxPercent(element),Number(element.width) || 100));
+    return element.studioRowId && element.imageStyle === 'normal' ? Math.min(100,width / .82) : width;
   }
 
   function addBlock(type,overrides = {}) { insertBlock(type,undefined,overrides); }
@@ -1003,10 +1074,15 @@
     if (!sourceId || sourceId === targetId) return;
     const next = clone(elements);
     const from = next.findIndex(element => element.id === sourceId);
+    if (from < 0) return;
     const [moving] = next.splice(from,1);
+    delete moving.studioRowId;
     let to = targetId ? next.findIndex(element => element.id === targetId) : next.length;
     if (to < 0) to = next.length;
-    if (after && targetId) to++;
+    if (targetId && to < next.length) {
+      const row = photoRowAt(next,to);
+      to = after ? row.end : row.start;
+    }
     if (moving) next.splice(to,0,moving);
     setElements(next,sourceId);
   }
@@ -1089,8 +1165,7 @@
     if(el.type==='sourcePage') {el.imageWidths ||= {};el.imageWidths[resizeState.sourceIndex]=width;}
     else el.width = width;
     if (el.type === 'image') {
-      block?.style.setProperty('--image-width',`${width}%`);
-      if (imageBox) imageBox.style.width = `${width}%`;
+      imageBox?.parentElement.style.setProperty('--image-width',`${imageSlotPercent(el)}%`);
     } else if (imageBox) {
       const baseline = el.type === 'legacy' ? legacyDefaultWidth(el.legacyType) : 100;
       imageBox.style.width = `${Math.max(10,Math.min(100,width/baseline*100))}%`;
@@ -1199,6 +1274,7 @@
     const node = currentBoardText();
     const item = elements.find(element => element.id === selectedId);
     $('#openBoardSettings').disabled = !item;
+    $('#removeBoardText').disabled = !node;
     const source = node?.hasAttribute('data-source-edit');
     const format = source ? {
       bold:Boolean(wholeTextMark(node,'strong')), italic:Boolean(wholeTextMark(node,'em')),
@@ -1253,23 +1329,91 @@
     'legacy:contentBlockquote':'blockquote'
   };
 
-  function sourceDropPoint(event) {
-    const root = event.target.closest('[data-source-render]');
-    if (!root) return null;
-    const element = elements.find(item => item.id === root.closest('[data-id]')?.dataset.id);
-    if (element?.sourcePath) return null;
-    let anchor = event.target.closest('[data-source-edit]');
-    if (!anchor) {
-      let best = Infinity;
-      for (const candidate of $$('[data-source-edit]',root)) {
-        const rect = candidate.getBoundingClientRect();
-        const horizontal = Math.max(rect.left-event.clientX,0,event.clientX-rect.right);
-        const distance = Math.abs(event.clientY-(rect.top+rect.height/2)) + horizontal;
-        if (distance < best) { best = distance; anchor = candidate; }
-      }
+  function editCompositeText(item, anchor, action, tag, before) {
+    const block = anchor.closest('[data-id]');
+    if (document.activeElement === anchor) anchor.blur();
+    const marked = clone(item);
+    const part = anchor.dataset.part;
+    const speaker = anchor.dataset.boardSpeaker;
+    const fields = speaker === undefined ? marked : marked.speakers?.[speaker];
+    if (!fields || !part) return;
+    const oldText = fields[part] || '';
+    const marker = 'REFLECTION_EDIT_' + Date.now().toString(36);
+    fields[part] = marker;
+    const doc = document.createElement('template');
+    doc.innerHTML = buildExport([marked]);
+    const walker = document.createTreeWalker(doc.content,NodeFilter.SHOW_TEXT);
+    let token;
+    while (walker.nextNode()) {
+      if (walker.currentNode.nodeValue === marker) { token = walker.currentNode; break; }
     }
-    const rect = anchor?.getBoundingClientRect();
-    return {root,anchor,before:Boolean(rect && event.clientY < rect.top+rect.height/2)};
+    if (!token) return;
+    const unit = token.parentElement.closest('a,.font-italic,h1,h2,h3,h4,h5,h6,p,blockquote,figcaption');
+    if (!unit) return;
+    let inserted;
+    if (action === 'remove') {
+      unit.remove();
+    } else {
+      const copy = document.createElement('template');
+      copy.innerHTML = textHtml(oldText);
+      token.replaceWith(copy.content);
+      inserted = makeDroppedText(tag);
+      if (before) unit.before(inserted);
+      else unit.after(inserted);
+    }
+    const originals = $$('img',doc.content).map(img => img.outerHTML);
+    const uploads = $$(boardImageFrame,block).map(frame => frame.querySelector('img')).filter(Boolean);
+    $$('img',doc.content).forEach((img,index) => {
+      img.dataset.templatePlaceholder = Number(img.getAttribute('width')) <= 60 && img.hasAttribute('width') ? 'square' : 'wide';
+      if (!uploads[index]) return;
+      img.setAttribute('src',uploads[index].getAttribute('src'));
+      img.setAttribute('alt',uploads[index].alt);
+    });
+    const textIndex = inserted ? sourceTextNodes(doc.content).indexOf(inserted) : -1;
+    const replacement = {
+      ...item,type:'sourcePage',sourcePath:[],sourceKind:'composite',visualTemplate:true,
+      title:$('.board-section-header b',block).textContent,markup:doc.innerHTML,originalImages:originals,
+      imageCount:originals.length,imageCropRatios:item.cropRatio?{0:item.cropRatio}:{}
+    };
+    activeTextField = null;
+    sourceTextSelection = null;
+    sourceImageSelection = null;
+    setElements(elements.map(value => value.id === item.id ? replacement : value),item.id);
+    if (textIndex >= 0) focusNewText($(`.board-section[data-id="${item.id}"] [data-source-edit="${textIndex}"]`,artboard));
+  }
+
+  function makeDroppedText(tag) {
+    const inserted = document.createElement(tag);
+    inserted.textContent = tag === 'p' ? 'พิมพ์ข้อความที่นี่' : tag === 'blockquote' ? 'พิมพ์คำพูดที่นี่' : 'พิมพ์หัวข้อที่นี่';
+    if (tag === 'h3') inserted.className = 'news__subtitle';
+    return inserted;
+  }
+
+  function allowsNestedText(item) {
+    if (item.type === 'sourcePage') return !['text','heading','subtitle','quote','audio','image','highlight'].includes(item.sourceKind);
+    if (item.type === 'legacy') return !['subtitle','contentHeading','contentText','contentBlockquote'].includes(item.legacyType);
+    return ['split','columns','banner'].includes(item.type) || item.type === 'image' && item.imageStyle === 'greenText';
+  }
+
+  function removeSelectedText() {
+    const anchor = currentBoardText();
+    if (!anchor) return;
+    const item = elements.find(element => element.id === selectedId);
+    const root = anchor.closest('[data-source-render]');
+    if (root) {
+      if (!allowsNestedText(item) && sourceTextNodes(root).length === 1 && !root.querySelector('img,audio,video')) {
+        removeBoardElement(item.id);
+      } else changeSourceText(root,anchor,'remove');
+    } else if (!allowsNestedText(item)) removeBoardElement(item.id);
+    else editCompositeText(item,anchor,'remove');
+    updateBoardTextTools();
+  }
+
+  function sourceDropPoint(event) {
+    const anchor = event.target.closest('[contenteditable="true"]');
+    const element = elements.find(item => item.id === anchor?.closest('[data-id]')?.dataset.id);
+    if (!element || !allowsNestedText(element)) return null;
+    return {element,root:anchor.closest('[data-source-render]'),anchor,before:!isAfterBlock(event,anchor)};
   }
 
   function clearSourceDropHint() {
@@ -1303,8 +1447,7 @@
       if (listItem) anchor = tag === 'p' ? listItem : listItem.closest('ul,ol');
       else anchor = anchor?.closest('figure,table,blockquote') || anchor;
       const newTag = anchor?.matches('li') ? 'li' : tag;
-      inserted = document.createElement(newTag);
-      inserted.textContent = tag === 'p' ? 'พิมพ์ข้อความที่นี่' : tag === 'blockquote' ? 'พิมพ์คำพูดที่นี่' : 'พิมพ์หัวข้อที่นี่';
+      inserted = makeDroppedText(newTag);
       if (anchor) {
         if (before) anchor.before(inserted);
         else anchor.after(inserted);
@@ -1317,12 +1460,12 @@
         section.firstElementChild.firstElementChild.append(inserted);
         root.append(section);
       }
-      if (tag === 'h3') inserted.className = 'news__subtitle';
     }
     const textIndex = inserted ? sourceTextNodes(root).indexOf(inserted) : -1;
     const markup = sourceHtmlFromPreview(root);
     sourceTextSelection = null;
     sourceImageSelection = null;
+    activeTextField = null;
     setElements(elements.map(item => item.id === id ? {...item,markup} : item),id);
     const block = $(`.source-page-block[data-id="${id}"]`,artboard);
     if (textIndex >= 0) focusNewText($(`[data-source-edit="${textIndex}"]`,block));
@@ -1458,8 +1601,11 @@
     if (element.type === 'quote') return `<blockquote><p>${text}</p></blockquote>`;
     if (element.type === 'image') return image + (element.imageStyle === 'greenText' && element.caption ? `
 <p>${textHtml(element.caption)}</p>` : '');
-    if (element.type === 'split') return `${element.imageSide !== 'right' ? image + '\n' : ''}<h4>${heading}</h4>
-<p>${text}</p>${element.imageSide === 'right' ? '\n' + image : ''}`;
+    if (element.type === 'split') {
+      const media = `<div class="col-md-6">${image}</div>`;
+      const copy = `<div class="col-md-6"><h4>${heading}</h4><p>${text}</p></div>`;
+      return `<div class="container">\n<div class="row align-items-center">\n${element.imageSide==='right' ? copy+'\n'+media : media+'\n'+copy}\n</div>\n</div>`;
+    }
     if (element.type === 'banner') return `<div class="bg-green-gradient-vertical mb-md-6 mb-5 pb-md-6 pb-5">\n    <div class="container">\n        <div class="row justify-content-center">\n            <div class="col-md-10 col-xl-8 col-xxl-6">\n                ${element.title ? `<h2 class="news__subtitle mb-4">${heading}</h2>\n                ` : ''}<p class="text-white">${text}</p>\n            </div>\n        </div>\n    </div>\n</div>`;
     if (element.type === 'button') return `<p class="my-5"><a href="${escapeHtml(safeHref(element.url))}" class="btn btn--primary"><span class="btn__text btn__text--sm">${textHtml(element.text)}</span></a></p>`;
     if (element.type === 'columns') return `<div class="container">\n    <div class="row my-5">\n        <div class="col-md-6">\n            <h4>${textHtml(element.leftTitle)}</h4>\n            <p class="mb-0">${textHtml(element.leftText)}</p>\n        </div>\n        <div class="col-md-6">\n            <h4>${textHtml(element.rightTitle)}</h4>\n            <p class="mb-0">${textHtml(element.rightText)}</p>\n        </div>\n    </div>\n</div>`;
@@ -1468,7 +1614,17 @@
     return '';
   }
 
-  function buildExport() {
+  function exportPhotoRow(photos) {
+    const column = {2:'col-md-6',3:'col-md-4',4:'col-md-3'}[photos.length];
+    const cells = photos.map(photo => {
+      const original = photo.type === 'sourcePage' && photo.originalImages?.[0];
+      const image = original ? cleanSourceMarkup(original) : `<img class="img-fluid" src="#" alt="${escapeHtml(photo.alt || '')}">`;
+      return `<div class="${column}"><figure class="text-center my-5">${image}</figure></div>`;
+    });
+    return `<div class="container">\n<div class="row justify-content-center">\n${cells.join('\n')}\n</div>\n</div>`;
+  }
+
+  function buildExport(items = elements) {
     const contentParts=[];
     const formattedFields = new Map();
     const tokenPrefix = `REFLECTION_FORMAT_${Date.now().toString(36)}_`;
@@ -1492,7 +1648,16 @@
       if (html) contentParts.push(html);
       legacyRun=[];
     };
-    for (const element of elements) {
+    for (let index = 0; index < items.length; index++) {
+      const element = items[index];
+      const {end} = photoRowAt(items,index);
+      if (end-index > 1) {
+        flushLegacy();
+        flushSource();
+        contentParts.push(exportPhotoRow(items.slice(index,end)));
+        index = end-1;
+        continue;
+      }
       if (element.type==='sourcePage') {
         flushLegacy();
         const originalTemplate = templates.find(template => template.id === element.sourceId);
@@ -2028,9 +2193,10 @@
     if (event.target === boardSettings) boardSettings.close();
   });
   boardTextTools.addEventListener('mousedown',event => {
-    if (event.target.closest('[data-text-format]')) event.preventDefault();
+    if (event.target.closest('[data-text-format],#removeBoardText')) event.preventDefault();
   });
   boardTextTools.addEventListener('click',event => {
+    if (event.target.closest('#removeBoardText')) { removeSelectedText(); return; }
     const button = event.target.closest('[data-text-format]');
     if (button) applyBoardTextFormat(button.dataset.textFormat);
   });
@@ -2194,7 +2360,14 @@
     event.preventDefault();
     event.dataTransfer.dropEffect = draggedType ? 'copy' : 'move';
     clearBlockDropHint();
+    clearSourceDropHint();
     const target = event.target.closest('.canvas-block[data-id]');
+    const photo = photoDrop(event,draggedType,draggedId);
+    if (photo && target) {
+      blockDropTarget = target;
+      target.dataset.blockDrop = photo.full ? 'full' : photo.after ? 'photo-after' : 'photo-before';
+      return;
+    }
     if (sourceTextTools[draggedType]) {
       clearSourceDropHint();
       const point = sourceDropPoint(event);
@@ -2232,9 +2405,12 @@
       return;
     }
     const source = event.dataTransfer.getData('text/plain') || draggedId;
+    const photo = photoDrop(event,source,draggedId);
+    if (photo) { joinPhotoRow(photo); return; }
     const targetIndex = elements.findIndex(item => item.id === target?.dataset.id);
     const after = target ? isAfterBlock(event,target) : false;
-    const insertAt = targetIndex < 0 ? elements.length : targetIndex + Number(after);
+    const row = photoRowAt(elements,targetIndex);
+    const insertAt = targetIndex < 0 ? elements.length : after ? row.end : row.start;
     const templateTool = source?.match(/^template-tool:([A-Za-z0-9]+)$/);
     if (templateTool) {
       insertTemplateTool(templateTool[1],insertAt);
@@ -2246,7 +2422,8 @@
     const point = textTool && sourceDropPoint(event);
     if (point) {
       draggedType = null;
-      changeSourceText(point.root,point.anchor,'add',textTool,point.before);
+      if (point.root) changeSourceText(point.root,point.anchor,'add',textTool,point.before);
+      else editCompositeText(point.element,point.anchor,'add',textTool,point.before);
       return;
     }
     const legacyInsertMatch = source?.match(/^legacy:([A-Za-z0-9]+)$/);
