@@ -589,7 +589,8 @@
           type:'sourcePage', title, sourceKind, sourceId:source.sourceId, sourcePath:path,
           markup:nodes.map(item => item.outerHTML).join('\n'), visualTemplate:source.visualTemplate,
           imageCount, originalImages:originalImages.slice(imageOffset,imageOffset+imageCount),
-          imageWidths:localImageSettings('imageWidths'), imageCropRatios:localImageSettings('imageCropRatios')
+          imageWidths:localImageSettings('imageWidths'), imageCropRatios:localImageSettings('imageCropRatios'),
+          imageOffsets:localImageSettings('imageOffsets')
         });
         imageOffset += imageCount;
       }
@@ -778,6 +779,8 @@
       const index = frame.dataset.sourceFrame;
       const ratio = source ? element.imageCropRatios?.[index] : element.cropRatio;
       if (Number.isFinite(ratio) && ratio > 0) applyCropFrame(frame,ratio);
+      const offset = source ? element.imageOffsets?.[index] : element.imageOffset;
+      if (Number.isFinite(offset) && offset) frame.style.setProperty('--board-image-offset',`${offset}%`);
     }
   }
 
@@ -1162,7 +1165,13 @@
     const startingPercent = element.type === 'sourcePage' ? sourceFrameWidthPercent(imageBox) : Number(element.width) || (element.type === 'legacy' ? legacyDefaultWidth(element.legacyType) : 100);
     const widthPercent = Math.max(10,Math.min(imageMaxPercent(element),startingPercent));
     const height = Math.max(1,rect.height / zoom);
-    resizeState = {id:element.id,handle:handle.dataset.resizeHandle,sourceIndex,startX:event.clientX,startY:event.clientY,startWidth:widthPercent,baseWidth:width/(widthPercent/100),frameWidth:width,aspect:width/height,before:clone(elements),block};
+    const side = handle.dataset.resizeHandle;
+    const parent = imageFrameContainer(imageBox);
+    resizeState = {
+      id:element.id,handle:side,sourceIndex,startX:event.clientX,startY:event.clientY,
+      startWidth:widthPercent,baseWidth:width/(widthPercent/100),frameWidth:width,frameHeight:height,
+      aspect:width/height,fixedEdge:side === 'w' ? rect.right : rect.left,parent,before:clone(elements),block
+    };
     block.setAttribute('draggable','false');
     try { handle.setPointerCapture?.(event.pointerId); } catch {}
     document.addEventListener('pointermove',resizeImageMove);
@@ -1172,11 +1181,27 @@
     document.addEventListener('mouseup',finishImageResize,{once:true});
   }
 
-  function sourceFrameWidthPercent(frame) {
+  function imageFrameContainer(frame) {
     const parent = frame.parentElement;
     const style = getComputedStyle(parent);
-    const padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-    return frame.getBoundingClientRect().width / zoom / Math.max(1,parent.clientWidth-padding) * 100;
+    const paddingLeft = parseFloat(style.paddingLeft) || 0;
+    const paddingRight = parseFloat(style.paddingRight) || 0;
+    return {
+      left:parent.getBoundingClientRect().left + (parent.clientLeft+paddingLeft)*zoom,
+      width:Math.max(1,parent.clientWidth-paddingLeft-paddingRight)
+    };
+  }
+
+  function sourceFrameWidthPercent(frame) {
+    return frame.getBoundingClientRect().width / zoom / imageFrameContainer(frame).width * 100;
+  }
+
+  function setFrameCrop(element,frame,ratio) {
+    if (element.type === 'sourcePage') {
+      element.imageCropRatios ||= {};
+      element.imageCropRatios[frame.dataset.sourceFrame] = ratio;
+    } else element.cropRatio = ratio;
+    applyCropFrame(frame,ratio);
   }
 
   function resizeImageMove(event) {
@@ -1194,17 +1219,15 @@
       if (Math.abs(dy) < 1 && !resizeState.cropping) return;
       resizeState.cropping = true;
       const ratio = Math.max(.25,Math.min(5,resizeState.aspect / Math.max(.01,1 + dy / resizeState.frameWidth)));
-      if (el.type === 'sourcePage') {
-        el.imageCropRatios ||= {};
-        el.imageCropRatios[resizeState.sourceIndex] = ratio;
-      } else {
-        el.cropRatio = ratio;
-      }
-      applyCropFrame(imageBox,ratio);
+      setFrameCrop(el,imageBox,ratio);
       return;
     }
     const delta = hasX && hasY ? (Math.abs(dx)>=Math.abs(dy)?dx:dy) : hasX ? dx : dy;
-    const width = Math.max(10,Math.min(imageMaxPercent(el),resizeState.startWidth + delta / resizeState.baseWidth * 100));
+    const sideOnly = hasX && !hasY;
+    const {baseWidth,fixedEdge,parent,startWidth} = resizeState;
+    const sideSpace = handle === 'w' ? (fixedEdge-parent.left)/zoom : parent.width-(fixedEdge-parent.left)/zoom;
+    const maxWidth = sideOnly ? Math.min(imageMaxPercent(el),Math.max(startWidth,sideSpace/baseWidth*100)) : imageMaxPercent(el);
+    const width = Math.max(10,Math.min(maxWidth,startWidth + delta / baseWidth * 100));
     if(el.type==='sourcePage') {el.imageWidths ||= {};el.imageWidths[resizeState.sourceIndex]=width;}
     else el.width = width;
     if (el.type === 'image') {
@@ -1212,6 +1235,19 @@
     } else if (imageBox) {
       const baseline = el.type === 'legacy' ? legacyDefaultWidth(el.legacyType) : 100;
       imageBox.style.width = `${Math.max(10,Math.min(100,width/baseline*100))}%`;
+    }
+    if (sideOnly && imageBox) {
+      imageBox.style.removeProperty('--board-image-offset');
+      const resized = imageBox.getBoundingClientRect();
+      setFrameCrop(el,imageBox,resized.width/zoom/resizeState.frameHeight);
+      // Body layout can center images. Pin the opposite edge of the frame during the drag.
+      const neutral = imageBox.getBoundingClientRect();
+      const offset = (fixedEdge-(handle === 'w' ? neutral.right : neutral.left))/zoom/parent.width*100;
+      imageBox.style.setProperty('--board-image-offset',`${offset}%`);
+      if (el.type === 'sourcePage') {
+        el.imageOffsets ||= {};
+        el.imageOffsets[resizeState.sourceIndex] = offset;
+      } else el.imageOffset = offset;
     }
     const slider = $('[data-prop="width"]',inspector);
     if (slider) slider.value = String(Math.round(width));
@@ -1416,7 +1452,8 @@
     const replacement = {
       ...item,type:'sourcePage',sourcePath:[],sourceKind:'composite',visualTemplate:true,
       title:$('.board-section-header b',block).textContent,markup:doc.innerHTML,originalImages:originals,
-      imageCount:originals.length,imageCropRatios:item.cropRatio?{0:item.cropRatio}:{}
+      imageCount:originals.length,imageCropRatios:item.cropRatio?{0:item.cropRatio}:{},
+      imageOffsets:item.imageOffset?{0:item.imageOffset}:{}
     };
     activeTextField = null;
     sourceTextSelection = null;
@@ -1508,7 +1545,8 @@
         if (path) img.setAttribute('src',path);
       }
       const original = item.type === 'sourcePage' ? originals[index] : img.outerHTML;
-      images.set(img,{original,width:item.imageWidths?.[index],crop:item.imageCropRatios?.[index] ?? (index === 0 ? item.cropRatio : undefined)});
+      images.set(img,{original,width:item.imageWidths?.[index],crop:item.imageCropRatios?.[index] ?? (index === 0 ? item.cropRatio : undefined),
+        offset:item.imageOffsets?.[index] ?? (index === 0 ? item.imageOffset : undefined)});
       if (!liveRoot && index === 0 && item.src && item.type !== 'sourcePage') {
         img.setAttribute('src',item.src);
         img.setAttribute('alt',item.alt || '');
@@ -1531,7 +1569,7 @@
       sourcePath:item.type === 'sourcePage' ? item.sourcePath || [] : [],studioRowId:undefined,
       markup:sourceHtmlFromPreview(snapshot.root,true),
       originalImages:records.map(record => record.original || null),imageCount:records.length,
-      imageWidths:settings('width'),imageCropRatios:settings('crop')
+      imageWidths:settings('width'),imageCropRatios:settings('crop'),imageOffsets:settings('offset')
     };
   }
 
