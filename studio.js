@@ -59,6 +59,14 @@
   let activeTextField = null;
   const boardTextTools = $('#boardTextTools');
   const boardSettings = $('#boardSettings');
+  const inlineRemove = document.createElement('button');
+  inlineRemove.type = 'button';
+  inlineRemove.className = 'inline-text-remove';
+  inlineRemove.setAttribute('aria-label','ลบข้อความส่วนนี้');
+  inlineRemove.title = 'ลบข้อความส่วนนี้';
+  inlineRemove.textContent = '×';
+  inlineRemove.hidden = true;
+  let inlineRemoveTarget = null;
   const textAlignClasses = ['text-left','text-center','text-right'];
   let resizeState = null;
   let inspectorBaseline = null;
@@ -641,7 +649,7 @@
       element.type === 'sourcePage' ? (element.title || 'องค์ประกอบจากเทมเพลต') :
       element.type === 'image' ? imageStyleName(element.imageStyle) : titleFor(element.type);
     return `<div class="canvas-block board-section${sourceClass}${selected}" data-id="${element.id}"${legacy} draggable="true">
-      <div class="board-section-header"><b>${escapeHtml(name)}</b><button class="canvas-remove-block" data-canvas-remove="${element.id}" type="button" title="ลบ ${escapeHtml(name)}" aria-label="ลบ ${escapeHtml(name)}">×</button></div>
+      <div class="board-section-header" tabindex="0"><b>${escapeHtml(name)}</b><button class="canvas-remove-block" data-canvas-remove="${element.id}" type="button" title="ลบ ${escapeHtml(name)}" aria-label="ลบ ${escapeHtml(name)}">×</button></div>
       ${renderBlockBody(element)}
     </div>`;
   }
@@ -786,6 +794,7 @@
 
   function renderArtboard() {
     artboard.innerHTML = elements.length ? renderBoardBlocks() : '<div class="editor-empty"><span class="editor-empty-icon" aria-hidden="true">✳</span><b>เริ่มออกแบบ Reflection ของคุณ</b><div class="editor-empty-actions"><button type="button" data-empty-add="subtitle">+ หัวข้อ</button><button type="button" data-empty-add="highlightImage">+ รูป Highlight</button><button type="button" data-empty-add="contentText">+ ข้อความ</button></div></div>';
+    artboard.append(inlineRemove);
     if (legacyPatterns) {
       for (const element of elements.filter(item=>item.type==='legacy')) {
         const slot = artboard.querySelector(`.legacy-pattern-slot[data-for="${element.id}"]`) || [...artboard.querySelectorAll('.legacy-pattern-slot')].find(node=>node.closest('[data-id]')?.dataset.id===element.id);
@@ -1273,8 +1282,7 @@
   function updateBoardTextTools() {
     const node = currentBoardText();
     const item = elements.find(element => element.id === selectedId);
-    $('#openBoardSettings').disabled = !item;
-    $('#removeBoardText').disabled = !node;
+    placeInlineRemove(node);
     const source = node?.hasAttribute('data-source-edit');
     const format = source ? {
       bold:Boolean(wholeTextMark(node,'strong')), italic:Boolean(wholeTextMark(node,'em')),
@@ -1286,6 +1294,20 @@
       const isPressed = key === 'bold' || key === 'italic' ? Boolean(format?.[key]) : (format?.align || 'left') === key;
       button.setAttribute('aria-pressed',String(Boolean(node && isPressed)));
     });
+  }
+
+  function placeInlineRemove(target) {
+    inlineRemoveTarget = target?.isConnected ? target : null;
+    const rect = inlineRemoveTarget?.getBoundingClientRect();
+    const board = artboard.getBoundingClientRect();
+    if (!rect?.width || !board.width) {
+      inlineRemove.hidden = true;
+      return;
+    }
+    const scale = board.width / artboard.offsetWidth;
+    inlineRemove.style.left = `${Math.min(artboard.clientWidth-14,(rect.right-board.left)/scale)}px`;
+    inlineRemove.style.top = `${(rect.top-board.top)/scale}px`;
+    inlineRemove.hidden = false;
   }
 
   function applyBoardTextFormat(command) {
@@ -1395,10 +1417,10 @@
     return ['split','columns','banner'].includes(item.type) || item.type === 'image' && item.imageStyle === 'greenText';
   }
 
-  function removeSelectedText() {
-    const anchor = currentBoardText();
-    if (!anchor) return;
-    const item = elements.find(element => element.id === selectedId);
+  function removeBoardText(anchor) {
+    const id = anchor?.closest('[data-id]')?.dataset.id;
+    const item = elements.find(element => element.id === id);
+    if (!item) return;
     const root = anchor.closest('[data-source-render]');
     if (root) {
       if (!allowsNestedText(item) && sourceTextNodes(root).length === 1 && !root.querySelector('img,audio,video')) {
@@ -2184,19 +2206,32 @@
   $('#saveBtn').addEventListener('click',saveDraft);
   $('#undoBtn').addEventListener('click',undo);
   $('#redoBtn').addEventListener('click',redo);
-  $('#openBoardSettings').addEventListener('click',() => {
+  function openBlockDetails(header) {
+    selectElement(header.closest('[data-id]').dataset.id);
     renderInspector();
     if (!boardSettings.open) boardSettings.showModal();
+  }
+  artboard.addEventListener('contextmenu',event => {
+    const header = event.target.closest('.board-section-header');
+    if (!header || event.target.closest('button')) return;
+    event.preventDefault();
+    openBlockDetails(header);
+  });
+  artboard.addEventListener('keydown',event => {
+    if (!event.target.matches('.board-section-header')) return;
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+      event.preventDefault();
+      openBlockDetails(event.target);
+    }
   });
   $('#closeBoardSettings').addEventListener('click',() => boardSettings.close());
   boardSettings.addEventListener('click',event => {
     if (event.target === boardSettings) boardSettings.close();
   });
   boardTextTools.addEventListener('mousedown',event => {
-    if (event.target.closest('[data-text-format],#removeBoardText')) event.preventDefault();
+    if (event.target.closest('[data-text-format]')) event.preventDefault();
   });
   boardTextTools.addEventListener('click',event => {
-    if (event.target.closest('#removeBoardText')) { removeSelectedText(); return; }
     const button = event.target.closest('[data-text-format]');
     if (button) applyBoardTextFormat(button.dataset.textFormat);
   });
@@ -2210,6 +2245,19 @@
   $('#zoomIn').addEventListener('click',() => {zoom=Math.min(1.35,zoom+.1);renderArtboard()});
   $('#zoomOut').addEventListener('click',() => {zoom=Math.max(.55,zoom-.1);renderArtboard()});
   $('#fitCanvas').addEventListener('click',fitCanvasToView);
+
+  inlineRemove.addEventListener('mousedown',event => event.preventDefault());
+  inlineRemove.addEventListener('click',event => {
+    event.stopPropagation();
+    removeBoardText(inlineRemoveTarget);
+  });
+  artboard.addEventListener('pointerover',event => {
+    if (event.target === inlineRemove) return;
+    placeInlineRemove(event.target.closest('[contenteditable="true"]') || currentBoardText());
+  });
+  artboard.addEventListener('pointerleave',() => placeInlineRemove(currentBoardText()));
+  artboard.addEventListener('input',() => placeInlineRemove(currentBoardText()));
+  window.addEventListener('resize',() => placeInlineRemove(inlineRemoveTarget));
 
   artboard.addEventListener('click',event => {
     const remove = event.target.closest('[data-canvas-remove]');

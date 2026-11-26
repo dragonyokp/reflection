@@ -1089,11 +1089,10 @@ body{font-size:18px}
   color: #d8f5bd;
   background: #354b2c;
 }
-.canvas-controls :is(#boardTextTools button,#openBoardSettings):disabled {
+.canvas-controls #boardTextTools button:disabled {
   opacity: .4;
   cursor: default;
 }
-.canvas-controls #openBoardSettings { min-height: 32px; padding: 0 10px; white-space: nowrap; }
 .alignment-icon { position: relative; display: block; width: 15px; height: 12px; border-block: 2px solid currentColor; }
 .alignment-icon::after {
   content: "";
@@ -1707,7 +1706,26 @@ body{font-size:18px}
 .canvas-block[data-block-drop="full"] :is(.image-placeholder,.preview-image-placeholder,.source-image-frame) {
   outline: 2px solid #bd5521;
 }
-#removeBoardText { width: auto; color: #ffc0aa; padding-inline: 8px; }
-#removeBoardText:disabled { opacity: .45; }
+.artboard { position: relative; }
+.artboard > .inline-text-remove {
+  position: absolute;
+  z-index: 13;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  transform: translate(-45%, -48%);
+  border: 1px solid #d8b9af;
+  border-radius: 6px;
+  background: #fff7f3;
+  color: #853e2e;
+  font: 700 19px/1 var(--font);
+  cursor: pointer;
+}
+.artboard > .inline-text-remove:is(:hover,:focus-visible) {
+  background: #a4513f;
+  color: #fff;
+}
 .board-section .source-text-drop-before { box-shadow: 0 -4px #76a34e; }
 .board-section .source-text-drop-after { box-shadow: 0 4px #76a34e; }
