@@ -328,6 +328,7 @@
       const marked=tag.replace(/\s*\/?\s*>$/,' data-source-image="'+index+'">');
       const shape=(tag.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide';
       const nativeWidth=Number((tag.match(/\bwidth="(\d+)"/i)||[])[1]||0);
+      const compact = !editing && isCompactPreviewImage(shape,nativeWidth);
       const fullWidth=/\bw-100\b/.test(tag);
       const frameWidth=width?`width:${Math.max(10,Math.min(120,width))}%`:nativeWidth&&!fullWidth?`width:${nativeWidth}px;max-width:100%`:'';
       const isSelected = editing && index === sourceImageSelection?.index && sourceImageSelection?.elementId === element?.id;
@@ -335,10 +336,10 @@
       if (editing && visualTemplate) {
         const action = hasUserImage ? 'เปลี่ยนรูปภาพ' : 'เพิ่มรูปภาพ';
         imageControl = `<button class="source-image-pick${hasUserImage ? ' source-image-replace' : ''}" data-source-pick type="button" aria-label="${action} ตำแหน่งที่ ${index + 1}"><span aria-hidden="true">${hasUserImage ? '↻' : '+'}</span> ${action}</button>`;
-      } else if (visualTemplate && !hasUserImage) {
+      } else if (visualTemplate && !hasUserImage && !compact) {
         imageControl = '<span class="source-template-green-label" aria-hidden="true">IMAGE</span>';
       }
-      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${isSelected?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${marked}${imageControl}${isSelected?renderResizeHandles({id:selectedId}):''}</span>`;
+      return `<span class="source-image-frame${visualTemplate?' source-template-green-frame shape-'+escapeHtml(shape)+(hasUserImage?' has-user-image':''):''}${compact?' compact-preview-image':''}${isSelected?' source-image-selected':''}" data-source-frame="${index}" style="${frameWidth}">${marked}${imageControl}${isSelected?renderResizeHandles({id:selectedId}):''}</span>`;
     });
     const preview = clean.replace(/(src|poster)="\/(storage\/[^\"]+)"/gi,'$1="https://www.bangchak.co.th/$2"');
     if (!editing) return preview;
@@ -384,6 +385,10 @@
     });
     return cleanSourceMarkup(copy.innerHTML,keepHints ?? Boolean(current?.visualTemplate)).replace(/https:\/\/www\.bangchak\.co\.th\//gi,'/');
   }
+  function isCompactPreviewImage(shape,width) {
+    return width > 0 && width <= 150 && ['wide','square'].includes(shape);
+  }
+
   function sourceThumbMarkup(markup) {
     return cleanSourceMarkup(markup,true)
       .replace(/<audio\b[^>]*>[\s\S]*?<\/audio\s*>|<audio\b[^>]*\/?\s*>/gi,'<span class="source-thumb-audio"><b>▶</b><span>00:00</span><i></i></span>')
@@ -391,7 +396,9 @@
         const width=Number((attrs.match(/\bwidth="(\d+)"/i)||[])[1]||0);
         const fullWidth=/\bw-100\b/.test(attrs);
         const sizing=width&&!fullWidth?` style="width:${width}px;max-width:100%"`:'';
-        return `<span class="source-thumb-image shape-${escapeHtml((attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1]||'wide')} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"${sizing}></span>`;
+        const shape = (attrs.match(/data-template-placeholder="([^"]+)"/i)||[])[1] || 'wide';
+        const compact = isCompactPreviewImage(shape,width) ? ' compact-preview-image' : '';
+        return `<span class="source-thumb-image shape-${escapeHtml(shape)}${compact} ${escapeHtml((attrs.match(/class="([^"]+)"/i)||[])[1]||'')}"${sizing}></span>`;
       });
   }
   function renderResizeHandles(element) {
@@ -440,14 +447,6 @@
       if (!view.clientWidth) return;
       const scale=Math.min(view.clientWidth/1000,1);
       page.style.transform=`scale(${scale})`;
-      const split = page.querySelector('.bg-split-news-left,.bg-split-news-right')?.parentElement;
-      if (!split) return;
-      const bounds = view.getBoundingClientRect();
-      const panel = split.getBoundingClientRect();
-      if (panel.top >= bounds.bottom) {
-        const offset = Math.min(panel.top-bounds.top,panel.bottom-bounds.bottom+12);
-        page.style.transform = `translateY(-${offset}px) scale(${scale})`;
-      }
     });
   }
   function renderGallery() {
@@ -486,6 +485,8 @@
     canvas.classList.toggle('visual-template-thumb',Boolean(template.visualTemplate));
     canvas.innerHTML = `<div class="source-template-site-header"><b>bangchak</b><span>ABOUT　 BUSINESS　 SUSTAINABILITY　 NEWS</span></div><div class="source-template-preview"><div class="source-template-page">${sourcePreviewMarkup(template.markup||'',Boolean(template.visualTemplate))}</div></div><div class="source-template-site-footer">CAN WE HELP?　 CONTACT · QUICK LINKS · CAREER</div>`;
     templatePreviewDialog.showModal();
+    canvas.scrollTop = 0;
+    canvas.scrollLeft = 0;
     requestAnimationFrame(fitTemplateDetailPreview);
   }
 
