@@ -1525,6 +1525,7 @@ body{font-size:18px}
   --board-reading-width: 57.333%;
   --board-highlight-width: 72%;
   padding-inline: var(--board-gutter) !important;
+  padding-block-start: 0 !important;
 }
 @media (max-width: 760px) {
   .artboard { --board-gutter: 72px; }
@@ -1740,27 +1741,31 @@ body{font-size:18px}
 .source-page-render [data-studio-nest] {
   position: relative;
   min-width: 0;
-  margin-block: 10px;
-  padding: 0 10px 8px;
-  background: #fff;
-  color: #29332b;
-  border: 1px solid #c7d7bd;
-  border-radius: 5px;
 }
 .source-page-render .nested-tool-bar {
+  position: absolute;
+  z-index: 11;
+  inset-block-start: 0;
+  inset-inline-end: 18px;
+  transform: translateY(-45%);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  margin: 0 -10px 8px;
-  padding: 3px 6px 3px 10px;
-  background: #f2f6ef;
-  color: #495b43;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
   cursor: grab;
 }
+.source-page-render [data-studio-nest]:is(:hover,:focus-within):not(:has([data-studio-nest]:is(:hover,:focus-within))) > .nested-tool-bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+.source-page-render .nested-tool-grip,
 .source-page-render .nested-tool-bar button {
-  flex: 0 0 28px;
-  height: 28px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 1px solid #d8b9af;
   border-radius: 5px;
@@ -1768,13 +1773,16 @@ body{font-size:18px}
   color: #853e2e;
   cursor: pointer;
 }
+.source-page-render .nested-tool-grip {
+  border-color: #c7d7bd;
+  background: #f2f6ef;
+  color: #495b43;
+  cursor: grab;
+}
 .source-page-render .nested-tool-bar button:hover { background: #853e2e; color: #fff; }
-.source-page-render [data-studio-nest] > .container { padding-inline: 8px; }
-.source-page-render [data-studio-nest] > p:last-child { margin-bottom: 0; }
+.source-page-render [data-studio-nest]:has(> [contenteditable]:nth-child(2):last-child) > .nested-tool-bar button { display: none; }
 .source-page-render [data-studio-photo-row] { margin-inline: -4px; }
 .source-page-render [data-studio-photo-row] > div { min-width: 0; padding-inline: 4px; }
-.source-page-render [data-studio-photo-row] [data-studio-nest] { padding-inline: 4px; }
-.source-page-render [data-studio-photo-row] .nested-tool-bar { margin-inline: -4px; }
 .source-page-render [data-studio-photo-row] figure { margin: 0; }
 .source-page-render [data-studio-nest][data-block-drop^="photo-"] { outline: 2px solid #568c3b; }
 .source-page-render [data-studio-nest][data-block-drop="full"] { outline: 2px solid #bd5521; }

@@ -55,6 +55,7 @@
   let draggedId = null;
   let draggedType = null;
   let draggedNested = null;
+  let nestedDragGrip = null;
   let sourceImageSelection = null;
   let sourceTextSelection = null;
   let activeTextField = null;
@@ -353,14 +354,18 @@
       bar.className = 'nested-tool-bar';
       bar.draggable = true;
       bar.setAttribute('data-template-preview-only','');
-      const title = document.createElement('b');
-      title.textContent = node.dataset.studioName || 'องค์ประกอบ';
+      const grip = document.createElement('span');
+      grip.className = 'nested-tool-grip';
+      grip.draggable = true;
+      grip.title = 'ลากเพื่อย้าย';
+      grip.setAttribute('aria-hidden','true');
+      grip.textContent = '⠿';
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.dataset.removeNested = node.dataset.studioNest;
-      remove.setAttribute('aria-label',`ลบ ${title.textContent}`);
+      remove.setAttribute('aria-label',`ลบ ${node.dataset.studioName || 'องค์ประกอบ'}`);
       remove.textContent = '×';
-      bar.append(title,remove);
+      bar.append(grip,remove);
       node.prepend(bar);
     });
     return fragment.innerHTML;
@@ -1429,6 +1434,11 @@
     const id = anchor?.closest('[data-id]')?.dataset.id;
     const item = elements.find(element => element.id === id);
     if (!item) return;
+    const nested = anchor.parentElement?.closest('[data-studio-nest]');
+    if (nested === anchor.parentElement && anchor.matches(':nth-child(2):last-child')) {
+      removeNestedTool(nested.querySelector(':scope > .nested-tool-bar [data-remove-nested]'));
+      return;
+    }
     const root = anchor.closest('[data-source-render]');
     if (root) {
       if (!allowsNestedText(item) && sourceTextNodes(root).length === 1 && !root.querySelector('img,audio,video')) {
@@ -2680,11 +2690,15 @@
     $('#undoBtn').disabled = !undoStack.length;
     $('#redoBtn').disabled = !redoStack.length;
   });
+  artboard.addEventListener('pointerdown',event => {
+    nestedDragGrip = event.target.closest('.nested-tool-grip');
+  });
+  document.addEventListener('pointerup',() => { nestedDragGrip = null; });
   artboard.addEventListener('dragstart',event => {
     if (event.target.closest('[data-resize-handle],[data-canvas-remove],[data-remove-nested],[contenteditable="true"]')) {event.preventDefault();return}
-    const block = event.target.closest('[data-id]');
+    const bar = event.target.closest('.nested-tool-bar') || nestedDragGrip?.closest('.nested-tool-bar');
+    const block = (bar || event.target).closest('[data-id]');
     if (!block) return;
-    const bar = event.target.closest('.nested-tool-bar');
     if (bar) {
       draggedNested = {hostId:block.dataset.id,id:bar.closest('[data-studio-nest]').dataset.studioNest};
       event.dataTransfer.effectAllowed = 'move';
@@ -2701,6 +2715,7 @@
     draggedId = null;
     draggedType = null;
     draggedNested = null;
+    nestedDragGrip = null;
   });
   artboard.addEventListener('dragend',event => event.target.closest('[data-id]')?.classList.remove('dragging'));
   artboard.addEventListener('dragover',event => {
